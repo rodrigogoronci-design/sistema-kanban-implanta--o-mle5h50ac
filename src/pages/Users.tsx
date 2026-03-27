@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import useMainStore, { User } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,71 +11,159 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Plus, Trash2, Pencil, Search } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+
+function UserFormModal({
+  open,
+  onOpenChange,
+  user,
+  onSubmit,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  user?: User
+  onSubmit: (data: Omit<User, 'id'>) => void
+}) {
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', avatar: '' })
+  const [emailError, setEmailError] = useState('')
+
+  useEffect(() => {
+    if (open) {
+      setFormData(
+        user
+          ? { name: user.name, email: user.email, phone: user.phone, avatar: user.avatar }
+          : { name: '', email: '', phone: '', avatar: '' },
+      )
+      setEmailError('')
+    }
+  }, [open, user])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setEmailError('Please enter a valid email address')
+      return
+    }
+    onSubmit(formData)
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFormData((s) => ({ ...s, avatar: reader.result as string }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{user ? 'Editar Usuário' : 'Cadastrar Usuário'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome Completo</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => {
+                setFormData((s) => ({ ...s, email: e.target.value }))
+                setEmailError('')
+              }}
+              required
+            />
+            {emailError && <p className="text-sm font-medium text-destructive">{emailError}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Telefone</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData((s) => ({ ...s, phone: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="avatar">Foto</Label>
+            {formData.avatar && (
+              <div className="flex mb-3">
+                <Avatar className="w-16 h-16 border-2 border-background shadow-sm">
+                  <AvatarImage src={formData.avatar} className="object-cover" />
+                  <AvatarFallback>{formData.name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+              </div>
+            )}
+            <Input id="avatar" type="file" accept="image/*" onChange={handlePhotoChange} />
+          </div>
+          <Button type="submit" className="w-full">
+            {user ? 'Atualizar' : 'Salvar'} Usuário
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 export default function Users() {
   const { users, addUser, updateUser, deleteUser } = useMainStore()
   const { toast } = useToast()
 
-  const [open, setOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | undefined>(undefined)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', avatar: '' })
-  const [editFormData, setEditFormData] = useState<User>({
-    id: '',
-    name: '',
-    email: '',
-    phone: '',
-    avatar: '',
-  })
-
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => user.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    return users.filter((u) => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
   }, [users, searchQuery])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.name || !formData.email) return
-
-    addUser({
-      id: Math.random().toString(),
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      avatar: formData.avatar || `https://img.usecurling.com/ppl/thumbnail?seed=${formData.name}`,
-    })
-    setFormData({ name: '', email: '', phone: '', avatar: '' })
-    setOpen(false)
-    toast({ title: 'Sucesso', description: 'Usuário cadastrado com sucesso!' })
+  const handleFormSubmit = (data: Omit<User, 'id'>) => {
+    if (editingUser) {
+      updateUser(editingUser.id, data)
+      toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
+    } else {
+      addUser({
+        id: Math.random().toString(),
+        ...data,
+        avatar: data.avatar || `https://img.usecurling.com/ppl/thumbnail?seed=${data.name}`,
+      })
+      toast({ title: 'Sucesso', description: 'Usuário cadastrado com sucesso!' })
+    }
+    setFormOpen(false)
   }
 
-  const handleEditClick = (user: User) => {
-    setEditFormData(user)
-    setEditOpen(true)
-  }
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editFormData.name || !editFormData.email) return
-
-    updateUser(editFormData.id, {
-      name: editFormData.name,
-      email: editFormData.email,
-      phone: editFormData.phone,
-      avatar: editFormData.avatar,
-    })
-    setEditOpen(false)
-    toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso!' })
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      deleteUser(userToDelete)
+      toast({ title: 'Sucesso', description: 'Usuário removido.' })
+    }
+    setUserToDelete(null)
   }
 
   return (
@@ -87,59 +175,14 @@ export default function Users() {
             Gerencie os colaboradores da equipe de implantação.
           </p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" /> Novo Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cadastrar Usuário</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData((s) => ({ ...s, phone: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="avatar">URL da Foto</Label>
-                <Input
-                  id="avatar"
-                  placeholder="Deixe em branco para gerar automaticamente"
-                  value={formData.avatar}
-                  onChange={(e) => setFormData((s) => ({ ...s, avatar: e.target.value }))}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Salvar Usuário
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={() => {
+            setEditingUser(undefined)
+            setFormOpen(true)
+          }}
+        >
+          <Plus className="w-4 h-4 mr-2" /> Novo Usuário
+        </Button>
       </div>
 
       <div className="flex items-center gap-4">
@@ -170,7 +213,7 @@ export default function Users() {
               <TableRow key={user.id} className="group">
                 <TableCell className="flex justify-center">
                   <Avatar className="border-2 border-background shadow-sm">
-                    <AvatarImage src={user.avatar} />
+                    <AvatarImage src={user.avatar} className="object-cover" />
                     <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                 </TableCell>
@@ -183,7 +226,10 @@ export default function Users() {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      onClick={() => handleEditClick(user)}
+                      onClick={() => {
+                        setEditingUser(user)
+                        setFormOpen(true)
+                      }}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -191,7 +237,7 @@ export default function Users() {
                       variant="ghost"
                       size="icon"
                       className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => deleteUser(user.id)}
+                      onClick={() => setUserToDelete(user.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -202,7 +248,7 @@ export default function Users() {
             {filteredUsers.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                  {users.length === 0 ? 'Nenhum usuário cadastrado.' : 'Nenhum usuário encontrado.'}
+                  Nenhum usuário encontrado.
                 </TableCell>
               </TableRow>
             )}
@@ -210,53 +256,25 @@ export default function Users() {
         </Table>
       </div>
 
-      <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome Completo</Label>
-              <Input
-                id="edit-name"
-                value={editFormData.name}
-                onChange={(e) => setEditFormData((s) => ({ ...s, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-email">E-mail</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={editFormData.email}
-                onChange={(e) => setEditFormData((s) => ({ ...s, email: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-phone">Telefone</Label>
-              <Input
-                id="edit-phone"
-                value={editFormData.phone}
-                onChange={(e) => setEditFormData((s) => ({ ...s, phone: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-avatar">URL da Foto</Label>
-              <Input
-                id="edit-avatar"
-                value={editFormData.avatar}
-                onChange={(e) => setEditFormData((s) => ({ ...s, avatar: e.target.value }))}
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Atualizar Usuário
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UserFormModal
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        user={editingUser}
+        onSubmit={handleFormSubmit}
+      />
+
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this user?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
