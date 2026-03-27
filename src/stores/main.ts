@@ -16,11 +16,18 @@ export interface Client {
   integrations: string
   logo: string
 }
+export type ProjectPhase =
+  | 'Configuração do Sistema'
+  | 'Em treinamento'
+  | 'Operação Assistida'
+  | 'Concluído'
+
 export interface Project {
   id: string
   name: string
   clientId: string
   analystId: string
+  phase: ProjectPhase
   implStart?: string
   implEnd?: string
   trainStart?: string
@@ -117,6 +124,7 @@ const initialMockState: MainState = {
       name: 'Implantação ERP Acme',
       clientId: '1',
       analystId: '1',
+      phase: 'Configuração do Sistema',
       implStart: '2024-05-01T00:00:00Z',
     },
     {
@@ -124,6 +132,7 @@ const initialMockState: MainState = {
       name: 'Migração RH Globex',
       clientId: '2',
       analystId: '2',
+      phase: 'Em treinamento',
       implStart: '2024-06-15T00:00:00Z',
     },
   ],
@@ -232,6 +241,11 @@ export default function useMainStore() {
       store.setState((s) => ({ ...s, clients: s.clients.filter((c) => c.id !== id) })),
     addProject: (project: Project) =>
       store.setState((s) => ({ ...s, projects: [...s.projects, project] })),
+    updateProject: (id: string, payload: Partial<Project>) =>
+      store.setState((s) => ({
+        ...s,
+        projects: s.projects.map((p) => (p.id === id ? { ...p, ...payload } : p)),
+      })),
     deleteProject: (id: string) =>
       store.setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) })),
   }
