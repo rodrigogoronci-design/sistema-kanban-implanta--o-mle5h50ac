@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import useMainStore from '@/stores/main'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,12 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { TaskChecklist } from './TaskChecklist'
 import { TaskActivities } from './TaskActivities'
 
-export default function TaskDrawer({ taskId, onClose }: { taskId: string; onClose: () => void }) {
+export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const { tasks, updateTask, users, clients, projects } = useMainStore()
   const task = tasks.find((t) => t.id === taskId)
 
@@ -32,25 +31,25 @@ export default function TaskDrawer({ taskId, onClose }: { taskId: string; onClos
   const onUpdate = (payload: Partial<typeof task>) => updateTask(task.id, payload)
 
   return (
-    <Sheet open={true} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="sm:max-w-md w-full overflow-hidden flex flex-col p-0">
-        <div className="p-6 pb-4 bg-muted/20 border-b">
-          <SheetHeader>
-            <SheetTitle className="text-xl text-primary">
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl w-full p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-6 pb-4 bg-muted/20 border-b shrink-0">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-primary">
               <Input
                 value={task.title}
                 onChange={(e) => updateTask(task.id, { title: e.target.value })}
                 className="text-lg font-bold h-auto py-1 px-2 -ml-2 bg-transparent border-transparent hover:border-input focus-visible:bg-background"
                 placeholder="Título da tarefa"
               />
-            </SheetTitle>
-          </SheetHeader>
+            </DialogTitle>
+          </DialogHeader>
         </div>
 
-        <ScrollArea className="flex-1 px-6">
-          <div className="flex flex-col gap-6 py-6">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="flex flex-col gap-6">
             <div className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Cliente</Label>
                   <Select value={task.clientId} onValueChange={handleClientChange}>
@@ -88,7 +87,7 @@ export default function TaskDrawer({ taskId, onClose }: { taskId: string; onClos
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Categoria</Label>
                   <Input
@@ -160,8 +159,8 @@ export default function TaskDrawer({ taskId, onClose }: { taskId: string; onClos
             <Separator />
             <TaskActivities task={task} onUpdate={onUpdate} />
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

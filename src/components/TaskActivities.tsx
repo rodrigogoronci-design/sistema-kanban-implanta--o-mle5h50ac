@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Task, TimeEntry } from '@/stores/main'
+import { Task } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Plus, Trash2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Trash2, Save } from 'lucide-react'
 
 interface Props {
   task: Task
@@ -13,112 +12,117 @@ interface Props {
 }
 
 export function TaskActivities({ task, onUpdate }: Props) {
-  const [activityErrors, setActivityErrors] = useState<Record<string, string>>({})
+  const [newActivity, setNewActivity] = useState({ start: '', end: '', observation: '' })
+  const [error, setError] = useState('')
 
-  const handleUpdateActivity = (id: string, field: keyof TimeEntry, value: string) => {
-    const updatedEntries = task.timeEntries.map((entry) => {
-      if (entry.id === id) {
-        const updated = { ...entry, [field]: value }
-        if (updated.start && updated.end && new Date(updated.end) < new Date(updated.start)) {
-          setActivityErrors((prev) => ({
-            ...prev,
-            [id]: 'A data final não pode ser anterior à inicial',
-          }))
-        } else {
-          setActivityErrors((prev) => {
-            const next = { ...prev }
-            delete next[id]
-            return next
-          })
-        }
-        return updated
-      }
-      return entry
-    })
-    onUpdate({ timeEntries: updatedEntries })
-  }
+  const handleSaveActivity = () => {
+    if (!newActivity.start || !newActivity.end) {
+      setError('Preencha os campos de início e fim')
+      return
+    }
+    if (new Date(newActivity.end) < new Date(newActivity.start)) {
+      setError('A data final não pode ser anterior à inicial')
+      return
+    }
 
-  const addActivity = () => {
     onUpdate({
-      timeEntries: [
-        ...task.timeEntries,
-        { id: Math.random().toString(), start: '', end: '', observation: '' },
-      ],
+      timeEntries: [...task.timeEntries, { id: Math.random().toString(), ...newActivity }],
     })
+
+    setNewActivity({ start: '', end: '', observation: '' })
+    setError('')
   }
 
   const removeActivity = (id: string) => {
     onUpdate({ timeEntries: task.timeEntries.filter((t) => t.id !== id) })
-    setActivityErrors((prev) => {
-      const next = { ...prev }
-      delete next[id]
-      return next
-    })
+  }
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleString()
+    } catch {
+      return dateStr
+    }
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label className="text-base text-foreground font-semibold">Registro de Atividades</Label>
-        <Button variant="outline" size="sm" onClick={addActivity}>
-          <Plus className="w-4 h-4 mr-2" /> Nova Atividade
+      <Label className="text-base text-foreground font-semibold">Registro de Atividades</Label>
+
+      <div className="bg-muted/30 p-4 rounded-lg border border-border/50 space-y-3">
+        <h4 className="text-sm font-medium text-foreground">Nova Atividade</h4>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Início</Label>
+            <Input
+              type="datetime-local"
+              value={newActivity.start}
+              onChange={(e) => setNewActivity((s) => ({ ...s, start: e.target.value }))}
+            />
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Fim</Label>
+            <Input
+              type="datetime-local"
+              value={newActivity.end}
+              onChange={(e) => setNewActivity((s) => ({ ...s, end: e.target.value }))}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Observação</Label>
+          <Textarea
+            value={newActivity.observation}
+            onChange={(e) => setNewActivity((s) => ({ ...s, observation: e.target.value }))}
+            rows={2}
+            placeholder="Detalhes da atividade..."
+            className="resize-none text-sm bg-background"
+          />
+        </div>
+
+        {error && <p className="text-xs text-destructive">{error}</p>}
+
+        <Button onClick={handleSaveActivity} className="w-full sm:w-auto mt-2">
+          <Save className="w-4 h-4 mr-2" /> Salvar Atividade
         </Button>
       </div>
 
-      <div className="space-y-3 mt-2">
+      <div className="space-y-3 mt-4">
         {task.timeEntries.map((entry) => (
-          <div key={entry.id} className="flex flex-col gap-3 bg-muted/40 p-3 rounded-lg border">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Início</Label>
-                <Input
-                  type="datetime-local"
-                  value={entry.start}
-                  onChange={(e) => handleUpdateActivity(entry.id, 'start', e.target.value)}
-                  className={cn(
-                    activityErrors[entry.id] && 'border-destructive focus-visible:ring-destructive',
-                  )}
-                />
-              </div>
-              <div className="flex-1 space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Fim</Label>
-                <Input
-                  type="datetime-local"
-                  value={entry.end}
-                  onChange={(e) => handleUpdateActivity(entry.id, 'end', e.target.value)}
-                  className={cn(
-                    activityErrors[entry.id] && 'border-destructive focus-visible:ring-destructive',
-                  )}
-                />
-              </div>
-            </div>
-            {activityErrors[entry.id] && (
-              <p className="text-xs text-destructive">{activityErrors[entry.id]}</p>
-            )}
-            <div className="flex gap-3 items-start">
-              <div className="flex-1 space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Observação</Label>
-                <Textarea
-                  value={entry.observation}
-                  onChange={(e) => handleUpdateActivity(entry.id, 'observation', e.target.value)}
-                  rows={2}
-                  placeholder="Detalhes da atividade..."
-                  className="resize-none text-sm"
-                />
+          <div
+            key={entry.id}
+            className="flex flex-col gap-2 bg-background p-3 rounded-lg border border-border/50 shadow-sm"
+          >
+            <div className="flex justify-between items-start gap-4">
+              <div className="text-sm text-foreground space-y-1">
+                <div>
+                  <span className="font-medium text-muted-foreground">Início:</span>{' '}
+                  {formatDate(entry.start)}
+                </div>
+                <div>
+                  <span className="font-medium text-muted-foreground">Fim:</span>{' '}
+                  {formatDate(entry.end)}
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-destructive mt-6 shrink-0 hover:bg-destructive/10"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                 onClick={() => removeActivity(entry.id)}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
             </div>
+            {entry.observation && (
+              <div className="text-sm text-muted-foreground bg-muted/40 p-2 rounded mt-1">
+                {entry.observation}
+              </div>
+            )}
           </div>
         ))}
         {task.timeEntries.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg bg-muted/20">
+          <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg bg-muted/10">
             Nenhuma atividade registrada.
           </p>
         )}

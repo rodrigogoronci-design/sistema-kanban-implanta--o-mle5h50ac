@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Plus, List as ListIcon, LayoutGrid, Search } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import TaskDrawer from '@/components/TaskDrawer'
+import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
 import {
   Select,
@@ -318,7 +318,7 @@ export default function Index() {
       </div>
 
       {selectedTaskId && (
-        <TaskDrawer taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+        <TaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
       )}
     </div>
   )
