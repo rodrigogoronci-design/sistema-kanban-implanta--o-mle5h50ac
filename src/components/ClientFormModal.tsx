@@ -7,6 +7,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Plus, Trash2, Building2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const applyCnpjMask = (value: string) => {
+  let v = value.replace(/\D/g, '').slice(0, 14)
+  if (v.length > 12) {
+    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5')
+  } else if (v.length > 8) {
+    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, '$1.$2.$3/$4')
+  } else if (v.length > 5) {
+    v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, '$1.$2.$3')
+  } else if (v.length > 2) {
+    v = v.replace(/^(\d{2})(\d{1,3}).*/, '$1.$2')
+  }
+  return v
+}
+
+const isValidWebsite = (url: string) => {
+  const pattern = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})(:\d{1,5})?(\/.*)?$/i
+  return pattern.test(url)
+}
 
 export function ClientFormModal({
   open,
@@ -30,6 +50,8 @@ export function ClientFormModal({
     notes: '',
   })
   const [emailErrors, setEmailErrors] = useState<Record<string, string>>({})
+  const [cnpjError, setCnpjError] = useState('')
+  const [websiteError, setWebsiteError] = useState('')
 
   useEffect(() => {
     if (open) {
@@ -37,7 +59,7 @@ export function ClientFormModal({
         client
           ? {
               name: client.name,
-              cnpj: client.cnpj,
+              cnpj: applyCnpjMask(client.cnpj || ''),
               contacts: client.contacts || [],
               modules: client.modules || [],
               logo: client.logo || '',
@@ -57,6 +79,8 @@ export function ClientFormModal({
             },
       )
       setEmailErrors({})
+      setCnpjError('')
+      setWebsiteError('')
     }
   }, [open, client])
 
@@ -64,22 +88,54 @@ export function ClientFormModal({
     e.preventDefault()
     let hasError = false
     const newErrors: Record<string, string> = {}
+
     formData.contacts.forEach((c) => {
       if (c.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
         newErrors[c.id] = 'E-mail inválido'
         hasError = true
       }
     })
+
+    if (formData.cnpj && formData.cnpj.replace(/\D/g, '').length < 14) {
+      setCnpjError('CNPJ deve conter 14 dígitos')
+      hasError = true
+    } else {
+      setCnpjError('')
+    }
+
+    if (formData.website && !isValidWebsite(formData.website)) {
+      setWebsiteError('Please enter a valid website URL')
+      hasError = true
+    } else {
+      setWebsiteError('')
+    }
+
     if (hasError) {
       setEmailErrors(newErrors)
       return
     }
+
     onSubmit({
       ...formData,
       logo:
         formData.logo ||
         `https://img.usecurling.com/i?q=${formData.name.split(' ')[0] || 'company'}&shape=fill`,
     })
+  }
+
+  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const masked = applyCnpjMask(e.target.value)
+    setFormData((s) => ({ ...s, cnpj: masked }))
+    if (cnpjError && masked.length === 18) {
+      setCnpjError('')
+    } else if (cnpjError && masked.length === 0) {
+      setCnpjError('')
+    }
+  }
+
+  const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((s) => ({ ...s, website: e.target.value }))
+    if (websiteError) setWebsiteError('')
   }
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,20 +202,30 @@ export function ClientFormModal({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="cnpj" className={cn(cnpjError && 'text-destructive')}>
+                CNPJ
+              </Label>
               <Input
                 id="cnpj"
                 value={formData.cnpj}
-                onChange={(e) => setFormData((s) => ({ ...s, cnpj: e.target.value }))}
+                onChange={handleCnpjChange}
+                className={cn(cnpjError && 'border-destructive focus-visible:ring-destructive')}
+                placeholder="00.000.000/0000-00"
               />
+              {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website" className={cn(websiteError && 'text-destructive')}>
+                Website
+              </Label>
               <Input
                 id="website"
                 value={formData.website}
-                onChange={(e) => setFormData((s) => ({ ...s, website: e.target.value }))}
+                onChange={handleWebsiteChange}
+                className={cn(websiteError && 'border-destructive focus-visible:ring-destructive')}
+                placeholder="https://www.exemplo.com.br"
               />
+              {websiteError && <p className="text-xs text-destructive">{websiteError}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="serverIp">IP do Servidor</Label>
@@ -208,6 +274,9 @@ export function ClientFormModal({
                       value={c.email}
                       onChange={(e) => updateContact(c.id, 'email', e.target.value)}
                       required
+                      className={cn(
+                        emailErrors[c.id] && 'border-destructive focus-visible:ring-destructive',
+                      )}
                     />
                     {emailErrors[c.id] && (
                       <p className="text-xs text-destructive">{emailErrors[c.id]}</p>
