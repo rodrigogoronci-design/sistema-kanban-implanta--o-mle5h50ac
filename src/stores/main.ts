@@ -7,14 +7,22 @@ export interface User {
   phone: string
   avatar: string
 }
+export interface ClientContact {
+  id: string
+  name: string
+  email: string
+  phone: string
+}
 export interface Client {
   id: string
   name: string
   cnpj: string
-  contact: string
+  contacts: ClientContact[]
   modules: string[]
-  integrations: string
   logo: string
+  website?: string
+  serverIp?: string
+  notes?: string
 }
 export type ProjectPhase =
   | 'Configuração do Sistema'
@@ -103,19 +111,27 @@ const initialMockState: MainState = {
       id: '1',
       name: 'Acme Corp',
       cnpj: '00.000.000/0001-00',
-      contact: 'João Diretor',
+      contacts: [
+        { id: 'c1', name: 'João Diretor', email: 'joao@acme.com', phone: '(11) 9999-9999' },
+      ],
       modules: ['ERP Financeiro', 'CRM Vendas'],
-      integrations: 'API SAP',
       logo: 'https://img.usecurling.com/i?q=acme&shape=fill&color=blue',
+      website: 'www.acme.com',
+      serverIp: '192.168.1.100',
+      notes: 'Cliente prioritário na fase de configuração.',
     },
     {
       id: '2',
       name: 'Globex Ind',
       cnpj: '11.111.111/0001-11',
-      contact: 'Maria Gerente',
+      contacts: [
+        { id: 'c2', name: 'Maria Gerente', email: 'maria@globex.com', phone: '(11) 8888-8888' },
+      ],
       modules: ['RH', 'Folha'],
-      integrations: 'Salesforce',
       logo: 'https://img.usecurling.com/i?q=globex&shape=fill&color=red',
+      website: 'www.globex.com',
+      serverIp: '10.0.0.5',
+      notes: 'Treinamento agendado para o próximo mês.',
     },
   ],
   projects: [
@@ -237,6 +253,11 @@ export default function useMainStore() {
       store.setState((s) => ({ ...s, users: s.users.filter((u) => u.id !== id) })),
     addClient: (client: Client) =>
       store.setState((s) => ({ ...s, clients: [...s.clients, client] })),
+    updateClient: (id: string, payload: Partial<Client>) =>
+      store.setState((s) => ({
+        ...s,
+        clients: s.clients.map((c) => (c.id === id ? { ...c, ...payload } : c)),
+      })),
     deleteClient: (id: string) =>
       store.setState((s) => ({ ...s, clients: s.clients.filter((c) => c.id !== id) })),
     addProject: (project: Project) =>
