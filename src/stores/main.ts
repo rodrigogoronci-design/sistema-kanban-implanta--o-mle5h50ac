@@ -219,6 +219,11 @@ export default function useMainStore() {
       })),
     addTask: (task: Task) => store.setState((s) => ({ ...s, tasks: [...s.tasks, task] })),
     addUser: (user: User) => store.setState((s) => ({ ...s, users: [...s.users, user] })),
+    updateUser: (id: string, payload: Partial<User>) =>
+      store.setState((s) => ({
+        ...s,
+        users: s.users.map((u) => (u.id === id ? { ...u, ...payload } : u)),
+      })),
     deleteUser: (id: string) =>
       store.setState((s) => ({ ...s, users: s.users.filter((u) => u.id !== id) })),
     addClient: (client: Client) =>
