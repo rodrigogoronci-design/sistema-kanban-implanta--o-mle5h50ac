@@ -51,8 +51,8 @@ export interface Subtask {
 export interface TimeEntry {
   id: string
   start: string
-  end?: string
-  duration?: number
+  end: string
+  observation: string
 }
 export interface Task {
   id: string
@@ -200,7 +200,12 @@ const initialMockState: MainState = {
       description: 'Capacitar analistas de RH.',
       checklist: [],
       timeEntries: [
-        { id: 't1', start: '2024-05-01T10:00:00Z', end: '2024-05-01T12:00:00Z', duration: 7200 },
+        {
+          id: 't1',
+          start: '2024-05-01T10:00',
+          end: '2024-05-01T12:00',
+          observation: 'Treinamento inicial das funcionalidades.',
+        },
       ],
     },
   ],

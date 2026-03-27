@@ -145,7 +145,14 @@ export default function Index() {
                     <Select
                       required
                       value={newTaskForm.clientId}
-                      onValueChange={(v) => setNewTaskForm((s) => ({ ...s, clientId: v }))}
+                      onValueChange={(v) => {
+                        const clientProjects = projects.filter((p) => p.clientId === v)
+                        setNewTaskForm((s) => ({
+                          ...s,
+                          clientId: v,
+                          projectId: clientProjects.length > 0 ? clientProjects[0].id : '',
+                        }))
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
@@ -170,11 +177,13 @@ export default function Index() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {projects.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
+                        {projects
+                          .filter((p) => p.clientId === newTaskForm.clientId)
+                          .map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -205,7 +214,15 @@ export default function Index() {
                       required
                       value={newTaskForm.category}
                       onChange={(e) => setNewTaskForm((s) => ({ ...s, category: e.target.value }))}
+                      list="new-categories"
                     />
+                    <datalist id="new-categories">
+                      <option value="Consultoria" />
+                      <option value="Infraestrutura" />
+                      <option value="Treinamento" />
+                      <option value="Implantação" />
+                      <option value="Suporte" />
+                    </datalist>
                   </div>
                 </div>
                 <Button type="submit" className="w-full">
