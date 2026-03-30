@@ -32,9 +32,32 @@ import {
 import { Label } from '@/components/ui/label'
 
 export default function Index() {
-  const { tasks, columns, updateTask, users, clients, projects, addTask } = useMainStore()
+  const { tasks, columns, updateTask, users, clients, projects, addTask, addColumn, updateColumn } =
+    useMainStore()
   const [view, setView] = useState<'kanban' | 'list'>('kanban')
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+
+  const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
+  const [editingColumnTitle, setEditingColumnTitle] = useState('')
+
+  const handleEditColumnStart = (col: { id: string; title: string }) => {
+    setEditingColumnId(col.id)
+    setEditingColumnTitle(col.title)
+  }
+
+  const handleEditColumnSave = () => {
+    if (editingColumnId && editingColumnTitle.trim()) {
+      updateColumn(editingColumnId, { title: editingColumnTitle.trim() })
+    }
+    setEditingColumnId(null)
+  }
+
+  const handleAddColumn = () => {
+    const newId = `col-${Math.random().toString(36).substr(2, 9)}`
+    addColumn({ id: newId, title: 'Nova Coluna' })
+    setEditingColumnId(newId)
+    setEditingColumnTitle('Nova Coluna')
+  }
 
   const [search, setSearch] = useState('')
   const [filterUser, setFilterUser] = useState('all')
@@ -82,6 +105,9 @@ export default function Index() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-6">
+      <div className="flex items-center justify-between shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight">Área de Trabalho</h1>
+      </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm shrink-0">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative w-full md:w-64">
@@ -244,12 +270,35 @@ export default function Index() {
                 onDrop={(e) => handleDrop(e, col.id)}
                 onDragOver={handleDragOver}
               >
-                <h3 className="font-bold text-sm mb-3 flex items-center justify-between text-foreground px-1">
-                  {col.title}
-                  <Badge variant="secondary" className="bg-background text-foreground shadow-sm">
+                <div className="flex items-center justify-between mb-3 px-1 gap-2">
+                  {editingColumnId === col.id ? (
+                    <Input
+                      autoFocus
+                      value={editingColumnTitle}
+                      onChange={(e) => setEditingColumnTitle(e.target.value)}
+                      onBlur={handleEditColumnSave}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleEditColumnSave()
+                        if (e.key === 'Escape') setEditingColumnId(null)
+                      }}
+                      className="h-8 text-sm font-bold flex-1"
+                    />
+                  ) : (
+                    <h3
+                      className="font-bold text-sm flex-1 cursor-pointer hover:bg-muted/80 p-1 rounded -ml-1 transition-colors"
+                      onClick={() => handleEditColumnStart(col)}
+                      title="Clique para editar"
+                    >
+                      {col.title}
+                    </h3>
+                  )}
+                  <Badge
+                    variant="secondary"
+                    className="bg-background text-foreground shadow-sm shrink-0"
+                  >
                     {filteredTasks.filter((t) => t.columnId === col.id).length}
                   </Badge>
-                </h3>
+                </div>
                 <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-[150px] p-1">
                   {filteredTasks
                     .filter((t) => t.columnId === col.id)
@@ -269,6 +318,14 @@ export default function Index() {
                 </div>
               </div>
             ))}
+            <Button
+              variant="outline"
+              className="w-80 h-[100px] shrink-0 border-dashed border-2 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-border/80 transition-colors"
+              onClick={handleAddColumn}
+            >
+              <Plus className="w-5 h-5" />
+              Adicionar Coluna
+            </Button>
           </div>
         ) : (
           <div className="rounded-xl border bg-card overflow-auto h-full shadow-sm">

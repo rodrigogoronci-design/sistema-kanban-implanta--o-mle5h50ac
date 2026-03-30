@@ -274,5 +274,12 @@ export default function useMainStore() {
       })),
     deleteProject: (id: string) =>
       store.setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) })),
+    addColumn: (column: Column) =>
+      store.setState((s) => ({ ...s, columns: [...s.columns, column] })),
+    updateColumn: (id: string, payload: Partial<Column>) =>
+      store.setState((s) => ({
+        ...s,
+        columns: s.columns.map((c) => (c.id === id ? { ...c, ...payload } : c)),
+      })),
   }
 }
