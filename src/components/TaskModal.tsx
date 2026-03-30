@@ -13,6 +13,12 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { TaskChecklist } from './TaskChecklist'
 import { TaskActivities } from './TaskActivities'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { CalendarIcon } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const { tasks, updateTask, users, clients, projects } = useMainStore()
@@ -120,6 +126,46 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <SelectItem value="Alta">Alta</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Data de Criação</Label>
+                  <Input
+                    readOnly
+                    value={task.createdAt ? format(parseISO(task.createdAt), 'dd/MM/yyyy') : '-'}
+                    className="bg-muted text-muted-foreground pointer-events-none"
+                  />
+                </div>
+                <div className="space-y-2 flex flex-col justify-end">
+                  <Label className="text-muted-foreground">Data de Vencimento</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={'outline'}
+                        className={cn(
+                          'w-full justify-start text-left font-normal bg-background',
+                          !task.dueDate && 'text-muted-foreground',
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {task.dueDate ? (
+                          format(parseISO(task.dueDate), 'dd/MM/yyyy')
+                        ) : (
+                          <span>Selecione...</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={task.dueDate ? parseISO(task.dueDate) : undefined}
+                        onSelect={(date) => updateTask(task.id, { dueDate: date?.toISOString() })}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 

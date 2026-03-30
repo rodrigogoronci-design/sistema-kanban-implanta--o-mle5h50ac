@@ -68,6 +68,8 @@ export interface Task {
   startDate?: string
   endDate?: string
   timeEntries: TimeEntry[]
+  createdAt: string
+  dueDate?: string
 }
 export interface Column {
   id: string
@@ -175,6 +177,8 @@ const initialMockState: MainState = {
         { id: 'c2', title: 'Reunião Estoque', completed: false },
       ],
       timeEntries: [],
+      createdAt: '2024-04-01T10:00:00Z',
+      dueDate: new Date(Date.now() - 86400000).toISOString(),
     },
     {
       id: '2',
@@ -188,6 +192,8 @@ const initialMockState: MainState = {
       description: 'Provisionar RDS na AWS.',
       checklist: [],
       timeEntries: [],
+      createdAt: '2024-04-02T10:00:00Z',
+      dueDate: new Date(Date.now() + 86400000).toISOString(),
     },
     {
       id: '3',
@@ -208,6 +214,8 @@ const initialMockState: MainState = {
           observation: 'Treinamento inicial das funcionalidades.',
         },
       ],
+      createdAt: '2024-04-03T10:00:00Z',
+      dueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
     },
   ],
 }

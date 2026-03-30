@@ -2,11 +2,22 @@ import { useState } from 'react'
 import useMainStore from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, List as ListIcon, LayoutGrid, Search } from 'lucide-react'
+import {
+  Plus,
+  List as ListIcon,
+  LayoutGrid,
+  Search,
+  Calendar as CalendarIcon,
+  X,
+} from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
+import { cn } from '@/lib/utils'
+import { format, isSameDay, parseISO } from 'date-fns'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import {
   Select,
   SelectContent,
@@ -90,6 +101,17 @@ export default function Index() {
 
   const [search, setSearch] = useState('')
   const [filterUser, setFilterUser] = useState('all')
+  const [filterClient, setFilterClient] = useState('all')
+  const [filterProject, setFilterProject] = useState('all')
+  const [filterDueDate, setFilterDueDate] = useState<Date | undefined>()
+
+  const clearFilters = () => {
+    setSearch('')
+    setFilterUser('all')
+    setFilterClient('all')
+    setFilterProject('all')
+    setFilterDueDate(undefined)
+  }
 
   const [openNewTask, setOpenNewTask] = useState(false)
   const [newTaskForm, setNewTaskForm] = useState({
@@ -147,6 +169,7 @@ export default function Index() {
       description: '',
       checklist: [],
       timeEntries: [],
+      createdAt: new Date().toISOString(),
     })
     setOpenNewTask(false)
   }
@@ -154,42 +177,32 @@ export default function Index() {
   const visibleColumns = columns.filter((c) => !c.archived)
 
   const filteredTasks = tasks.filter((t) => {
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
+    if (search) {
+      const q = search.toLowerCase()
+      if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q))
+        return false
+    }
     if (filterUser !== 'all' && t.responsibleId !== filterUser) return false
+    if (filterClient !== 'all' && t.clientId !== filterClient) return false
+    if (filterProject !== 'all' && t.projectId !== filterProject) return false
+    if (filterDueDate) {
+      if (!t.dueDate) return false
+      if (!isSameDay(parseISO(t.dueDate), filterDueDate)) return false
+    }
     return true
   })
 
+  const hasActiveFilters =
+    search ||
+    filterUser !== 'all' ||
+    filterClient !== 'all' ||
+    filterProject !== 'all' ||
+    filterDueDate
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-6">
+    <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">Área de Trabalho</h1>
-      </div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm shrink-0">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar card..."
-              className="pl-9 bg-background"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Select value={filterUser} onValueChange={setFilterUser}>
-            <SelectTrigger className="w-[200px] bg-background">
-              <SelectValue placeholder="Responsável" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Responsáveis</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="flex items-center gap-3">
           <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[120px]">
             <TabsList className="grid w-full grid-cols-2">
@@ -201,7 +214,6 @@ export default function Index() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
           <Dialog open={openNewTask} onOpenChange={setOpenNewTask}>
             <DialogTrigger asChild>
               <Button className="shadow-sm">
@@ -316,6 +328,110 @@ export default function Index() {
         </div>
       </div>
 
+      <div className="flex flex-col gap-3 bg-card p-4 rounded-lg border shadow-sm shrink-0">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por título ou descrição..."
+              className="pl-9 bg-background"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <Select
+            value={filterClient}
+            onValueChange={(val) => {
+              setFilterClient(val)
+              if (val !== 'all') {
+                const clientProjs = projects.filter((p) => p.clientId === val)
+                if (filterProject !== 'all' && !clientProjs.find((p) => p.id === filterProject)) {
+                  setFilterProject('all')
+                }
+              }
+            }}
+          >
+            <SelectTrigger className="w-[180px] bg-background">
+              <SelectValue placeholder="Cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Clientes</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Projetos</SelectItem>
+              {projects
+                .filter((p) => filterClient === 'all' || p.clientId === filterClient)
+                .map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterUser} onValueChange={setFilterUser}>
+            <SelectTrigger className="w-[180px] bg-background">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Responsáveis</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-[180px] justify-start text-left font-normal bg-background',
+                  !filterDueDate && 'text-muted-foreground',
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filterDueDate ? format(filterDueDate, 'dd/MM/yyyy') : <span>Vencimento</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={filterDueDate}
+                onSelect={setFilterDueDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearFilters}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              title="Limpar Filtros"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 overflow-hidden">
         {view === 'kanban' ? (
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 h-full items-start">
@@ -418,9 +534,9 @@ export default function Index() {
                 <TableRow className="bg-muted/50">
                   <TableHead>Título</TableHead>
                   <TableHead>Cliente</TableHead>
-                  <TableHead>Prioridade</TableHead>
+                  <TableHead>Projeto</TableHead>
+                  <TableHead>Vencimento</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Responsável</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -434,21 +550,23 @@ export default function Index() {
                     <TableCell className="text-muted-foreground">
                       {clients.find((c) => c.id === t.clientId)?.name}
                     </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {projects.find((p) => p.id === t.projectId)?.name}
+                    </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{t.priority}</Badge>
+                      {t.dueDate ? format(parseISO(t.dueDate), 'dd/MM/yyyy') : '-'}
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
                         {columns.find((c) => c.id === t.columnId)?.title || 'Sem Coluna'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{users.find((u) => u.id === t.responsibleId)?.name}</TableCell>
                   </TableRow>
                 ))}
                 {filteredTasks.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhuma tarefa encontrada.
+                      Nenhuma tarefa encontrada com os filtros atuais.
                     </TableCell>
                   </TableRow>
                 )}
