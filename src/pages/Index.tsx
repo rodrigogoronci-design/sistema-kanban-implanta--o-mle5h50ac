@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
+import ArchiveManager from '@/components/ArchiveManager'
 import { cn } from '@/lib/utils'
 import { format, isSameDay, parseISO } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -114,6 +115,7 @@ export default function Index() {
   }
 
   const [openNewTask, setOpenNewTask] = useState(false)
+  const [openArchiveManager, setOpenArchiveManager] = useState(false)
   const [newTaskForm, setNewTaskForm] = useState({
     title: '',
     clientId: '',
@@ -204,6 +206,13 @@ export default function Index() {
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">Área de Trabalho</h1>
         <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            className="shadow-sm"
+            onClick={() => setOpenArchiveManager(true)}
+          >
+            <Archive className="w-4 h-4 mr-2" /> Colunas Arquivadas
+          </Button>
           <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[120px]">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="kanban">
@@ -579,6 +588,8 @@ export default function Index() {
       {selectedTaskId && (
         <TaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
       )}
+
+      <ArchiveManager open={openArchiveManager} onOpenChange={setOpenArchiveManager} />
 
       <AlertDialog open={!!deleteColId} onOpenChange={(open) => !open && setDeleteColId(null)}>
         <AlertDialogContent>

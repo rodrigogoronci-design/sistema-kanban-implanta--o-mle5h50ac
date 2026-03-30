@@ -299,5 +299,15 @@ export default function useMainStore() {
         newCols.splice(endIndex, 0, removed)
         return { ...s, columns: newCols }
       }),
+    restoreColumn: (id: string) =>
+      store.setState((s) => {
+        const colIndex = s.columns.findIndex((c) => c.id === id)
+        if (colIndex === -1) return s
+        const col = s.columns[colIndex]
+        const newCols = Array.from(s.columns)
+        newCols.splice(colIndex, 1)
+        newCols.push({ ...col, archived: false })
+        return { ...s, columns: newCols }
+      }),
   }
 }
