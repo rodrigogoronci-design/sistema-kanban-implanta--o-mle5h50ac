@@ -30,15 +30,44 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { MoreVertical, Archive, Trash2, GripHorizontal } from 'lucide-react'
 
 export default function Index() {
-  const { tasks, columns, updateTask, users, clients, projects, addTask, addColumn, updateColumn } =
-    useMainStore()
+  const {
+    tasks,
+    columns,
+    updateTask,
+    users,
+    clients,
+    projects,
+    addTask,
+    addColumn,
+    updateColumn,
+    deleteColumn,
+    reorderColumns,
+  } = useMainStore()
   const [view, setView] = useState<'kanban' | 'list'>('kanban')
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [editingColumnTitle, setEditingColumnTitle] = useState('')
+  const [deleteColId, setDeleteColId] = useState<string | null>(null)
 
   const handleEditColumnStart = (col: { id: string; title: string }) => {
     setEditingColumnId(col.id)
@@ -73,16 +102,41 @@ export default function Index() {
   })
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.stopPropagation()
+    e.dataTransfer.setData('type', 'task')
     e.dataTransfer.setData('taskId', taskId)
   }
 
-  const handleDrop = (e: React.DragEvent, columnId: string) => {
-    e.preventDefault()
-    const taskId = e.dataTransfer.getData('taskId')
-    if (taskId) updateTask(taskId, { columnId })
+  const handleColumnDragStart = (e: React.DragEvent, colId: string) => {
+    e.stopPropagation()
+    e.dataTransfer.setData('type', 'column')
+    e.dataTransfer.setData('colId', colId)
   }
 
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault()
+  const handleDrop = (e: React.DragEvent, targetColId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const type = e.dataTransfer.getData('type')
+
+    if (type === 'column') {
+      const sourceColId = e.dataTransfer.getData('colId')
+      if (sourceColId && sourceColId !== targetColId) {
+        const sourceIdx = columns.findIndex((c) => c.id === sourceColId)
+        const targetIdx = columns.findIndex((c) => c.id === targetColId)
+        if (sourceIdx !== -1 && targetIdx !== -1) {
+          reorderColumns(sourceIdx, targetIdx)
+        }
+      }
+    } else {
+      const taskId = e.dataTransfer.getData('taskId')
+      if (taskId) updateTask(taskId, { columnId: targetColId })
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,6 +150,8 @@ export default function Index() {
     })
     setOpenNewTask(false)
   }
+
+  const visibleColumns = columns.filter((c) => !c.archived)
 
   const filteredTasks = tasks.filter((t) => {
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
@@ -263,41 +319,69 @@ export default function Index() {
       <div className="flex-1 overflow-hidden">
         {view === 'kanban' ? (
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 h-full items-start">
-            {columns.map((col) => (
+            {visibleColumns.map((col) => (
               <div
                 key={col.id}
-                className="flex flex-col bg-muted/60 rounded-xl p-3 w-80 shrink-0 max-h-full border shadow-sm"
+                draggable
+                onDragStart={(e) => handleColumnDragStart(e, col.id)}
                 onDrop={(e) => handleDrop(e, col.id)}
                 onDragOver={handleDragOver}
+                className="flex flex-col bg-muted/60 rounded-xl p-3 w-80 shrink-0 max-h-full border shadow-sm cursor-grab active:cursor-grabbing"
               >
                 <div className="flex items-center justify-between mb-3 px-1 gap-2">
-                  {editingColumnId === col.id ? (
-                    <Input
-                      autoFocus
-                      value={editingColumnTitle}
-                      onChange={(e) => setEditingColumnTitle(e.target.value)}
-                      onBlur={handleEditColumnSave}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleEditColumnSave()
-                        if (e.key === 'Escape') setEditingColumnId(null)
-                      }}
-                      className="h-8 text-sm font-bold flex-1"
-                    />
-                  ) : (
-                    <h3
-                      className="font-bold text-sm flex-1 cursor-pointer hover:bg-muted/80 p-1 rounded -ml-1 transition-colors"
-                      onClick={() => handleEditColumnStart(col)}
-                      title="Clique para editar"
-                    >
-                      {col.title}
-                    </h3>
-                  )}
-                  <Badge
-                    variant="secondary"
-                    className="bg-background text-foreground shadow-sm shrink-0"
-                  >
-                    {filteredTasks.filter((t) => t.columnId === col.id).length}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <GripHorizontal className="w-4 h-4 text-muted-foreground shrink-0 cursor-grab" />
+                    {editingColumnId === col.id ? (
+                      <Input
+                        autoFocus
+                        value={editingColumnTitle}
+                        onChange={(e) => setEditingColumnTitle(e.target.value)}
+                        onBlur={handleEditColumnSave}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleEditColumnSave()
+                          if (e.key === 'Escape') setEditingColumnId(null)
+                        }}
+                        className="h-8 text-sm font-bold flex-1"
+                      />
+                    ) : (
+                      <h3
+                        className="font-bold text-sm truncate flex-1 cursor-pointer hover:bg-muted/80 p-1 rounded -ml-1 transition-colors"
+                        onClick={() => handleEditColumnStart(col)}
+                        title="Clique para editar"
+                      >
+                        {col.title}
+                      </h3>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant="secondary" className="bg-background text-foreground shadow-sm">
+                      {filteredTasks.filter((t) => t.columnId === col.id).length}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => updateColumn(col.id, { archived: true })}>
+                          <Archive className="h-4 w-4 mr-2" />
+                          Arquivar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => setDeleteColId(col.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-[150px] p-1">
                   {filteredTasks
@@ -355,7 +439,7 @@ export default function Index() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {columns.find((c) => c.id === t.columnId)?.title}
+                        {columns.find((c) => c.id === t.columnId)?.title || 'Sem Coluna'}
                       </Badge>
                     </TableCell>
                     <TableCell>{users.find((u) => u.id === t.responsibleId)?.name}</TableCell>
@@ -377,6 +461,32 @@ export default function Index() {
       {selectedTaskId && (
         <TaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
       )}
+
+      <AlertDialog open={!!deleteColId} onOpenChange={(open) => !open && setDeleteColId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Coluna?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta coluna permanentemente? As tarefas nela ficarão
+              sem coluna visível. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteColId) {
+                  deleteColumn(deleteColId)
+                  setDeleteColId(null)
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

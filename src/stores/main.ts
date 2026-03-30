@@ -72,6 +72,7 @@ export interface Task {
 export interface Column {
   id: string
   title: string
+  archived?: boolean
 }
 
 export interface MainState {
@@ -281,5 +282,14 @@ export default function useMainStore() {
         ...s,
         columns: s.columns.map((c) => (c.id === id ? { ...c, ...payload } : c)),
       })),
+    deleteColumn: (id: string) =>
+      store.setState((s) => ({ ...s, columns: s.columns.filter((c) => c.id !== id) })),
+    reorderColumns: (startIndex: number, endIndex: number) =>
+      store.setState((s) => {
+        const newCols = Array.from(s.columns)
+        const [removed] = newCols.splice(startIndex, 1)
+        newCols.splice(endIndex, 0, removed)
+        return { ...s, columns: newCols }
+      }),
   }
 }
