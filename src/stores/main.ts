@@ -83,9 +83,11 @@ export interface MainState {
   projects: Project[]
   tasks: Task[]
   columns: Column[]
+  categories: string[]
 }
 
 const initialMockState: MainState = {
+  categories: ['Consultoria', 'Infraestrutura', 'Treinamento', 'Implantação', 'Suporte'],
   users: [
     {
       id: '1',
@@ -257,6 +259,13 @@ export default function useMainStore() {
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...payload } : t)),
       })),
     addTask: (task: Task) => store.setState((s) => ({ ...s, tasks: [...s.tasks, task] })),
+    addCategory: (category: string) =>
+      store.setState((s) => ({
+        ...s,
+        categories: s.categories.some((c) => c.toLowerCase() === category.toLowerCase())
+          ? s.categories
+          : [...s.categories, category],
+      })),
     addUser: (user: User) => store.setState((s) => ({ ...s, users: [...s.users, user] })),
     updateUser: (id: string, payload: Partial<User>) =>
       store.setState((s) => ({

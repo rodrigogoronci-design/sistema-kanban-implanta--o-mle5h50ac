@@ -16,12 +16,23 @@ import { TaskActivities } from './TaskActivities'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon } from 'lucide-react'
+import { CalendarIcon, Check, ChevronsUpDown, PlusCircle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { useState } from 'react'
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from '@/components/ui/command'
 
 export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const { tasks, updateTask, users, clients, projects } = useMainStore()
+  const { tasks, updateTask, users, clients, projects, categories, addCategory } = useMainStore()
+  const [categoryOpen, setCategoryOpen] = useState(false)
+  const [categorySearch, setCategorySearch] = useState('')
   const task = tasks.find((t) => t.id === taskId)
 
   if (!task) return null
@@ -96,20 +107,74 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Categoria</Label>
-                  <Input
-                    value={task.category}
-                    onChange={(e) => updateTask(task.id, { category: e.target.value })}
-                    className="bg-background"
-                    placeholder="Ex: Treinamento"
-                    list="drawer-categories"
-                  />
-                  <datalist id="drawer-categories">
-                    <option value="Consultoria" />
-                    <option value="Infraestrutura" />
-                    <option value="Treinamento" />
-                    <option value="Implantação" />
-                    <option value="Suporte" />
-                  </datalist>
+                  <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={categoryOpen}
+                        className={cn(
+                          'w-full justify-between bg-background font-normal',
+                          !task.category && 'text-muted-foreground',
+                        )}
+                      >
+                        {task.category || 'Ex: Treinamento'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start"
+                    >
+                      <Command>
+                        <CommandInput
+                          placeholder="Buscar categoria..."
+                          value={categorySearch}
+                          onValueChange={setCategorySearch}
+                        />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {categories.map((cat) => (
+                              <CommandItem
+                                key={cat}
+                                value={cat}
+                                onSelect={() => {
+                                  updateTask(task.id, { category: cat })
+                                  setCategoryOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 h-4 w-4',
+                                    task.category === cat ? 'opacity-100' : 'opacity-0',
+                                  )}
+                                />
+                                {cat}
+                              </CommandItem>
+                            ))}
+                            {categorySearch &&
+                              !categories.some(
+                                (c) => c.toLowerCase() === categorySearch.toLowerCase(),
+                              ) && (
+                                <CommandItem
+                                  value={categorySearch}
+                                  onSelect={() => {
+                                    addCategory(categorySearch)
+                                    updateTask(task.id, { category: categorySearch })
+                                    setCategorySearch('')
+                                    setCategoryOpen(false)
+                                  }}
+                                >
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Criar "{categorySearch}"
+                                </CommandItem>
+                              )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Prioridade</Label>
