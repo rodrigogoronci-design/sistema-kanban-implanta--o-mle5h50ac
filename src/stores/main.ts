@@ -302,7 +302,12 @@ export default function useMainStore() {
         clients: s.clients.map((c) => (c.id === id ? { ...c, ...payload } : c)),
       })),
     deleteClient: (id: string) =>
-      store.setState((s) => ({ ...s, clients: s.clients.filter((c) => c.id !== id) })),
+      store.setState((s) => ({
+        ...s,
+        clients: s.clients.filter((c) => c.id !== id),
+        tasks: s.tasks.map((t) => (t.clientId === id ? { ...t, clientId: '', projectId: '' } : t)),
+        projects: s.projects.filter((p) => p.clientId !== id),
+      })),
     addProject: (project: Project) =>
       store.setState((s) => ({ ...s, projects: [...s.projects, project] })),
     updateProject: (id: string, payload: Partial<Project>) =>

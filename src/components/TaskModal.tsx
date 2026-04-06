@@ -16,7 +16,7 @@ import { TaskActivities } from './TaskActivities'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon, Check, ChevronsUpDown, Settings } from 'lucide-react'
+import { CalendarIcon, Check, ChevronsUpDown, Settings, Edit2, Trash2, X, Plus } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -31,9 +31,24 @@ import {
 import { CategoryManager } from './CategoryManager'
 
 export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
-  const { tasks, updateTask, users, clients, projects, categories } = useMainStore()
+  const {
+    tasks,
+    updateTask,
+    users,
+    clients,
+    projects,
+    categories,
+    addClient,
+    updateClient,
+    deleteClient,
+  } = useMainStore()
   const [categoryOpen, setCategoryOpen] = useState(false)
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
+  const [clientOpen, setClientOpen] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
+  const [editingClientId, setEditingClientId] = useState<string | null>(null)
+  const [editingClientName, setEditingClientName] = useState('')
+
   const task = tasks.find((t) => t.id === taskId)
 
   if (!task) return null
@@ -71,18 +86,212 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Cliente</Label>
-                    <Select value={task.clientId} onValueChange={handleClientChange}>
-                      <SelectTrigger className="bg-background">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={clientOpen}
+                          className={cn(
+                            'w-full justify-between bg-background font-normal',
+                            !task.clientId && 'text-muted-foreground',
+                          )}
+                        >
+                          <span className="truncate">
+                            {task.clientId
+                              ? clients.find((c) => c.id === task.clientId)?.name ||
+                                'Cliente não encontrado'
+                              : 'Selecione um cliente...'}
+                          </span>
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput
+                            placeholder="Buscar cliente..."
+                            value={clientSearch}
+                            onValueChange={setClientSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty className="py-4 px-2 text-center text-sm">
+                              <p className="text-muted-foreground mb-2">
+                                Nenhum cliente encontrado.
+                              </p>
+                              {clientSearch && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => {
+                                    const newId = `client-${Math.random().toString(36).substr(2, 9)}`
+                                    addClient({
+                                      id: newId,
+                                      name: clientSearch,
+                                      cnpj: '',
+                                      contacts: [],
+                                      modules: [],
+                                      logo: `https://img.usecurling.com/i?q=${encodeURIComponent(clientSearch)}&shape=fill&color=blue`,
+                                    })
+                                    handleClientChange(newId)
+                                    setClientOpen(false)
+                                    setClientSearch('')
+                                  }}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Criar "{clientSearch}"
+                                </Button>
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {clients.map((c) => (
+                                <CommandItem
+                                  key={c.id}
+                                  value={c.name}
+                                  onSelect={() => {
+                                    if (editingClientId) return
+                                    handleClientChange(c.id)
+                                    setClientOpen(false)
+                                  }}
+                                  className="group flex items-center justify-between"
+                                >
+                                  <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                    <Check
+                                      className={cn(
+                                        'h-4 w-4 shrink-0',
+                                        task.clientId === c.id ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {editingClientId === c.id ? (
+                                      <Input
+                                        value={editingClientName}
+                                        onChange={(e) => setEditingClientName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            if (editingClientName.trim()) {
+                                              updateClient(c.id, { name: editingClientName.trim() })
+                                            }
+                                            setEditingClientId(null)
+                                            e.stopPropagation()
+                                          }
+                                          if (e.key === 'Escape') {
+                                            setEditingClientId(null)
+                                            e.stopPropagation()
+                                          }
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="h-7 py-1 px-2 text-sm"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <span className="truncate">{c.name}</span>
+                                    )}
+                                  </div>
+
+                                  {!editingClientId && (
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setEditingClientId(c.id)
+                                          setEditingClientName(c.name)
+                                        }}
+                                      >
+                                        <Edit2 className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (
+                                            confirm(
+                                              `Tem certeza que deseja excluir o cliente ${c.name}? Isso pode afetar tarefas e projetos associados.`,
+                                            )
+                                          ) {
+                                            deleteClient(c.id)
+                                            if (task.clientId === c.id) {
+                                              updateTask(task.id, { clientId: '', projectId: '' })
+                                            }
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {editingClientId === c.id && (
+                                    <div className="flex items-center gap-1 shrink-0 ml-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100/50"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (editingClientName.trim()) {
+                                            updateClient(c.id, { name: editingClientName.trim() })
+                                          }
+                                          setEditingClientId(null)
+                                        }}
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-muted-foreground"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          setEditingClientId(null)
+                                        }}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                            {clients.length > 0 &&
+                              clientSearch &&
+                              !clients.some(
+                                (c) => c.name.toLowerCase() === clientSearch.toLowerCase(),
+                              ) && (
+                                <CommandGroup>
+                                  <CommandItem
+                                    value={clientSearch}
+                                    onSelect={() => {
+                                      const newId = `client-${Math.random().toString(36).substr(2, 9)}`
+                                      addClient({
+                                        id: newId,
+                                        name: clientSearch,
+                                        cnpj: '',
+                                        contacts: [],
+                                        modules: [],
+                                        logo: `https://img.usecurling.com/i?q=${encodeURIComponent(clientSearch)}&shape=fill&color=blue`,
+                                      })
+                                      handleClientChange(newId)
+                                      setClientOpen(false)
+                                      setClientSearch('')
+                                    }}
+                                    className="text-primary font-medium"
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Criar "{clientSearch}"
+                                  </CommandItem>
+                                </CommandGroup>
+                              )}
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Projeto</Label>
