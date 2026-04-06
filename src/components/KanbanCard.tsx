@@ -18,7 +18,7 @@ const priorityColors: Record<string, string> = {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: Props) {
-  const { users, clients } = useMainStore()
+  const { users, clients, categories } = useMainStore()
   const user = users.find((u) => u.id === task.responsibleId)
   const client = clients.find((c) => c.id === task.clientId)
 
@@ -74,8 +74,20 @@ export default function KanbanCard({ task, onClick, onDragStart }: Props) {
             </Badge>
           )}
         </div>
-        <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full shrink-0">
-          {task.category}
+        <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1.5 max-w-[120px] truncate">
+          {(() => {
+            const category = categories.find((c) => c.id === task.categoryId)
+            if (!category) return 'Sem Categoria'
+            return (
+              <>
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: category.color }}
+                />
+                <span className="truncate">{category.name}</span>
+              </>
+            )
+          })()}
         </span>
       </div>
 

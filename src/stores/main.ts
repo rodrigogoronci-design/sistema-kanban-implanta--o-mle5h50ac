@@ -54,6 +54,11 @@ export interface TimeEntry {
   end: string
   observation: string
 }
+export interface Category {
+  id: string
+  name: string
+  color: string
+}
 export interface Task {
   id: string
   title: string
@@ -61,7 +66,7 @@ export interface Task {
   projectId: string
   responsibleId: string
   priority: 'Baixa' | 'Média' | 'Alta'
-  category: string
+  categoryId?: string
   columnId: string
   description: string
   checklist: Subtask[]
@@ -83,11 +88,17 @@ export interface MainState {
   projects: Project[]
   tasks: Task[]
   columns: Column[]
-  categories: string[]
+  categories: Category[]
 }
 
 const initialMockState: MainState = {
-  categories: ['Consultoria', 'Infraestrutura', 'Treinamento', 'Implantação', 'Suporte'],
+  categories: [
+    { id: 'cat-1', name: 'Consultoria', color: '#3b82f6' },
+    { id: 'cat-2', name: 'Infraestrutura', color: '#10b981' },
+    { id: 'cat-3', name: 'Treinamento', color: '#f59e0b' },
+    { id: 'cat-4', name: 'Implantação', color: '#8b5cf6' },
+    { id: 'cat-5', name: 'Suporte', color: '#ef4444' },
+  ],
   users: [
     {
       id: '1',
@@ -171,7 +182,7 @@ const initialMockState: MainState = {
       projectId: '1',
       responsibleId: '1',
       priority: 'Alta',
-      category: 'Consultoria',
+      categoryId: 'cat-1',
       columnId: 'in-progress',
       description: 'Realizar reuniões com as áreas chaves.',
       checklist: [
@@ -189,7 +200,7 @@ const initialMockState: MainState = {
       projectId: '1',
       responsibleId: '2',
       priority: 'Alta',
-      category: 'Infraestrutura',
+      categoryId: 'cat-2',
       columnId: 'backlog',
       description: 'Provisionar RDS na AWS.',
       checklist: [],
@@ -204,7 +215,7 @@ const initialMockState: MainState = {
       projectId: '2',
       responsibleId: '3',
       priority: 'Média',
-      category: 'Treinamento',
+      categoryId: 'cat-3',
       columnId: 'training',
       description: 'Capacitar analistas de RH.',
       checklist: [],
@@ -259,12 +270,21 @@ export default function useMainStore() {
         tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...payload } : t)),
       })),
     addTask: (task: Task) => store.setState((s) => ({ ...s, tasks: [...s.tasks, task] })),
-    addCategory: (category: string) =>
+    addCategory: (category: Omit<Category, 'id'>) => {
+      const id = `cat-${Math.random().toString(36).substr(2, 9)}`
+      store.setState((s) => ({ ...s, categories: [...s.categories, { ...category, id }] }))
+      return id
+    },
+    updateCategory: (id: string, payload: Partial<Category>) =>
       store.setState((s) => ({
         ...s,
-        categories: s.categories.some((c) => c.toLowerCase() === category.toLowerCase())
-          ? s.categories
-          : [...s.categories, category],
+        categories: s.categories.map((c) => (c.id === id ? { ...c, ...payload } : c)),
+      })),
+    deleteCategory: (id: string) =>
+      store.setState((s) => ({
+        ...s,
+        categories: s.categories.filter((c) => c.id !== id),
+        tasks: s.tasks.map((t) => (t.categoryId === id ? { ...t, categoryId: undefined } : t)),
       })),
     addUser: (user: User) => store.setState((s) => ({ ...s, users: [...s.users, user] })),
     updateUser: (id: string, payload: Partial<User>) =>

@@ -59,6 +59,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { MoreVertical, Archive, Trash2, GripHorizontal } from 'lucide-react'
+import { BarChart, Bar, XAxis, Cell } from 'recharts'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
 export default function Index() {
   const {
@@ -68,6 +70,7 @@ export default function Index() {
     users,
     clients,
     projects,
+    categories,
     addTask,
     addColumn,
     updateColumn,
@@ -104,6 +107,7 @@ export default function Index() {
   const [filterUser, setFilterUser] = useState('all')
   const [filterClient, setFilterClient] = useState('all')
   const [filterProject, setFilterProject] = useState('all')
+  const [filterCategory, setFilterCategory] = useState('all')
   const [filterDueDate, setFilterDueDate] = useState<Date | undefined>()
 
   const clearFilters = () => {
@@ -111,6 +115,7 @@ export default function Index() {
     setFilterUser('all')
     setFilterClient('all')
     setFilterProject('all')
+    setFilterCategory('all')
     setFilterDueDate(undefined)
   }
 
@@ -122,7 +127,7 @@ export default function Index() {
     projectId: '',
     responsibleId: '',
     priority: 'Média' as any,
-    category: 'Implantação',
+    categoryId: '',
   })
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -167,6 +172,7 @@ export default function Index() {
     addTask({
       id: Math.random().toString(),
       ...newTaskForm,
+      categoryId: newTaskForm.categoryId || undefined,
       columnId: 'backlog',
       description: '',
       checklist: [],
@@ -187,6 +193,10 @@ export default function Index() {
     if (filterUser !== 'all' && t.responsibleId !== filterUser) return false
     if (filterClient !== 'all' && t.clientId !== filterClient) return false
     if (filterProject !== 'all' && t.projectId !== filterProject) return false
+    if (filterCategory !== 'all') {
+      if (filterCategory === 'none' && t.categoryId) return false
+      if (filterCategory !== 'none' && t.categoryId !== filterCategory) return false
+    }
     if (filterDueDate) {
       if (!t.dueDate) return false
       if (!isSameDay(parseISO(t.dueDate), filterDueDate)) return false
@@ -199,7 +209,18 @@ export default function Index() {
     filterUser !== 'all' ||
     filterClient !== 'all' ||
     filterProject !== 'all' ||
+    filterCategory !== 'all' ||
     filterDueDate
+
+  const chartData = categories.map((cat) => ({
+    name: cat.name,
+    count: tasks.filter((t) => t.categoryId === cat.id).length,
+    fill: cat.color,
+  }))
+  const uncategorizedCount = tasks.filter((t) => !t.categoryId).length
+  if (uncategorizedCount > 0) {
+    chartData.push({ name: 'Sem Categoria', count: uncategorizedCount, fill: '#cbd5e1' })
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
@@ -313,19 +334,27 @@ export default function Index() {
                   </div>
                   <div className="space-y-2">
                     <Label>Categoria</Label>
-                    <Input
-                      required
-                      value={newTaskForm.category}
-                      onChange={(e) => setNewTaskForm((s) => ({ ...s, category: e.target.value }))}
-                      list="new-categories"
-                    />
-                    <datalist id="new-categories">
-                      <option value="Consultoria" />
-                      <option value="Infraestrutura" />
-                      <option value="Treinamento" />
-                      <option value="Implantação" />
-                      <option value="Suporte" />
-                    </datalist>
+                    <Select
+                      value={newTaskForm.categoryId}
+                      onValueChange={(v) => setNewTaskForm((s) => ({ ...s, categoryId: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: c.color }}
+                              />
+                              {c.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <Button type="submit" className="w-full">
@@ -335,6 +364,26 @@ export default function Index() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
+
+      <div className="bg-card p-4 rounded-lg border shadow-sm shrink-0 flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-muted-foreground">
+          Volume de Tarefas por Categoria
+        </h2>
+        <ChartContainer
+          config={{ count: { label: 'Tarefas' } }}
+          className="h-[100px] w-full aspect-auto"
+        >
+          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+            <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
       </div>
 
       <div className="flex flex-col gap-3 bg-card p-4 rounded-lg border shadow-sm shrink-0">
@@ -361,7 +410,7 @@ export default function Index() {
               }
             }}
           >
-            <SelectTrigger className="w-[180px] bg-background">
+            <SelectTrigger className="w-[160px] bg-background">
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -375,7 +424,7 @@ export default function Index() {
           </Select>
 
           <Select value={filterProject} onValueChange={setFilterProject}>
-            <SelectTrigger className="w-[180px] bg-background">
+            <SelectTrigger className="w-[160px] bg-background">
               <SelectValue placeholder="Projeto" />
             </SelectTrigger>
             <SelectContent>
@@ -391,7 +440,7 @@ export default function Index() {
           </Select>
 
           <Select value={filterUser} onValueChange={setFilterUser}>
-            <SelectTrigger className="w-[180px] bg-background">
+            <SelectTrigger className="w-[160px] bg-background">
               <SelectValue placeholder="Responsável" />
             </SelectTrigger>
             <SelectContent>
@@ -404,12 +453,27 @@ export default function Index() {
             </SelectContent>
           </Select>
 
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="w-[160px] bg-background">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas Categorias</SelectItem>
+              <SelectItem value="none">Sem Categoria</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
-                  'w-[180px] justify-start text-left font-normal bg-background',
+                  'w-[160px] justify-start text-left font-normal bg-background',
                   !filterDueDate && 'text-muted-foreground',
                 )}
               >
