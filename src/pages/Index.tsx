@@ -212,14 +212,21 @@ export default function Index() {
     filterCategory !== 'all' ||
     filterDueDate
 
-  const chartData = categories.map((cat) => ({
-    name: cat.name,
-    count: tasks.filter((t) => t.categoryId === cat.id).length,
-    fill: cat.color,
-  }))
+  const chartData = categories.map((cat) => {
+    const count = tasks.filter((t) => t.categoryId === cat.id).length
+    return {
+      name: `${cat.name} (${count})`,
+      count,
+      fill: cat.color,
+    }
+  })
   const uncategorizedCount = tasks.filter((t) => !t.categoryId).length
   if (uncategorizedCount > 0) {
-    chartData.push({ name: 'Sem Categoria', count: uncategorizedCount, fill: '#cbd5e1' })
+    chartData.push({
+      name: `Sem Categoria (${uncategorizedCount})`,
+      count: uncategorizedCount,
+      fill: '#cbd5e1',
+    })
   }
 
   return (
