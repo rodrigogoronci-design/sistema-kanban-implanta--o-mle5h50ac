@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button'
 export default function Layout() {
   const location = useLocation()
   const navItems = [
-    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+    { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
     { title: 'Clientes', url: '/clients', icon: Building2 },
     { title: 'Projetos', url: '/projects', icon: Briefcase },
     { title: 'Usuários', url: '/users', icon: Users },
