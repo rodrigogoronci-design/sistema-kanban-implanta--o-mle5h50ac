@@ -9,7 +9,9 @@ import {
   Search,
   Calendar as CalendarIcon,
   X,
+  Images,
 } from 'lucide-react'
+import GlobalAttachmentGallery from '@/components/GlobalAttachmentGallery'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import TaskModal from '@/components/TaskModal'
@@ -75,7 +77,7 @@ export default function Index() {
     deleteColumn,
     reorderColumns,
   } = useMainStore()
-  const [view, setView] = useState<'kanban' | 'list'>('kanban')
+  const [view, setView] = useState<'kanban' | 'list' | 'gallery'>('kanban')
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
@@ -185,8 +187,10 @@ export default function Index() {
   const filteredTasks = tasks.filter((t) => {
     if (search) {
       const q = search.toLowerCase()
-      if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q))
-        return false
+      const matchesTask =
+        t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+      const matchesAttachment = t.attachments?.some((a) => a.name.toLowerCase().includes(q))
+      if (!matchesTask && !matchesAttachment) return false
     }
     if (filterUser !== 'all' && t.responsibleId !== filterUser) return false
     if (filterClient !== 'all' && t.clientId !== filterClient) return false
@@ -222,13 +226,16 @@ export default function Index() {
           >
             <Archive className="w-4 h-4 mr-2" /> Colunas Arquivadas
           </Button>
-          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[120px]">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="kanban">
+          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[160px]">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="kanban" title="Kanban">
                 <LayoutGrid className="w-4 h-4" />
               </TabsTrigger>
-              <TabsTrigger value="list">
+              <TabsTrigger value="list" title="Lista">
                 <ListIcon className="w-4 h-4" />
+              </TabsTrigger>
+              <TabsTrigger value="gallery" title="Galeria de Anexos">
+                <Images className="w-4 h-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -507,7 +514,13 @@ export default function Index() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {view === 'kanban' ? (
+        {view === 'gallery' ? (
+          <GlobalAttachmentGallery
+            tasks={filteredTasks}
+            searchTerm={search}
+            onTaskClick={setSelectedTaskId}
+          />
+        ) : view === 'kanban' ? (
           <div className="flex gap-4 overflow-x-auto overflow-y-hidden pb-4 h-full items-start">
             {visibleColumns.map((col) => (
               <div
