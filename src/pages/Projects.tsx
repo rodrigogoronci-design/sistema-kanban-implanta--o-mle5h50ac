@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Pencil, Settings2 } from 'lucide-react'
+import { Plus, Trash2, Pencil, Settings2, FolderOpen } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { StatusManagementModal } from '@/components/projects/StatusManagementModal'
 import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
+import { ProjectGalleryModal } from '@/components/projects/ProjectGalleryModal'
 import { getTaskHours } from '@/lib/time'
 
 export default function Projects() {
@@ -48,6 +49,7 @@ export default function Projects() {
   const [statusModalOpen, setStatusModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>(undefined)
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null)
+  const [galleryProject, setGalleryProject] = useState<Project | undefined>(undefined)
 
   const handleFormSubmit = (data: Omit<Project, 'id'>) => {
     if (editingProject) {
@@ -176,6 +178,15 @@ export default function Projects() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        onClick={() => setGalleryProject(proj)}
+                        title="Galeria de Arquivos"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
                         onClick={() => {
                           setEditingProject(proj)
                           setFormOpen(true)
@@ -214,6 +225,12 @@ export default function Projects() {
         onSubmit={handleFormSubmit}
       />
       <StatusManagementModal open={statusModalOpen} onOpenChange={setStatusModalOpen} />
+
+      <ProjectGalleryModal
+        project={galleryProject}
+        open={!!galleryProject}
+        onOpenChange={(open) => !open && setGalleryProject(undefined)}
+      />
 
       <AlertDialog
         open={!!projectToDelete}
