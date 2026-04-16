@@ -13,6 +13,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { TaskChecklist } from './TaskChecklist'
 import { TaskActivities } from './TaskActivities'
+import { TaskAttachments } from './TaskAttachments'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
@@ -488,6 +489,8 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
               <Separator />
               <TaskChecklist task={task} onUpdate={onUpdate} />
+              <Separator />
+              <TaskAttachments task={task} onUpdate={onUpdate} />
               <Separator />
               <TaskActivities task={task} onUpdate={onUpdate} />
             </div>

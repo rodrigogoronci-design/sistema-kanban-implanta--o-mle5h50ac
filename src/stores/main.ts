@@ -49,6 +49,14 @@ export interface Subtask {
   title: string
   completed: boolean
 }
+export interface Attachment {
+  id: string
+  name: string
+  size: number
+  type: string
+  url: string
+  createdAt: string
+}
 export interface TimeEntry {
   id: string
   start: string
@@ -71,6 +79,7 @@ export interface Task {
   columnId: string
   description: string
   checklist: Subtask[]
+  attachments?: Attachment[]
   startDate?: string
   endDate?: string
   timeEntries: TimeEntry[]

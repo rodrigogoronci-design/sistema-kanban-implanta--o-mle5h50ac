@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useMainStore from '@/stores/main'
 import { cn } from '@/lib/utils'
 import { differenceInHours, isPast, parseISO, format } from 'date-fns'
-import { Clock, CheckSquare } from 'lucide-react'
+import { Clock, CheckSquare, Paperclip } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -117,6 +117,13 @@ export default function KanbanCard({ task, onClick, onDragStart }: Props) {
               >
                 {task.checklist.filter((c) => c.completed).length}/{task.checklist.length}
               </span>
+            </div>
+          )}
+
+          {(task.attachments?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-1">
+              <Paperclip className="w-3.5 h-3.5" />
+              <span>{task.attachments!.length}</span>
             </div>
           )}
 
