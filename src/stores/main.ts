@@ -20,6 +20,7 @@ export interface Client {
   contacts: ClientContact[]
   modules: string[]
   logo: string
+  registrationDate?: string
   website?: string
   serverIp?: string
   notes?: string
@@ -140,6 +141,7 @@ const initialMockState: MainState = {
       ],
       modules: ['ERP Financeiro', 'CRM Vendas'],
       logo: 'https://img.usecurling.com/i?q=acme&shape=fill&color=blue',
+      registrationDate: '2024-01-15',
       website: 'www.acme.com',
       serverIp: '192.168.1.100',
       notes: 'Cliente prioritário na fase de configuração.',
@@ -153,6 +155,7 @@ const initialMockState: MainState = {
       ],
       modules: ['RH', 'Folha'],
       logo: 'https://img.usecurling.com/i?q=globex&shape=fill&color=red',
+      registrationDate: '2024-02-20',
       website: 'www.globex.com',
       serverIp: '10.0.0.5',
       notes: 'Treinamento agendado para o próximo mês.',

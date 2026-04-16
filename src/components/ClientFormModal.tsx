@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/table'
 import { format, parseISO } from 'date-fns'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Building2 } from 'lucide-react'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface Props {
   open: boolean
@@ -53,6 +54,7 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
         `https://img.usecurling.com/i?q=${encodeURIComponent(formData.name)}&shape=fill&color=blue`,
       contacts: formData.contacts || [],
       modules: formData.modules || [],
+      registrationDate: formData.registrationDate,
       serverIp: formData.serverIp,
       notes: formData.notes,
     })
@@ -81,10 +83,25 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] h-[85vh] p-0 flex flex-col overflow-hidden bg-background">
         <div className="p-6 pb-4 border-b bg-muted/20 shrink-0">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {client ? `Cliente: ${client.name}` : 'Novo Cliente'}
-            </DialogTitle>
+          <DialogHeader className="flex flex-row items-center gap-4 space-y-0 text-left">
+            {client?.logo && (
+              <Avatar className="w-12 h-12 border bg-muted/50 shadow-sm rounded-md p-0.5 shrink-0">
+                <AvatarImage src={client.logo} className="object-contain mix-blend-multiply" />
+                <AvatarFallback className="rounded-md bg-transparent">
+                  <Building2 className="w-6 h-6 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+            <div>
+              <DialogTitle className="text-xl">
+                {client ? `Cliente: ${client.name}` : 'Novo Cliente'}
+              </DialogTitle>
+              {client?.registrationDate && (
+                <p className="text-sm text-muted-foreground mt-1 font-normal">
+                  Data de Cadastro: {format(parseISO(client.registrationDate), 'dd/MM/yyyy')}
+                </p>
+              )}
+            </div>
           </DialogHeader>
         </div>
 
@@ -158,14 +175,46 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                           />
                         </div>
                       </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="logo">URL do Logo</Label>
-                        <Input
-                          id="logo"
-                          value={formData.logo || ''}
-                          onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-                          placeholder="https://..."
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="registrationDate">Data de Cadastro</Label>
+                          <Input
+                            id="registrationDate"
+                            type="date"
+                            value={formData.registrationDate || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, registrationDate: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="logoFile">Logo do Cliente</Label>
+                          <div className="flex items-center gap-4">
+                            {formData.logo && (
+                              <img
+                                src={formData.logo}
+                                alt="Preview"
+                                className="w-10 h-10 object-contain border rounded-md bg-muted/50 shrink-0"
+                              />
+                            )}
+                            <Input
+                              id="logoFile"
+                              type="file"
+                              accept="image/*"
+                              className="cursor-pointer"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) {
+                                  const reader = new FileReader()
+                                  reader.onloadend = () => {
+                                    setFormData({ ...formData, logo: reader.result as string })
+                                  }
+                                  reader.readAsDataURL(file)
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </TabsContent>

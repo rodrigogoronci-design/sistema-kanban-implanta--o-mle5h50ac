@@ -25,6 +25,7 @@ import { Plus, Trash2, Pencil, Search, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ClientFormModal } from '@/components/ClientFormModal'
 import { getTaskHours } from '@/lib/time'
+import { format, parseISO } from 'date-fns'
 
 export default function Clients() {
   const { clients, tasks, addClient, updateClient, deleteClient } = useMainStore()
@@ -99,6 +100,7 @@ export default function Clients() {
               <TableHead className="w-[80px] text-center">Logo</TableHead>
               <TableHead>Empresa</TableHead>
               <TableHead>CNPJ</TableHead>
+              <TableHead>Data Cadastro</TableHead>
               <TableHead>Contatos</TableHead>
               <TableHead>Website</TableHead>
               <TableHead className="text-right">Total Horas</TableHead>
@@ -132,6 +134,11 @@ export default function Clients() {
                   </TableCell>
                   <TableCell className="font-semibold">{client.name}</TableCell>
                   <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {client.registrationDate
+                      ? format(parseISO(client.registrationDate), 'dd/MM/yyyy')
+                      : '-'}
+                  </TableCell>
                   <TableCell className="text-muted-foreground">
                     {client.contacts?.length
                       ? `${client.contacts.length} contato${client.contacts.length > 1 ? 's' : ''}`
@@ -171,7 +178,7 @@ export default function Clients() {
             })}
             {filteredClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
