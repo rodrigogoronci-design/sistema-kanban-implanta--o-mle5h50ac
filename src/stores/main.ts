@@ -24,18 +24,18 @@ export interface Client {
   serverIp?: string
   notes?: string
 }
-export type ProjectPhase =
-  | 'Configuração do Sistema'
-  | 'Em treinamento'
-  | 'Operação Assistida'
-  | 'Concluído'
+export interface ProjectStatus {
+  id: string
+  name: string
+  color: string
+}
 
 export interface Project {
   id: string
   name: string
   clientId: string
   analystId: string
-  phase: ProjectPhase
+  statusId: string
   implStart?: string
   implEnd?: string
   trainStart?: string
@@ -89,9 +89,17 @@ export interface MainState {
   tasks: Task[]
   columns: Column[]
   categories: Category[]
+  projectStatuses: ProjectStatus[]
 }
 
 const initialMockState: MainState = {
+  projectStatuses: [
+    { id: 'ps-1', name: 'Backlog', color: '#94a3b8' },
+    { id: 'ps-2', name: 'Em andamento', color: '#3b82f6' },
+    { id: 'ps-3', name: 'Aguardando cliente', color: '#f59e0b' },
+    { id: 'ps-4', name: 'Aguardando Desenvolvimento', color: '#8b5cf6' },
+    { id: 'ps-5', name: 'Concluido', color: '#10b981' },
+  ],
   categories: [
     { id: 'cat-1', name: 'Consultoria', color: '#3b82f6' },
     { id: 'cat-2', name: 'Infraestrutura', color: '#10b981' },
@@ -156,7 +164,7 @@ const initialMockState: MainState = {
       name: 'Implantação ERP Acme',
       clientId: '1',
       analystId: '1',
-      phase: 'Configuração do Sistema',
+      statusId: 'ps-2',
       implStart: '2024-05-01T00:00:00Z',
     },
     {
@@ -164,7 +172,7 @@ const initialMockState: MainState = {
       name: 'Migração RH Globex',
       clientId: '2',
       analystId: '2',
-      phase: 'Em treinamento',
+      statusId: 'ps-3',
       implStart: '2024-06-15T00:00:00Z',
     },
   ],
@@ -317,6 +325,29 @@ export default function useMainStore() {
       })),
     deleteProject: (id: string) =>
       store.setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) })),
+    addProjectStatus: (status: Omit<ProjectStatus, 'id'>) => {
+      const id = `ps-${Math.random().toString(36).substr(2, 9)}`
+      store.setState((s) => ({ ...s, projectStatuses: [...s.projectStatuses, { ...status, id }] }))
+      return id
+    },
+    updateProjectStatus: (id: string, payload: Partial<ProjectStatus>) =>
+      store.setState((s) => ({
+        ...s,
+        projectStatuses: s.projectStatuses.map((ps) => (ps.id === id ? { ...ps, ...payload } : ps)),
+      })),
+    deleteProjectStatus: (id: string, fallbackId?: string) =>
+      store.setState((s) => ({
+        ...s,
+        projectStatuses: s.projectStatuses.filter((ps) => ps.id !== id),
+        projects: s.projects.map((p) =>
+          p.statusId === id
+            ? {
+                ...p,
+                statusId: fallbackId || s.projectStatuses.find((st) => st.id !== id)?.id || '',
+              }
+            : p,
+        ),
+      })),
     addColumn: (column: Column) =>
       store.setState((s) => ({ ...s, columns: [...s.columns, column] })),
     updateColumn: (id: string, payload: Partial<Column>) =>
