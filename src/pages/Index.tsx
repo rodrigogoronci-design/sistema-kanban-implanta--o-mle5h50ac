@@ -218,28 +218,16 @@ export default function Index() {
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
       <style>{`
         .card-vencido > * {
-          background-color: #fef2f2 !important;
-          border-color: #fecaca !important;
-        }
-        .dark .card-vencido > * {
-          background-color: rgba(69, 10, 10, 0.3) !important;
-          border-color: rgba(127, 29, 29, 0.5) !important;
+          border-top-width: 4px !important;
+          border-top-color: #ef4444 !important;
         }
         .card-a-vencer > * {
-          background-color: #fefce8 !important;
-          border-color: #fde047 !important;
-        }
-        .dark .card-a-vencer > * {
-          background-color: rgba(66, 32, 6, 0.3) !important;
-          border-color: rgba(113, 63, 18, 0.5) !important;
+          border-top-width: 4px !important;
+          border-top-color: #eab308 !important;
         }
         .card-no-prazo > * {
-          background-color: #f0fdf4 !important;
-          border-color: #bbf7d0 !important;
-        }
-        .dark .card-no-prazo > * {
-          background-color: rgba(5, 46, 22, 0.3) !important;
-          border-color: rgba(6, 78, 59, 0.5) !important;
+          border-top-width: 4px !important;
+          border-top-color: #22c55e !important;
         }
       `}</style>
       <div className="flex items-center justify-between shrink-0">
@@ -387,11 +375,11 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-2 shrink-0">
-        <div className="bg-card p-6 rounded-lg border shadow-sm flex flex-col gap-2 min-w-[280px] flex-1">
-          <span className="text-sm font-medium text-muted-foreground">Total de Tarefas</span>
-          <div className="text-3xl font-bold">{filteredTasks.length}</div>
-          <p className="text-xs text-muted-foreground">Nos filtros atuais</p>
+      <div className="flex gap-3 overflow-x-auto pb-2 shrink-0">
+        <div className="bg-card p-4 rounded-lg border shadow-sm flex flex-col gap-1 min-w-[180px] flex-1">
+          <span className="text-xs font-medium text-muted-foreground">Total de Tarefas</span>
+          <div className="text-2xl font-bold">{filteredTasks.length}</div>
+          <p className="text-[10px] text-muted-foreground">Nos filtros atuais</p>
         </div>
         {visibleColumns.map((col) => {
           const count = filteredTasks.filter((t) => t.columnId === col.id).length
@@ -400,17 +388,20 @@ export default function Index() {
           return (
             <div
               key={col.id}
-              className="bg-card p-6 rounded-lg border shadow-sm flex flex-col gap-2 min-w-[280px] flex-1"
+              className="bg-card p-4 rounded-lg border shadow-sm flex flex-col gap-1 min-w-[180px] flex-1"
             >
-              <span className="text-sm font-medium text-muted-foreground truncate">
+              <span className="text-xs font-medium text-muted-foreground truncate">
                 {col.title}
               </span>
               <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold">{count}</div>
-                <div className="text-sm text-muted-foreground">{percentage}%</div>
+                <div className="text-2xl font-bold">{count}</div>
+                <div className="text-xs text-muted-foreground">{percentage}%</div>
               </div>
-              <div className="w-full bg-muted rounded-full h-2 mt-2">
-                <div className="bg-primary h-2 rounded-full" style={{ width: `${percentage}%` }} />
+              <div className="w-full bg-muted rounded-full h-1.5 mt-1">
+                <div
+                  className="bg-primary h-1.5 rounded-full"
+                  style={{ width: `${percentage}%` }}
+                />
               </div>
             </div>
           )
