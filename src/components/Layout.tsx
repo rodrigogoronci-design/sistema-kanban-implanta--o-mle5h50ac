@@ -13,7 +13,15 @@ import {
   SidebarInset,
   SidebarFooter,
 } from '@/components/ui/sidebar'
-import { LayoutDashboard, Users, Briefcase, Building2, LogOut, Settings } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Briefcase,
+  Building2,
+  LogOut,
+  Settings,
+  PieChart,
+} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +38,7 @@ export default function Layout() {
     { title: 'Clientes', url: '/clients', icon: Building2 },
     { title: 'Projetos', url: '/projects', icon: Briefcase },
     { title: 'Usuários', url: '/users', icon: Users },
+    { title: 'Relatórios', url: '/reports', icon: PieChart },
   ]
 
   return (

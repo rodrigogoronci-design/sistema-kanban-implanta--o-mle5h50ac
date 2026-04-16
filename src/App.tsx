@@ -8,6 +8,7 @@ import Layout from './components/Layout'
 import Users from './pages/Users'
 import Clients from './pages/Clients'
 import Projects from './pages/Projects'
+import Reports from './pages/Reports'
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/users" element={<Users />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/reports" element={<Reports />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
