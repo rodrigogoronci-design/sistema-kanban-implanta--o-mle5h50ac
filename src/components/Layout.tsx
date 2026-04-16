@@ -82,7 +82,8 @@ export default function Layout() {
   const filteredNavItems = navItems.filter((item) => allowedRoutes.includes(item.url))
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    // Autenticação desativada, recarrega a página apenas
+    window.location.reload()
   }
 
   return (
