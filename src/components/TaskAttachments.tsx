@@ -9,8 +9,16 @@ import {
   File,
   Image as ImageIcon,
   FileText,
+  Eye,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +30,7 @@ interface Props {
 export function TaskAttachments({ task, onUpdate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [previewFile, setPreviewFile] = useState<Attachment | null>(null)
 
   const processFiles = (files: FileList | File[]) => {
     if (files && files.length > 0) {
@@ -89,6 +98,10 @@ export function TaskAttachments({ task, onUpdate }: Props) {
     return <File className="w-4 h-4 text-gray-500" />
   }
 
+  const isPreviewable = (type: string) => {
+    return type.startsWith('image/') || type === 'application/pdf'
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -143,9 +156,22 @@ export function TaskAttachments({ task, onUpdate }: Props) {
                   <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
                 </div>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/30 pl-2 backdrop-blur-sm rounded-l">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                  {isPreviewable(file.type) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setPreviewFile(file)}
+                      title="Visualizar"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span className="sr-only">Visualizar anexo</span>
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="Baixar">
                     <a href={file.url} download={file.name} target="_blank" rel="noreferrer">
                       <Download className="h-3.5 w-3.5" />
+                      <span className="sr-only">Baixar anexo</span>
                     </a>
                   </Button>
                   <Button
@@ -193,6 +219,34 @@ export function TaskAttachments({ task, onUpdate }: Props) {
           </div>
         )}
       </div>
+
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent className="sm:max-w-4xl w-[95vw] p-0 overflow-hidden bg-background border-none shadow-2xl">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle className="truncate pr-6 text-base font-semibold">
+              {previewFile?.name}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Visualização do arquivo {previewFile?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 pt-2 flex items-center justify-center min-h-[50vh] max-h-[85vh] bg-muted/10 rounded-b-lg">
+            {previewFile?.type.startsWith('image/') ? (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-[75vh] object-contain rounded-md drop-shadow-sm"
+              />
+            ) : previewFile?.type === 'application/pdf' ? (
+              <iframe
+                src={previewFile.url}
+                title={previewFile.name}
+                className="w-full h-[75vh] rounded-md border bg-background"
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
