@@ -46,7 +46,8 @@ Deno.serve(async (req: Request) => {
         user_id: authUser.id,
         email: payload.email,
         nome: payload.name,
-        role: payload.role === 'admin' ? 'Admin' : 'Colaborador',
+        role: payload.role || 'Colaborador',
+        departamento: payload.departamento || null,
         recebe_transporte:
           payload.recebe_transporte === false || payload.recebe_transporte === 'false'
             ? false
@@ -144,7 +145,8 @@ Deno.serve(async (req: Request) => {
         .update({
           email,
           nome: name,
-          role: role === 'admin' ? 'Admin' : 'Colaborador',
+          role: role || 'Colaborador',
+          departamento: payload.departamento || null,
           recebe_transporte: receivesTransport,
         })
         .eq('id', colabId)

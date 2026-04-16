@@ -1,4 +1,7 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '@/lib/supabase/client'
+import { useAuth } from '@/hooks/use-auth'
 import {
   SidebarProvider,
   Sidebar,
@@ -33,6 +36,10 @@ import { Button } from '@/components/ui/button'
 
 export default function Layout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, colaborador } = useAuth()
+  const [permissions, setPermissions] = useState<Record<string, string[]>>({})
+
   const navItems = [
     { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
     { title: 'Clientes', url: '/clients', icon: Building2 },
@@ -40,6 +47,43 @@ export default function Layout() {
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
   ]
+
+  useEffect(() => {
+    supabase
+      .from('configuracoes')
+      .select('valor')
+      .eq('chave', 'role_permissions')
+      .single()
+      .then(({ data }) => {
+        if (data && data.valor) {
+          setPermissions(data.valor as Record<string, string[]>)
+        }
+      })
+  }, [])
+
+  const userRole = colaborador?.role || 'Colaborador'
+  const allowedRoutes = permissions[userRole] || ['/', '/projects']
+  const allowedRoutesStr = JSON.stringify(allowedRoutes)
+
+  useEffect(() => {
+    if (Object.keys(permissions).length > 0) {
+      const routes = JSON.parse(allowedRoutesStr)
+      const isAllowed =
+        location.pathname === '/'
+          ? routes.includes('/')
+          : routes.some((route: string) => route !== '/' && location.pathname.startsWith(route))
+
+      if (!isAllowed) {
+        navigate('/')
+      }
+    }
+  }, [location.pathname, permissions, allowedRoutesStr, navigate])
+
+  const filteredNavItems = navItems.filter((item) => allowedRoutes.includes(item.url))
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+  }
 
   return (
     <SidebarProvider>
@@ -56,7 +100,7 @@ export default function Layout() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => (
+                {filteredNavItems.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
@@ -78,21 +122,31 @@ export default function Layout() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start px-2 py-6">
-                <Avatar className="h-8 w-8 mr-2">
-                  <AvatarImage src="https://img.usecurling.com/ppl/thumbnail?seed=admin" />
-                  <AvatarFallback>AD</AvatarFallback>
+                <Avatar className="h-8 w-8 mr-2 border border-border">
+                  <AvatarImage
+                    src={`https://img.usecurling.com/ppl/thumbnail?seed=${colaborador?.nome || 'user'}`}
+                  />
+                  <AvatarFallback>
+                    {colaborador?.nome?.substring(0, 2).toUpperCase() || 'US'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start text-left truncate">
-                  <span className="text-sm font-medium leading-none">Admin User</span>
-                  <span className="text-xs text-muted-foreground mt-1">admin@deployflow.com</span>
+                  <span className="text-sm font-medium leading-none">
+                    {colaborador?.nome || 'Usuário'}
+                  </span>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    {colaborador?.email || user?.email}
+                  </span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" /> Configurações
+              <DropdownMenuItem disabled>
+                <span className="text-xs text-muted-foreground font-medium">
+                  Perfil: {userRole}
+                </span>
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem className="text-destructive cursor-pointer" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" /> Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
