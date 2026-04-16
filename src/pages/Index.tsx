@@ -361,30 +361,30 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
-        <div className="bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-1">
-          <span className="text-xs font-medium text-muted-foreground">Total de Tarefas</span>
-          <div className="text-xl font-bold">{filteredTasks.length}</div>
-          <p className="text-[10px] text-muted-foreground">Nos filtros atuais</p>
+      <div className="flex gap-4 overflow-x-auto pb-2 shrink-0">
+        <div className="bg-card p-6 rounded-lg border shadow-sm flex flex-col gap-2 min-w-[280px] flex-1">
+          <span className="text-sm font-medium text-muted-foreground">Total de Tarefas</span>
+          <div className="text-3xl font-bold">{filteredTasks.length}</div>
+          <p className="text-xs text-muted-foreground">Nos filtros atuais</p>
         </div>
-        {visibleColumns.slice(0, 3).map((col) => {
+        {visibleColumns.map((col) => {
           const count = filteredTasks.filter((t) => t.columnId === col.id).length
           const percentage =
             filteredTasks.length > 0 ? Math.round((count / filteredTasks.length) * 100) : 0
           return (
             <div
               key={col.id}
-              className="bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-1"
+              className="bg-card p-6 rounded-lg border shadow-sm flex flex-col gap-2 min-w-[280px] flex-1"
             >
-              <span className="text-xs font-medium text-muted-foreground truncate">
+              <span className="text-sm font-medium text-muted-foreground truncate">
                 {col.title}
               </span>
               <div className="flex items-baseline gap-2">
-                <div className="text-xl font-bold">{count}</div>
-                <div className="text-[10px] text-muted-foreground">{percentage}%</div>
+                <div className="text-3xl font-bold">{count}</div>
+                <div className="text-sm text-muted-foreground">{percentage}%</div>
               </div>
-              <div className="w-full bg-muted rounded-full h-1 mt-1">
-                <div className="bg-primary h-1 rounded-full" style={{ width: `${percentage}%` }} />
+              <div className="w-full bg-muted rounded-full h-2 mt-2">
+                <div className="bg-primary h-2 rounded-full" style={{ width: `${percentage}%` }} />
               </div>
             </div>
           )
