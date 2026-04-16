@@ -1,316 +1,288 @@
 import { useState, useEffect } from 'react'
-import { Client, ClientContact } from '@/stores/main'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { Plus, Trash2, Building2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Client } from '@/stores/main'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import useMainStore from '@/stores/main'
+import { getTaskHours } from '@/lib/time'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { format, parseISO } from 'date-fns'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
-const applyCnpjMask = (value: string) => {
-  let v = value.replace(/\D/g, '').slice(0, 14)
-  if (v.length > 12) {
-    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5')
-  } else if (v.length > 8) {
-    v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{1,4}).*/, '$1.$2.$3/$4')
-  } else if (v.length > 5) {
-    v = v.replace(/^(\d{2})(\d{3})(\d{1,3}).*/, '$1.$2.$3')
-  } else if (v.length > 2) {
-    v = v.replace(/^(\d{2})(\d{1,3}).*/, '$1.$2')
-  }
-  return v
-}
-
-const isValidWebsite = (url: string) => {
-  const pattern = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})(:\d{1,5})?(\/.*)?$/i
-  return pattern.test(url)
-}
-
-export function ClientFormModal({
-  open,
-  onOpenChange,
-  client,
-  onSubmit,
-}: {
+interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   client?: Client
   onSubmit: (data: Omit<Client, 'id'>) => void
-}) {
-  const [formData, setFormData] = useState<Omit<Client, 'id'>>({
-    name: '',
-    cnpj: '',
-    contacts: [],
-    modules: [],
-    logo: '',
-    website: '',
-    serverIp: '',
-    notes: '',
-  })
-  const [emailErrors, setEmailErrors] = useState<Record<string, string>>({})
-  const [cnpjError, setCnpjError] = useState('')
-  const [websiteError, setWebsiteError] = useState('')
+}
+
+export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props) {
+  const [formData, setFormData] = useState<Partial<Client>>({})
+  const { projects, tasks, projectStatuses } = useMainStore()
 
   useEffect(() => {
-    if (open) {
-      setFormData(
-        client
-          ? {
-              name: client.name,
-              cnpj: applyCnpjMask(client.cnpj || ''),
-              contacts: client.contacts || [],
-              modules: client.modules || [],
-              logo: client.logo || '',
-              website: client.website || '',
-              serverIp: client.serverIp || '',
-              notes: client.notes || '',
-            }
-          : {
-              name: '',
-              cnpj: '',
-              contacts: [],
-              modules: ['Módulo Base'],
-              logo: '',
-              website: '',
-              serverIp: '',
-              notes: '',
-            },
-      )
-      setEmailErrors({})
-      setCnpjError('')
-      setWebsiteError('')
+    if (client) {
+      setFormData(client)
+    } else {
+      setFormData({ name: '', cnpj: '', website: '', logo: '', contacts: [], modules: [] })
     }
-  }, [open, client])
+  }, [client, open])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    let hasError = false
-    const newErrors: Record<string, string> = {}
-
-    formData.contacts.forEach((c) => {
-      if (c.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) {
-        newErrors[c.id] = 'E-mail inválido'
-        hasError = true
-      }
-    })
-
-    if (formData.cnpj && formData.cnpj.replace(/\D/g, '').length < 14) {
-      setCnpjError('CNPJ deve conter 14 dígitos')
-      hasError = true
-    } else {
-      setCnpjError('')
-    }
-
-    if (formData.website && !isValidWebsite(formData.website)) {
-      setWebsiteError('Please enter a valid website URL')
-      hasError = true
-    } else {
-      setWebsiteError('')
-    }
-
-    if (hasError) {
-      setEmailErrors(newErrors)
-      return
-    }
-
+    if (!formData.name) return
     onSubmit({
-      ...formData,
+      name: formData.name,
+      cnpj: formData.cnpj || '',
+      website: formData.website || '',
       logo:
         formData.logo ||
-        `https://img.usecurling.com/i?q=${formData.name.split(' ')[0] || 'company'}&shape=fill`,
+        `https://img.usecurling.com/i?q=${encodeURIComponent(formData.name)}&shape=fill&color=blue`,
+      contacts: formData.contacts || [],
+      modules: formData.modules || [],
+      serverIp: formData.serverIp,
+      notes: formData.notes,
     })
   }
 
-  const handleCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const masked = applyCnpjMask(e.target.value)
-    setFormData((s) => ({ ...s, cnpj: masked }))
-    if (cnpjError && masked.length === 18) {
-      setCnpjError('')
-    } else if (cnpjError && masked.length === 0) {
-      setCnpjError('')
-    }
-  }
-
-  const handleWebsiteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((s) => ({ ...s, website: e.target.value }))
-    if (websiteError) setWebsiteError('')
-  }
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setFormData((s) => ({ ...s, logo: reader.result as string }))
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const addContact = () => {
-    setFormData((s) => ({
-      ...s,
-      contacts: [...s.contacts, { id: Math.random().toString(), name: '', email: '', phone: '' }],
-    }))
-  }
-
-  const updateContact = (id: string, field: keyof ClientContact, value: string) => {
-    setFormData((s) => ({
-      ...s,
-      contacts: s.contacts.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
-    }))
-    if (field === 'email') setEmailErrors((prev) => ({ ...prev, [id]: '' }))
-  }
-
-  const removeContact = (id: string) => {
-    setFormData((s) => ({ ...s, contacts: s.contacts.filter((c) => c.id !== id) }))
-  }
+  const clientProjects = client ? projects.filter((p) => p.clientId === client.id) : []
+  const clientTasks = client ? tasks.filter((t) => t.clientId === client.id) : []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{client ? 'Editar Cliente' : 'Cadastrar Cliente'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="logo">Logo do Cliente</Label>
-              <div className="flex items-center gap-4">
-                <Avatar className="w-16 h-16 border rounded-xl bg-muted/50 p-1">
-                  <AvatarImage src={formData.logo} className="object-contain mix-blend-multiply" />
-                  <AvatarFallback className="rounded-xl bg-transparent">
-                    <Building2 className="w-6 h-6 text-muted-foreground" />
-                  </AvatarFallback>
-                </Avatar>
-                <Input
-                  id="logo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="flex-1"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome da Empresa</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cnpj" className={cn(cnpjError && 'text-destructive')}>
-                CNPJ
-              </Label>
-              <Input
-                id="cnpj"
-                value={formData.cnpj}
-                onChange={handleCnpjChange}
-                className={cn(cnpjError && 'border-destructive focus-visible:ring-destructive')}
-                placeholder="00.000.000/0000-00"
-              />
-              {cnpjError && <p className="text-xs text-destructive">{cnpjError}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website" className={cn(websiteError && 'text-destructive')}>
-                Website
-              </Label>
-              <Input
-                id="website"
-                value={formData.website}
-                onChange={handleWebsiteChange}
-                className={cn(websiteError && 'border-destructive focus-visible:ring-destructive')}
-                placeholder="https://www.exemplo.com.br"
-              />
-              {websiteError && <p className="text-xs text-destructive">{websiteError}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="serverIp">IP do Servidor</Label>
-              <Input
-                id="serverIp"
-                value={formData.serverIp}
-                onChange={(e) => setFormData((s) => ({ ...s, serverIp: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="notes">Observações / Anotações</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData((s) => ({ ...s, notes: e.target.value }))}
-                rows={3}
-              />
-            </div>
-          </div>
+      <DialogContent className="sm:max-w-[700px] h-[85vh] p-0 flex flex-col overflow-hidden bg-background">
+        <div className="p-6 pb-4 border-b bg-muted/20 shrink-0">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {client ? `Cliente: ${client.name}` : 'Novo Cliente'}
+            </DialogTitle>
+          </DialogHeader>
+        </div>
 
-          <div className="space-y-4 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">Contatos</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addContact}>
-                <Plus className="w-4 h-4 mr-2" /> Adicionar Contato
-              </Button>
-            </div>
-            <div className="space-y-3">
-              {formData.contacts.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex flex-col sm:flex-row gap-3 items-start bg-muted/40 p-3 rounded-lg border"
+        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
+          {client && (
+            <div className="px-6 pt-4 shrink-0 border-b">
+              <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent p-0">
+                <TabsTrigger
+                  value="details"
+                  className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent rounded-none px-6 pb-2 pt-2"
                 >
-                  <div className="flex-1 space-y-2 w-full">
-                    <Input
-                      placeholder="Nome"
-                      value={c.name}
-                      onChange={(e) => updateContact(c.id, 'name', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="flex-1 space-y-2 w-full">
-                    <Input
-                      placeholder="E-mail"
-                      type="email"
-                      value={c.email}
-                      onChange={(e) => updateContact(c.id, 'email', e.target.value)}
-                      required
-                      className={cn(
-                        emailErrors[c.id] && 'border-destructive focus-visible:ring-destructive',
-                      )}
-                    />
-                    {emailErrors[c.id] && (
-                      <p className="text-xs text-destructive">{emailErrors[c.id]}</p>
-                    )}
-                  </div>
-                  <div className="flex-1 space-y-2 w-full">
-                    <Input
-                      placeholder="Telefone"
-                      value={c.phone}
-                      onChange={(e) => updateContact(c.id, 'phone', e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive shrink-0 mt-0.5"
-                    onClick={() => removeContact(c.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              {formData.contacts.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-lg bg-muted/20">
-                  Nenhum contato cadastrado.
-                </p>
-              )}
+                  Detalhes
+                </TabsTrigger>
+                <TabsTrigger
+                  value="projects"
+                  className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent rounded-none px-6 pb-2 pt-2"
+                >
+                  Projetos
+                </TabsTrigger>
+                <TabsTrigger
+                  value="tasks"
+                  className="data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent rounded-none px-6 pb-2 pt-2"
+                >
+                  Atividades
+                </TabsTrigger>
+              </TabsList>
             </div>
+          )}
+
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              <div className="p-6">
+                <TabsContent value="details" className="mt-0">
+                  <form id="client-form" onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Nome da Empresa *</Label>
+                        <Input
+                          id="name"
+                          value={formData.name || ''}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                          placeholder="Ex: Acme Corp"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="cnpj">CNPJ</Label>
+                          <Input
+                            id="cnpj"
+                            value={formData.cnpj || ''}
+                            onChange={(e) => setFormData({ ...formData, cnpj: e.target.value })}
+                            placeholder="00.000.000/0001-00"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="website">Website</Label>
+                          <Input
+                            id="website"
+                            value={formData.website || ''}
+                            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                            placeholder="www.exemplo.com.br"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="logo">URL do Logo</Label>
+                        <Input
+                          id="logo"
+                          value={formData.logo || ''}
+                          onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  </form>
+                </TabsContent>
+
+                {client && (
+                  <>
+                    <TabsContent value="projects" className="mt-0 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg tracking-tight">
+                          Projetos do Cliente
+                        </h3>
+                        <Badge variant="secondary" className="font-mono">
+                          Total:{' '}
+                          {clientProjects
+                            .reduce(
+                              (acc, p) =>
+                                acc +
+                                tasks
+                                  .filter((t) => t.projectId === p.id)
+                                  .reduce((sum, t) => sum + getTaskHours(t), 0),
+                              0,
+                            )
+                            .toFixed(1)}
+                          h
+                        </Badge>
+                      </div>
+                      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead>Projeto</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead className="text-right">Horas Gastas</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clientProjects.map((p) => {
+                              const pTasks = tasks.filter((t) => t.projectId === p.id)
+                              const hrs = pTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
+                              const status = projectStatuses.find((s) => s.id === p.statusId)
+                              return (
+                                <TableRow key={p.id}>
+                                  <TableCell className="font-medium">{p.name}</TableCell>
+                                  <TableCell>
+                                    {status ? (
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-2 h-2 rounded-full"
+                                          style={{ backgroundColor: status.color }}
+                                        />
+                                        <span className="text-sm">{status.name}</span>
+                                      </div>
+                                    ) : (
+                                      '-'
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-muted-foreground">
+                                    {hrs.toFixed(1)}h
+                                  </TableCell>
+                                </TableRow>
+                              )
+                            })}
+                            {clientProjects.length === 0 && (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={3}
+                                  className="text-center py-8 text-muted-foreground"
+                                >
+                                  Nenhum projeto associado a este cliente.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="tasks" className="mt-0 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg tracking-tight">
+                          Atividades do Cliente
+                        </h3>
+                        <Badge variant="secondary" className="font-mono">
+                          Total:{' '}
+                          {clientTasks.reduce((acc, t) => acc + getTaskHours(t), 0).toFixed(1)}h
+                        </Badge>
+                      </div>
+                      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-muted/50">
+                              <TableHead>Atividade</TableHead>
+                              <TableHead>Prioridade</TableHead>
+                              <TableHead>Data Criação</TableHead>
+                              <TableHead className="text-right">Horas Gastas</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {clientTasks.map((t) => (
+                              <TableRow key={t.id}>
+                                <TableCell className="font-medium">{t.title}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className="text-xs font-normal">
+                                    {t.priority}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {t.createdAt ? format(parseISO(t.createdAt), 'dd/MM/yyyy') : '-'}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-muted-foreground">
+                                  {getTaskHours(t).toFixed(1)}h
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {clientTasks.length === 0 && (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={4}
+                                  className="text-center py-8 text-muted-foreground"
+                                >
+                                  Nenhuma atividade registrada para este cliente.
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </TabsContent>
+                  </>
+                )}
+              </div>
+            </ScrollArea>
           </div>
-          <Button type="submit" className="w-full">
-            {client ? 'Atualizar Cliente' : 'Salvar Cliente'}
+        </Tabs>
+
+        <div className="p-4 border-t bg-muted/10 shrink-0 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
           </Button>
-        </form>
+          <Button type="submit" form="client-form">
+            Salvar Cliente
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   )

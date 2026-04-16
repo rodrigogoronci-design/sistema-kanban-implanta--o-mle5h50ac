@@ -4,6 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import useMainStore from '@/stores/main'
 import { cn } from '@/lib/utils'
 import { differenceInHours, isPast, parseISO, format } from 'date-fns'
+import { Clock, CheckSquare } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { getTaskHours } from '@/lib/time'
 
 interface Props {
   task: Task
@@ -18,7 +23,7 @@ const priorityColors: Record<string, string> = {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: Props) {
-  const { users, clients, categories } = useMainStore()
+  const { users, clients, categories, updateTask } = useMainStore()
   const user = users.find((u) => u.id === task.responsibleId)
   const client = clients.find((c) => c.id === task.clientId)
 
@@ -101,18 +106,72 @@ export default function KanbanCard({ task, onClick, onDragStart }: Props) {
       </div>
 
       <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-          {task.checklist.length > 0 ? (
-            <span
-              className={
-                task.checklist.every((c) => c.completed) ? 'text-primary font-semibold' : ''
-              }
-            >
-              {task.checklist.filter((c) => c.completed).length}/{task.checklist.length}
-            </span>
-          ) : (
-            <span>-</span>
+        <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+          {task.checklist.length > 0 && (
+            <div className="flex items-center gap-1">
+              <CheckSquare className="w-3.5 h-3.5" />
+              <span
+                className={
+                  task.checklist.every((c) => c.completed) ? 'text-primary font-semibold' : ''
+                }
+              >
+                {task.checklist.filter((c) => c.completed).length}/{task.checklist.length}
+              </span>
+            </div>
           )}
+
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <Popover>
+              <PopoverTrigger asChild>
+                <div className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors bg-secondary/50 px-1.5 py-0.5 rounded-md">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="font-semibold">{getTaskHours(task).toFixed(1)}h</span>
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-3" align="start">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Adicionar Horas</h4>
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      type="number"
+                      step="0.5"
+                      min="0.1"
+                      placeholder="Ex: 2.5"
+                      className="h-8 text-sm"
+                      id={`hours-${task.id}`}
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 shrink-0"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          `hours-${task.id}`,
+                        ) as HTMLInputElement
+                        const val = parseFloat(input.value)
+                        if (!isNaN(val) && val > 0) {
+                          const end = new Date()
+                          const start = new Date(end.getTime() - val * 60 * 60 * 1000)
+                          const newEntry = {
+                            id: Math.random().toString(),
+                            start: start.toISOString(),
+                            end: end.toISOString(),
+                            observation: 'Lançamento via card',
+                          }
+                          updateTask(task.id, {
+                            timeEntries: [...(task.timeEntries || []), newEntry],
+                          })
+                          input.value = ''
+                          document.dispatchEvent(new MouseEvent('mousedown'))
+                        }
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         <Avatar className="h-6 w-6 border bg-muted">
           <AvatarImage src={user?.avatar} />

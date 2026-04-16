@@ -24,9 +24,10 @@ import {
 import { Plus, Trash2, Pencil, Search, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ClientFormModal } from '@/components/ClientFormModal'
+import { getTaskHours } from '@/lib/time'
 
 export default function Clients() {
-  const { clients, addClient, updateClient, deleteClient } = useMainStore()
+  const { clients, tasks, addClient, updateClient, deleteClient } = useMainStore()
   const { toast } = useToast()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -100,65 +101,77 @@ export default function Clients() {
               <TableHead>CNPJ</TableHead>
               <TableHead>Contatos</TableHead>
               <TableHead>Website</TableHead>
+              <TableHead className="text-right">Total Horas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.map((client) => (
-              <TableRow
-                key={client.id}
-                className="group cursor-pointer"
-                onClick={() => {
-                  setEditingClient(client)
-                  setFormOpen(true)
-                }}
-              >
-                <TableCell className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                  <Avatar className="w-10 h-10 border bg-muted/50 shadow-sm rounded-md p-0.5">
-                    <AvatarImage src={client.logo} className="object-contain mix-blend-multiply" />
-                    <AvatarFallback className="rounded-md bg-transparent">
-                      <Building2 className="w-5 h-5 text-muted-foreground" />
-                    </AvatarFallback>
-                  </Avatar>
-                </TableCell>
-                <TableCell className="font-semibold">{client.name}</TableCell>
-                <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {client.contacts?.length
-                    ? `${client.contacts.length} contato${client.contacts.length > 1 ? 's' : ''}`
-                    : '-'}
-                </TableCell>
-                <TableCell className="text-muted-foreground truncate max-w-[150px]">
-                  {client.website || '-'}
-                </TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      onClick={() => {
-                        setEditingClient(client)
-                        setFormOpen(true)
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setClientToDelete(client.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredClients.map((client) => {
+              const clientTasks = tasks.filter((t) => t.clientId === client.id)
+              const totalHours = clientTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
+
+              return (
+                <TableRow
+                  key={client.id}
+                  className="group cursor-pointer"
+                  onClick={() => {
+                    setEditingClient(client)
+                    setFormOpen(true)
+                  }}
+                >
+                  <TableCell className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                    <Avatar className="w-10 h-10 border bg-muted/50 shadow-sm rounded-md p-0.5">
+                      <AvatarImage
+                        src={client.logo}
+                        className="object-contain mix-blend-multiply"
+                      />
+                      <AvatarFallback className="rounded-md bg-transparent">
+                        <Building2 className="w-5 h-5 text-muted-foreground" />
+                      </AvatarFallback>
+                    </Avatar>
+                  </TableCell>
+                  <TableCell className="font-semibold">{client.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {client.contacts?.length
+                      ? `${client.contacts.length} contato${client.contacts.length > 1 ? 's' : ''}`
+                      : '-'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground truncate max-w-[150px]">
+                    {client.website || '-'}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-medium text-primary">
+                    {totalHours.toFixed(1)}h
+                  </TableCell>
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                        onClick={() => {
+                          setEditingClient(client)
+                          setFormOpen(true)
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setClientToDelete(client.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
             {filteredClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>

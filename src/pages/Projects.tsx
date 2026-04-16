@@ -29,10 +29,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { StatusManagementModal } from '@/components/projects/StatusManagementModal'
 import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
+import { getTaskHours } from '@/lib/time'
 
 export default function Projects() {
-  const { projects, clients, users, projectStatuses, addProject, updateProject, deleteProject } =
-    useMainStore()
+  const {
+    projects,
+    clients,
+    users,
+    projectStatuses,
+    tasks,
+    addProject,
+    updateProject,
+    deleteProject,
+  } = useMainStore()
   const { toast } = useToast()
 
   const [formOpen, setFormOpen] = useState(false)
@@ -102,6 +111,7 @@ export default function Projects() {
               <TableHead>Responsável</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Início (Impl.)</TableHead>
+              <TableHead className="text-right">Horas</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -110,6 +120,9 @@ export default function Projects() {
               const client = clients.find((c) => c.id === proj.clientId)
               const user = users.find((u) => u.id === proj.analystId)
               const status = projectStatuses.find((s) => s.id === proj.statusId)
+
+              const projectTasks = tasks.filter((t) => t.projectId === proj.id)
+              const totalHours = projectTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
 
               return (
                 <TableRow key={proj.id} className="group">
@@ -153,6 +166,9 @@ export default function Projects() {
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-sm">
                     {formatDate(proj.implStart)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-medium">
+                    {totalHours.toFixed(1)}h
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
