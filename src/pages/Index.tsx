@@ -18,7 +18,7 @@ import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
 import ArchiveManager from '@/components/ArchiveManager'
 import { cn } from '@/lib/utils'
-import { format, isSameDay, parseISO } from 'date-fns'
+import { format, isSameDay, parseISO, differenceInDays, startOfDay } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -216,6 +216,32 @@ export default function Index() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
+      <style>{`
+        .card-vencido > * {
+          background-color: #fef2f2 !important;
+          border-color: #fecaca !important;
+        }
+        .dark .card-vencido > * {
+          background-color: rgba(69, 10, 10, 0.3) !important;
+          border-color: rgba(127, 29, 29, 0.5) !important;
+        }
+        .card-a-vencer > * {
+          background-color: #fefce8 !important;
+          border-color: #fde047 !important;
+        }
+        .dark .card-a-vencer > * {
+          background-color: rgba(66, 32, 6, 0.3) !important;
+          border-color: rgba(113, 63, 18, 0.5) !important;
+        }
+        .card-no-prazo > * {
+          background-color: #f0fdf4 !important;
+          border-color: #bbf7d0 !important;
+        }
+        .dark .card-no-prazo > * {
+          background-color: rgba(5, 46, 22, 0.3) !important;
+          border-color: rgba(6, 78, 59, 0.5) !important;
+        }
+      `}</style>
       <div className="flex items-center justify-between shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">Área de Trabalho</h1>
         <div className="flex items-center gap-3">
@@ -586,14 +612,27 @@ export default function Index() {
                 <div className="flex flex-col gap-3 overflow-y-auto flex-1 min-h-[150px] p-1">
                   {filteredTasks
                     .filter((t) => t.columnId === col.id)
-                    .map((task) => (
-                      <KanbanCard
-                        key={task.id}
-                        task={task}
-                        onClick={() => setSelectedTaskId(task.id)}
-                        onDragStart={handleDragStart}
-                      />
-                    ))}
+                    .map((task) => {
+                      let statusClass = ''
+                      if (task.dueDate) {
+                        const due = startOfDay(parseISO(task.dueDate))
+                        const today = startOfDay(new Date())
+                        const diff = differenceInDays(due, today)
+                        if (diff < 0) statusClass = 'card-vencido'
+                        else if (diff <= 2) statusClass = 'card-a-vencer'
+                        else statusClass = 'card-no-prazo'
+                      }
+
+                      return (
+                        <div key={task.id} className={statusClass}>
+                          <KanbanCard
+                            task={task}
+                            onClick={() => setSelectedTaskId(task.id)}
+                            onDragStart={handleDragStart}
+                          />
+                        </div>
+                      )
+                    })}
                   {filteredTasks.filter((t) => t.columnId === col.id).length === 0 && (
                     <div className="h-full border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center text-muted-foreground/50 text-sm">
                       Arraste cards para cá
@@ -624,29 +663,44 @@ export default function Index() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTasks.map((t) => (
-                  <TableRow
-                    key={t.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setSelectedTaskId(t.id)}
-                  >
-                    <TableCell className="font-semibold">{t.title}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {clients.find((c) => c.id === t.clientId)?.name}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {projects.find((p) => p.id === t.projectId)?.name}
-                    </TableCell>
-                    <TableCell>
-                      {t.dueDate ? format(parseISO(t.dueDate), 'dd/MM/yyyy') : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {columns.find((c) => c.id === t.columnId)?.title || 'Sem Coluna'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredTasks.map((t) => {
+                  let rowStatusColor = ''
+                  if (t.dueDate) {
+                    const due = startOfDay(parseISO(t.dueDate))
+                    const today = startOfDay(new Date())
+                    const diff = differenceInDays(due, today)
+                    if (diff < 0) rowStatusColor = 'bg-red-50/50 dark:bg-red-950/20'
+                    else if (diff <= 2) rowStatusColor = 'bg-yellow-50/50 dark:bg-yellow-950/20'
+                    else rowStatusColor = 'bg-green-50/50 dark:bg-green-950/20'
+                  }
+
+                  return (
+                    <TableRow
+                      key={t.id}
+                      className={cn(
+                        'cursor-pointer hover:bg-muted/50 transition-colors',
+                        rowStatusColor,
+                      )}
+                      onClick={() => setSelectedTaskId(t.id)}
+                    >
+                      <TableCell className="font-semibold">{t.title}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {clients.find((c) => c.id === t.clientId)?.name}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {projects.find((p) => p.id === t.projectId)?.name}
+                      </TableCell>
+                      <TableCell>
+                        {t.dueDate ? format(parseISO(t.dueDate), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {columns.find((c) => c.id === t.columnId)?.title || 'Sem Coluna'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
                 {filteredTasks.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
