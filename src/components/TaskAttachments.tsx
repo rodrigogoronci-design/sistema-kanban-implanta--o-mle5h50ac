@@ -1,6 +1,8 @@
-import { Task, Attachment } from '@/stores/main'
+import useMainStore, { Task, Attachment } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { AttachmentTagPopover } from './AttachmentTagPopover'
 import {
   Paperclip,
   Trash2,
@@ -28,6 +30,7 @@ interface Props {
 }
 
 export function TaskAttachments({ task, onUpdate }: Props) {
+  const { attachmentTags } = useMainStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null)
@@ -124,7 +127,7 @@ export function TaskAttachments({ task, onUpdate }: Props) {
       <Alert className="bg-amber-50 text-amber-900 border-amber-200 py-2">
         <AlertCircle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-xs">
-          Arquivos são armazenados em memória e serão perdidos ao recarregar a página.
+          Arquivos e tags são armazenados em memória e serão perdidos ao recarregar a página.
         </AlertDescription>
       </Alert>
 
@@ -149,13 +152,49 @@ export function TaskAttachments({ task, onUpdate }: Props) {
                 <div className="shrink-0 bg-background p-2 rounded shadow-sm">
                   {getFileIcon(file.type)}
                 </div>
-                <div className="flex-1 min-w-0 pr-14">
+                <div className="flex-1 min-w-0 pr-24">
                   <p className="text-sm font-medium truncate" title={file.name}>
                     {file.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
+                    {file.tagIds && file.tagIds.length > 0 && (
+                      <div className="flex gap-1 overflow-x-auto scrollbar-none max-w-[150px]">
+                        {file.tagIds.map((tagId) => {
+                          const tag = attachmentTags.find((t) => t.id === tagId)
+                          if (!tag) return null
+                          return (
+                            <Badge
+                              key={tagId}
+                              variant="secondary"
+                              className="text-[10px] px-1.5 py-0 h-4 font-medium shrink-0"
+                              style={{
+                                backgroundColor: `${tag.color}15`,
+                                color: tag.color,
+                                borderColor: `${tag.color}30`,
+                              }}
+                            >
+                              {tag.name}
+                            </Badge>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/30 pl-2 backdrop-blur-sm rounded-l">
+                  <div className="mr-1">
+                    <AttachmentTagPopover
+                      tagIds={file.tagIds || []}
+                      onTagsChange={(newTags) => {
+                        onUpdate({
+                          attachments: (task.attachments || []).map((a) =>
+                            a.id === file.id ? { ...a, tagIds: newTags } : a,
+                          ),
+                        })
+                      }}
+                    />
+                  </div>
                   {isPreviewable(file.type) && (
                     <Button
                       variant="ghost"

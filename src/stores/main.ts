@@ -49,6 +49,11 @@ export interface Subtask {
   title: string
   completed: boolean
 }
+export interface AttachmentTag {
+  id: string
+  name: string
+  color: string
+}
 export interface Attachment {
   id: string
   name: string
@@ -56,6 +61,7 @@ export interface Attachment {
   type: string
   url: string
   createdAt: string
+  tagIds?: string[]
 }
 export interface TimeEntry {
   id: string
@@ -100,9 +106,15 @@ export interface MainState {
   columns: Column[]
   categories: Category[]
   projectStatuses: ProjectStatus[]
+  attachmentTags: AttachmentTag[]
 }
 
 const initialMockState: MainState = {
+  attachmentTags: [
+    { id: 'at-1', name: 'Contrato', color: '#3b82f6' },
+    { id: 'at-2', name: 'Briefing', color: '#10b981' },
+    { id: 'at-3', name: 'Final', color: '#f59e0b' },
+  ],
   projectStatuses: [
     { id: 'ps-1', name: 'Backlog', color: '#94a3b8' },
     { id: 'ps-2', name: 'Em andamento', color: '#3b82f6' },
@@ -217,6 +229,7 @@ const initialMockState: MainState = {
           type: 'image/png',
           url: 'https://img.usecurling.com/p/800/600?q=diagram',
           createdAt: '2024-04-01T10:05:00Z',
+          tagIds: ['at-2'],
         },
         {
           id: 'a2',
@@ -225,6 +238,7 @@ const initialMockState: MainState = {
           type: 'application/pdf',
           url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
           createdAt: '2024-04-01T10:10:00Z',
+          tagIds: ['at-1', 'at-3'],
         },
       ],
       timeEntries: [],
@@ -414,5 +428,27 @@ export default function useMainStore() {
         newCols.push({ ...col, archived: false })
         return { ...s, columns: newCols }
       }),
+    addAttachmentTag: (tag: Omit<AttachmentTag, 'id'>) => {
+      const id = `at-${Math.random().toString(36).substr(2, 9)}`
+      store.setState((s) => ({ ...s, attachmentTags: [...s.attachmentTags, { ...tag, id }] }))
+      return id
+    },
+    updateAttachmentTag: (id: string, payload: Partial<AttachmentTag>) =>
+      store.setState((s) => ({
+        ...s,
+        attachmentTags: s.attachmentTags.map((t) => (t.id === id ? { ...t, ...payload } : t)),
+      })),
+    deleteAttachmentTag: (id: string) =>
+      store.setState((s) => ({
+        ...s,
+        attachmentTags: s.attachmentTags.filter((t) => t.id !== id),
+        tasks: s.tasks.map((t) => ({
+          ...t,
+          attachments: (t.attachments || []).map((a) => ({
+            ...a,
+            tagIds: (a.tagIds || []).filter((tid) => tid !== id),
+          })),
+        })),
+      })),
   }
 }

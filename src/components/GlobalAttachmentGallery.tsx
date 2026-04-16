@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Task, Attachment } from '@/stores/main'
+import useMainStore, { Task, Attachment } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
@@ -9,6 +9,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   AlertCircle,
   Download,
@@ -17,9 +19,11 @@ import {
   FileText,
   Image as ImageIcon,
   Paperclip,
+  Tag,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { AttachmentTagPopover } from './AttachmentTagPopover'
 
 interface Props {
   tasks: Task[]
@@ -28,7 +32,9 @@ interface Props {
 }
 
 export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick }: Props) {
+  const { updateTask, attachmentTags } = useMainStore()
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null)
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
 
   const attachments = useMemo(() => {
     let all = tasks.flatMap((t) =>
@@ -46,8 +52,12 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
       )
     }
 
+    if (selectedTags.length > 0) {
+      all = all.filter((a) => a.tagIds && selectedTags.some((tagId) => a.tagIds!.includes(tagId)))
+    }
+
     return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }, [tasks, searchTerm])
+  }, [tasks, searchTerm, selectedTags])
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return '0 B'
@@ -69,11 +79,52 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
 
   return (
     <div className="flex flex-col h-full gap-4 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="flex items-center justify-between gap-4 shrink-0">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="gap-2">
+              <Tag className="w-4 h-4" />
+              Filtrar Tags {selectedTags.length > 0 && `(${selectedTags.length})`}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="start">
+            <div className="space-y-1">
+              {attachmentTags.map((tag) => (
+                <label
+                  key={tag.id}
+                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                >
+                  <Checkbox
+                    checked={selectedTags.includes(tag.id)}
+                    onCheckedChange={(c) => {
+                      if (c) setSelectedTags([...selectedTags, tag.id])
+                      else setSelectedTags(selectedTags.filter((t) => t !== tag.id))
+                    }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    <span className="text-sm truncate">{tag.name}</span>
+                  </div>
+                </label>
+              ))}
+              {attachmentTags.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Nenhuma tag disponível.
+                </p>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
       <Alert className="bg-amber-50 text-amber-900 border-amber-200 py-2 shrink-0">
         <AlertCircle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-sm">
-          Arquivos são armazenados em memória e serão perdidos ao recarregar a página. Conecte um
-          backend para persistência.
+          Arquivos e tags são armazenados em memória e serão perdidos ao recarregar a página.
+          Conecte um backend para persistência.
         </AlertDescription>
       </Alert>
 
@@ -97,11 +148,24 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
                   )}
 
                   <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <AttachmentTagPopover
+                      tagIds={file.tagIds || []}
+                      onTagsChange={(newTags) => {
+                        const task = tasks.find((t) => t.id === file.taskId)
+                        if (task) {
+                          updateTask(task.id, {
+                            attachments: (task.attachments || []).map((a) =>
+                              a.id === file.id ? { ...a, tagIds: newTags } : a,
+                            ),
+                          })
+                        }
+                      }}
+                    />
                     {isPreviewable(file.type) && (
                       <Button
                         variant="secondary"
                         size="icon"
-                        className="h-8 w-8 rounded-full shadow-sm"
+                        className="h-8 w-8 rounded-full shadow-sm bg-background/50 hover:bg-background/80"
                         onClick={() => setPreviewFile(file)}
                         title="Visualizar"
                       >
@@ -111,7 +175,7 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
                     <Button
                       variant="secondary"
                       size="icon"
-                      className="h-8 w-8 rounded-full shadow-sm"
+                      className="h-8 w-8 rounded-full shadow-sm bg-background/50 hover:bg-background/80"
                       asChild
                       title="Baixar"
                     >
@@ -125,11 +189,35 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
                   <p className="text-sm font-medium leading-tight line-clamp-2" title={file.name}>
                     {file.name}
                   </p>
-                  <div className="mt-auto pt-1 flex flex-col gap-1.5 items-start">
+
+                  {file.tagIds && file.tagIds.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {file.tagIds.map((tagId) => {
+                        const tag = attachmentTags.find((t) => t.id === tagId)
+                        if (!tag) return null
+                        return (
+                          <Badge
+                            key={tagId}
+                            variant="secondary"
+                            className="text-[10px] px-1.5 py-0 font-medium"
+                            style={{
+                              backgroundColor: `${tag.color}15`,
+                              color: tag.color,
+                              borderColor: `${tag.color}30`,
+                            }}
+                          >
+                            {tag.name}
+                          </Badge>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-auto pt-1 flex flex-col gap-1 items-start">
                     <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
                     <Badge
                       variant="secondary"
-                      className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-secondary/80 truncate max-w-full font-normal"
+                      className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-secondary/80 truncate max-w-full font-normal w-full flex justify-center bg-muted/50"
                       onClick={() => onTaskClick(file.taskId)}
                       title={`Ver tarefa: ${file.taskTitle}`}
                     >
