@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { getTaskHours } from '@/lib/time'
+import { Badge } from '@/components/ui/badge'
 
 const toDateInput = (iso?: string) => (iso ? iso.split('T')[0] : '')
 const toIso = (dateStr?: string) => (dateStr ? new Date(dateStr).toISOString() : undefined)
@@ -26,12 +28,16 @@ export function ProjectFormModal({
   project?: Project
   onSubmit: (data: Omit<Project, 'id'>) => void
 }) {
-  const { clients, users, projectStatuses } = useMainStore()
-  const [formData, setFormData] = useState<Omit<Project, 'id'>>({
+  const { clients, users, projectStatuses, tasks } = useMainStore()
+  const [formData, setFormData] = useState<
+    Omit<Project, 'id'> & { forecastStart?: string; forecastEnd?: string }
+  >({
     name: '',
     clientId: '',
     analystId: '',
     statusId: '',
+    forecastStart: '',
+    forecastEnd: '',
     implStart: '',
     implEnd: '',
     trainStart: '',
@@ -39,6 +45,9 @@ export function ProjectFormModal({
     opStart: '',
     opEnd: '',
   })
+
+  const projectTasks = project ? tasks.filter((t) => t.projectId === project.id) : []
+  const totalHours = projectTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
 
   useEffect(() => {
     if (open) {
@@ -48,6 +57,8 @@ export function ProjectFormModal({
           clientId: project.clientId,
           analystId: project.analystId,
           statusId: project.statusId,
+          forecastStart: toDateInput((project as any).forecastStart),
+          forecastEnd: toDateInput((project as any).forecastEnd),
           implStart: toDateInput(project.implStart),
           implEnd: toDateInput(project.implEnd),
           trainStart: toDateInput(project.trainStart),
@@ -61,6 +72,8 @@ export function ProjectFormModal({
           clientId: '',
           analystId: '',
           statusId: projectStatuses[0]?.id || '',
+          forecastStart: '',
+          forecastEnd: '',
           implStart: '',
           implEnd: '',
           trainStart: '',
@@ -78,6 +91,8 @@ export function ProjectFormModal({
 
     onSubmit({
       ...formData,
+      forecastStart: toIso(formData.forecastStart),
+      forecastEnd: toIso(formData.forecastEnd),
       implStart: toIso(formData.implStart),
       implEnd: toIso(formData.implEnd),
       trainStart: toIso(formData.trainStart),
@@ -95,7 +110,14 @@ export function ProjectFormModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{project ? 'Editar Projeto' : 'Criar Novo Projeto'}</DialogTitle>
+          <div className="flex items-start justify-between pr-8">
+            <DialogTitle>{project ? 'Editar Projeto' : 'Criar Novo Projeto'}</DialogTitle>
+            {project && (
+              <Badge variant="secondary" className="font-mono text-xs">
+                Total de Horas: {totalHours.toFixed(1)}h
+              </Badge>
+            )}
+          </div>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="grid grid-cols-2 gap-4">
@@ -163,6 +185,22 @@ export function ProjectFormModal({
           <div className="border-t pt-4 mt-4 space-y-4">
             <h4 className="text-sm font-medium text-muted-foreground">Datas do Cronograma</h4>
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Previsão Início</Label>
+                <Input
+                  type="date"
+                  value={formData.forecastStart}
+                  onChange={(e) => updateField('forecastStart', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Previsão Fim</Label>
+                <Input
+                  type="date"
+                  value={formData.forecastEnd}
+                  onChange={(e) => updateField('forecastEnd', e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs">Início Implantação</Label>
                 <Input

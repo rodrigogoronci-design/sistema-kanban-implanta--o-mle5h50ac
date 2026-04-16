@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Pencil, Search, Building2 } from 'lucide-react'
+import { Plus, Trash2, Pencil, Search, Building2, ExternalLink } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { ClientFormModal } from '@/components/ClientFormModal'
 import { getTaskHours } from '@/lib/time'
@@ -151,7 +151,28 @@ export default function Clients() {
                     {totalHours.toFixed(1)}h
                   </TableCell>
                   <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {client.website && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          asChild
+                          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                          title="Acessar Site"
+                        >
+                          <a
+                            href={
+                              client.website.startsWith('http')
+                                ? client.website
+                                : `https://${client.website}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"

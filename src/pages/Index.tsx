@@ -361,11 +361,11 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-        <div className="bg-card p-4 rounded-xl border shadow-sm flex flex-col gap-1">
-          <span className="text-sm font-medium text-muted-foreground">Total de Tarefas</span>
-          <div className="text-2xl font-bold">{filteredTasks.length}</div>
-          <p className="text-xs text-muted-foreground">Nos filtros atuais</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 shrink-0">
+        <div className="bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-1">
+          <span className="text-xs font-medium text-muted-foreground">Total de Tarefas</span>
+          <div className="text-xl font-bold">{filteredTasks.length}</div>
+          <p className="text-[10px] text-muted-foreground">Nos filtros atuais</p>
         </div>
         {visibleColumns.slice(0, 3).map((col) => {
           const count = filteredTasks.filter((t) => t.columnId === col.id).length
@@ -374,20 +374,17 @@ export default function Index() {
           return (
             <div
               key={col.id}
-              className="bg-card p-4 rounded-xl border shadow-sm flex flex-col gap-1"
+              className="bg-card p-3 rounded-lg border shadow-sm flex flex-col gap-1"
             >
-              <span className="text-sm font-medium text-muted-foreground truncate">
+              <span className="text-xs font-medium text-muted-foreground truncate">
                 {col.title}
               </span>
               <div className="flex items-baseline gap-2">
-                <div className="text-2xl font-bold">{count}</div>
-                <div className="text-xs text-muted-foreground">{percentage}%</div>
+                <div className="text-xl font-bold">{count}</div>
+                <div className="text-[10px] text-muted-foreground">{percentage}%</div>
               </div>
-              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
-                <div
-                  className="bg-primary h-1.5 rounded-full"
-                  style={{ width: `${percentage}%` }}
-                />
+              <div className="w-full bg-muted rounded-full h-1 mt-1">
+                <div className="bg-primary h-1 rounded-full" style={{ width: `${percentage}%` }} />
               </div>
             </div>
           )
@@ -422,7 +419,7 @@ export default function Index() {
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os Clientes</SelectItem>
+              <SelectItem value="all">Cliente</SelectItem>
               {clients.map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
@@ -436,7 +433,7 @@ export default function Index() {
               <SelectValue placeholder="Projeto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os Projetos</SelectItem>
+              <SelectItem value="all">Projeto</SelectItem>
               {projects
                 .filter((p) => filterClient === 'all' || p.clientId === filterClient)
                 .map((p) => (
@@ -452,7 +449,7 @@ export default function Index() {
               <SelectValue placeholder="Responsável" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Responsáveis</SelectItem>
+              <SelectItem value="all">Responsável</SelectItem>
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.name}
@@ -466,7 +463,7 @@ export default function Index() {
               <SelectValue placeholder="Categoria" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas Categorias</SelectItem>
+              <SelectItem value="all">Categoria</SelectItem>
               <SelectItem value="none">Sem Categoria</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>

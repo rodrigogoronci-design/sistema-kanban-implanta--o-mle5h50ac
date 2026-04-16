@@ -1,189 +1,92 @@
-import { Task } from '@/stores/main'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Clock, Paperclip, MessageSquare } from 'lucide-react'
 import useMainStore from '@/stores/main'
-import { cn } from '@/lib/utils'
-import { differenceInHours, isPast, parseISO, format } from 'date-fns'
-import { Clock, CheckSquare, Paperclip } from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { getTaskHours } from '@/lib/time'
 
-interface Props {
-  task: Task
+interface KanbanCardProps {
+  task: any
   onClick: () => void
-  onDragStart: (e: React.DragEvent, id: string) => void
+  onDragStart: (e: React.DragEvent, taskId: string) => void
 }
 
-const priorityColors: Record<string, string> = {
-  Alta: 'bg-red-100 text-red-800 border-red-200',
-  Média: 'bg-amber-100 text-amber-800 border-amber-200',
-  Baixa: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-}
+export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardProps) {
+  const { clients, users, categories } = useMainStore()
 
-export default function KanbanCard({ task, onClick, onDragStart }: Props) {
-  const { users, clients, categories, updateTask } = useMainStore()
-  const user = users.find((u) => u.id === task.responsibleId)
   const client = clients.find((c) => c.id === task.clientId)
-
-  let isOverdue = false
-  let isNearing = false
-  let dueDateColor = ''
-
-  if (task.dueDate) {
-    const date = parseISO(task.dueDate)
-    if (isPast(date) && differenceInHours(new Date(), date) > 0) {
-      isOverdue = true
-      dueDateColor = 'bg-destructive text-destructive-foreground border-destructive'
-    } else {
-      const hours = differenceInHours(date, new Date())
-      if (hours <= 48 && hours >= 0) {
-        isNearing = true
-        dueDateColor = 'bg-yellow-500 text-yellow-950 border-yellow-600'
-      } else {
-        dueDateColor = 'bg-emerald-100 text-emerald-800 border-emerald-200'
-      }
-    }
-  }
-
-  const borderClass = isOverdue
-    ? 'border-l-destructive'
-    : isNearing
-      ? 'border-l-yellow-500'
-      : task.dueDate
-        ? 'border-l-emerald-500'
-        : 'border-l-transparent'
+  const user = users.find((u) => u.id === task.responsibleId)
+  const category = categories.find((c) => c.id === task.categoryId)
+  const totalHours = getTaskHours(task)
 
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task.id)}
       onClick={onClick}
-      className={cn(
-        'bg-card border-y border-r shadow-sm rounded-lg p-3 cursor-grab active:cursor-grabbing card-hover-lift group flex flex-col gap-2 min-h-[100px] border-l-4',
-        borderClass,
-      )}
+      className="bg-background p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors flex flex-col gap-2 group relative"
     >
-      <div className="flex justify-between items-start gap-2">
-        <div className="flex flex-wrap gap-1.5 items-center">
-          <Badge variant="outline" className={priorityColors[task.priority] || ''}>
-            {task.priority}
-          </Badge>
-          {task.dueDate && (
-            <Badge
-              variant="outline"
-              className={cn('text-[10px] px-1.5 py-0 h-5 font-semibold', dueDateColor)}
-            >
-              {format(parseISO(task.dueDate), 'dd/MM')}
-            </Badge>
-          )}
-        </div>
-        <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1.5 max-w-[120px] truncate">
-          {(() => {
-            const category = categories.find((c) => c.id === task.categoryId)
-            if (!category) return 'Sem Categoria'
-            return (
-              <>
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: category.color }}
-                />
-                <span className="truncate">{category.name}</span>
-              </>
-            )
-          })()}
-        </span>
-      </div>
-
-      <div>
-        <h4 className="font-semibold text-sm leading-tight text-foreground group-hover:text-primary transition-colors">
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="font-medium text-sm leading-tight group-hover:text-primary transition-colors pr-10">
           {task.title}
         </h4>
-        <p className="text-xs text-muted-foreground mt-1 truncate">
-          {client?.name || 'Cliente Desconhecido'}
-        </p>
+        {totalHours > 0 && (
+          <Badge
+            variant="secondary"
+            className="absolute top-3 right-3 text-[10px] px-1.5 py-0 h-4 font-mono flex items-center gap-1"
+            title="Total de horas na tarefa"
+          >
+            <Clock className="w-2.5 h-2.5" />
+            {totalHours.toFixed(1)}h
+          </Badge>
+        )}
       </div>
 
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
-        <div className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-          {task.checklist.length > 0 && (
-            <div className="flex items-center gap-1">
-              <CheckSquare className="w-3.5 h-3.5" />
-              <span
-                className={
-                  task.checklist.every((c) => c.completed) ? 'text-primary font-semibold' : ''
-                }
-              >
-                {task.checklist.filter((c) => c.completed).length}/{task.checklist.length}
-              </span>
-            </div>
-          )}
+      {client && <div className="text-xs text-muted-foreground truncate">{client.name}</div>}
 
-          {(task.attachments?.length ?? 0) > 0 && (
-            <div className="flex items-center gap-1">
-              <Paperclip className="w-3.5 h-3.5" />
-              <span>{task.attachments!.length}</span>
-            </div>
-          )}
+      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+        {category && (
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 h-4"
+            style={{ backgroundColor: category.color + '20', color: category.color }}
+          >
+            {category.name}
+          </Badge>
+        )}
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+          {task.priority || 'Média'}
+        </Badge>
+      </div>
 
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            <Popover>
-              <PopoverTrigger asChild>
-                <div className="flex items-center gap-1 cursor-pointer hover:text-primary transition-colors bg-secondary/50 px-1.5 py-0.5 rounded-md">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="font-semibold">{getTaskHours(task).toFixed(1)}h</span>
-                </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-3" align="start">
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Adicionar Horas</h4>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      step="0.5"
-                      min="0.1"
-                      placeholder="Ex: 2.5"
-                      className="h-8 text-sm"
-                      id={`hours-${task.id}`}
-                    />
-                    <Button
-                      size="sm"
-                      className="h-8 shrink-0"
-                      onClick={() => {
-                        const input = document.getElementById(
-                          `hours-${task.id}`,
-                        ) as HTMLInputElement
-                        const val = parseFloat(input.value)
-                        if (!isNaN(val) && val > 0) {
-                          const end = new Date()
-                          const start = new Date(end.getTime() - val * 60 * 60 * 1000)
-                          const newEntry = {
-                            id: Math.random().toString(),
-                            start: start.toISOString(),
-                            end: end.toISOString(),
-                            observation: 'Lançamento via card',
-                          }
-                          updateTask(task.id, {
-                            timeEntries: [...(task.timeEntries || []), newEntry],
-                          })
-                          input.value = ''
-                          document.dispatchEvent(new MouseEvent('mousedown'))
-                        }
-                      }}
-                    >
-                      Salvar
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+      <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs">
+          {user ? (
+            <div
+              className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
+              title={`Responsável: ${user.name}`}
+            >
+              <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="truncate max-w-[60px]">{user.name.split(' ')[0]}</span>
+            </div>
+          ) : (
+            <span className="text-[10px] italic text-muted-foreground/70">Não atribuído</span>
+          )}
         </div>
-        <Avatar className="h-6 w-6 border bg-muted">
-          <AvatarImage src={user?.avatar} />
-          <AvatarFallback className="text-[10px]">{user?.name.charAt(0) || 'U'}</AvatarFallback>
-        </Avatar>
+        <div className="flex items-center gap-2 text-xs">
+          {task.attachments && task.attachments.length > 0 && (
+            <div className="flex items-center gap-1">
+              <Paperclip className="w-3 h-3" />
+              <span>{task.attachments.length}</span>
+            </div>
+          )}
+          {task.comments && task.comments.length > 0 && (
+            <div className="flex items-center gap-1">
+              <MessageSquare className="w-3 h-3" />
+              <span>{task.comments.length}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
