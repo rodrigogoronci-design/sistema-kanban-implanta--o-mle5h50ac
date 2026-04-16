@@ -1,19 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
 
-interface Colaborador {
-  id: string
-  nome: string
-  role: string
-  departamento: string | null
-  image_gender: string | null
-  email: string | null
-}
-
 interface AuthContextType {
-  user: any | null
-  session: any | null
-  colaborador: Colaborador | null
+  user: User | null
+  session: Session | null
+  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signOut: () => Promise<{ error: any }>
   loading: boolean
 }
 
@@ -26,68 +20,45 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any | null>(null)
-  const [colaborador, setColaborador] = useState<Colaborador | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data: adminData } = await supabase
-          .from('colaboradores')
-          .select('*')
-          .eq('role', 'Admin')
-          .limit(1)
-          .maybeSingle()
-
-        if (adminData) {
-          setColaborador(adminData as Colaborador)
-          setUser({ id: adminData.user_id || adminData.id, email: adminData.email })
-        } else {
-          const { data: anyData } = await supabase
-            .from('colaboradores')
-            .select('*')
-            .limit(1)
-            .maybeSingle()
-
-          if (anyData) {
-            setColaborador(anyData as Colaborador)
-            setUser({ id: anyData.user_id || anyData.id, email: anyData.email })
-          } else {
-            const mock = {
-              id: '00000000-0000-0000-0000-000000000000',
-              nome: 'Administrador Padrão',
-              role: 'Admin',
-              departamento: null,
-              image_gender: 'male',
-              email: 'admin@sistema.local',
-            }
-            setColaborador(mock)
-            setUser({ id: mock.id, email: mock.email })
-          }
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err)
-        const mock = {
-          id: '00000000-0000-0000-0000-000000000000',
-          nome: 'Administrador (Offline)',
-          role: 'Admin',
-          departamento: null,
-          image_gender: 'male',
-          email: 'admin@sistema.local',
-        }
-        setColaborador(mock)
-        setUser({ id: mock.id, email: mock.email })
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    initAuth()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+    return () => subscription.unsubscribe()
   }, [])
 
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
+    return { error }
+  }
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error }
+  }
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session: null, colaborador, loading }}>
+    <AuthContext.Provider value={{ user, session, signUp, signIn, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   )

@@ -1,12 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, x-supabase-client-platform, apikey, content-type',
-}
+import { corsHeaders } from '../_shared/cors.ts'
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -14,162 +8,75 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
     const { action, payload } = await req.json()
 
     if (action === 'create') {
-      let authUser
-
-      if (payload.sendInvite) {
-        const { data, error } = await supabase.auth.admin.inviteUserByEmail(payload.email, {
-          data: { name: payload.name },
-        })
-        if (error) throw error
-        authUser = data.user
-      } else {
-        const { data, error } = await supabase.auth.admin.createUser({
-          email: payload.email,
-          password: payload.password || 'Skip@Pass123!',
-          email_confirm: true,
-          user_metadata: { name: payload.name },
-        })
-        if (error) throw error
-        authUser = data.user
-      }
-
-      if (!authUser) throw new Error('Falha ao criar usuário')
-
-      const { error: dbErr } = await supabase.from('colaboradores').insert({
-        id: authUser.id,
-        user_id: authUser.id,
+      const { data, error } = await supabase.auth.admin.createUser({
         email: payload.email,
-        nome: payload.name,
-        role: payload.role || 'Colaborador',
-        departamento: payload.departamento || null,
-        recebe_transporte:
-          payload.recebe_transporte === false || payload.recebe_transporte === 'false'
-            ? false
-            : true,
+        password: payload.password,
+        email_confirm: true,
+        user_metadata: { name: payload.name },
       })
-      if (dbErr) throw dbErr
-
-      return new Response(JSON.stringify({ success: true, id: authUser.id }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (action === 'resend_invite') {
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(payload.email)
       if (error) throw error
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+
+      await supabase.from('colaboradores').insert({
+        id: data.user.id,
+        nome: payload.name,
+        email: payload.email,
+        role: payload.role,
+        departamento: payload.departamento,
       })
-    }
 
-    if (action === 'delete') {
-      const { data: colab } = await supabase
-        .from('colaboradores')
-        .select('user_id')
-        .eq('id', payload.id)
-        .single()
-      const authUserId = colab?.user_id || payload.id
-
-      const { error: dbErr } = await supabase.from('colaboradores').delete().eq('id', payload.id)
-      if (dbErr) throw dbErr
-
-      if (authUserId) {
-        const { error } = await supabase.auth.admin.deleteUser(authUserId)
-        if (error && !error.message.toLowerCase().includes('user not found')) {
-          console.error('Error deleting auth user:', error)
-        }
-      }
-
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ id: data.user.id }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
     }
 
     if (action === 'update') {
-      const { id, email, name, role, password, recebe_transporte } = payload
+      const { data, error } = await supabase.auth.admin.updateUserById(payload.id, {
+        email: payload.email,
+        password: payload.password || undefined,
+        user_metadata: { name: payload.name },
+      })
+      if (error) throw error
 
-      const { data: colab } = await supabase
-        .from('colaboradores')
-        .select('id, user_id')
-        .or(`id.eq.${id},user_id.eq.${id}`)
-        .single()
-
-      const authUserId = colab?.user_id || id
-      const colabId = colab?.id || id
-
-      const updateData: any = {
-        email,
-        user_metadata: { name },
-        email_confirm: true,
-      }
-
-      if (password) {
-        updateData.password = password
-      }
-
-      if (authUserId) {
-        const { error: authErr } = await supabase.auth.admin.updateUserById(authUserId, updateData)
-        if (authErr) {
-          if (authErr.message.toLowerCase().includes('user not found')) {
-            if (password) {
-              const { data: newAuth, error: createErr } = await supabase.auth.admin.createUser({
-                email,
-                password,
-                email_confirm: true,
-                user_metadata: { name },
-              })
-              if (createErr) throw createErr
-
-              await supabase
-                .from('colaboradores')
-                .update({ user_id: newAuth.user.id })
-                .eq('id', colabId)
-            }
-          } else {
-            throw authErr
-          }
-        }
-      }
-
-      const receivesTransport =
-        recebe_transporte === false || recebe_transporte === 'false' ? false : true
-
-      const { error: dbErr } = await supabase
+      await supabase
         .from('colaboradores')
         .update({
-          email,
-          nome: name,
-          role: role || 'Colaborador',
-          departamento: payload.departamento || null,
-          recebe_transporte: receivesTransport,
+          nome: payload.name,
+          email: payload.email,
+          role: payload.role,
+          departamento: payload.departamento,
         })
-        .eq('id', colabId)
-
-      if (dbErr) throw dbErr
-
-      if (!receivesTransport) {
-        await supabase.from('beneficios_transporte').delete().eq('colaborador_id', colabId)
-      }
+        .eq('id', payload.id)
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Unknown action' }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    if (action === 'delete') {
+      const { error } = await supabase.auth.admin.deleteUser(payload.id)
+      if (error) throw error
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      })
+    }
+
+    return new Response(JSON.stringify({ error: 'Invalid action' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  } catch (error: any) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders },
     })
   }
 })

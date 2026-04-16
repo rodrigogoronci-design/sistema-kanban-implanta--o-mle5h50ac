@@ -9,10 +9,11 @@ import Users from './pages/Users'
 import Clients from './pages/Clients'
 import Projects from './pages/Projects'
 import Reports from './pages/Reports'
+import Login from './pages/Login'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
-  const { loading } = useAuth()
+  const { loading, session } = useAuth()
 
   if (loading) {
     return (
@@ -20,6 +21,10 @@ const AppRoutes = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
+  }
+
+  if (!session) {
+    return <Login />
   }
 
   return (
