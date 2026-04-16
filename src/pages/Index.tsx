@@ -59,8 +59,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { MoreVertical, Archive, Trash2, GripHorizontal } from 'lucide-react'
-import { BarChart, Bar, XAxis, Cell } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
 export default function Index() {
   const {
@@ -212,23 +210,6 @@ export default function Index() {
     filterCategory !== 'all' ||
     filterDueDate
 
-  const chartData = categories.map((cat) => {
-    const count = tasks.filter((t) => t.categoryId === cat.id).length
-    return {
-      name: `${cat.name} (${count})`,
-      count,
-      fill: cat.color,
-    }
-  })
-  const uncategorizedCount = tasks.filter((t) => !t.categoryId).length
-  if (uncategorizedCount > 0) {
-    chartData.push({
-      name: `Sem Categoria (${uncategorizedCount})`,
-      count: uncategorizedCount,
-      fill: '#cbd5e1',
-    })
-  }
-
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
       <div className="flex items-center justify-between shrink-0">
@@ -373,24 +354,37 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="bg-card p-4 rounded-lg border shadow-sm shrink-0 flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          Volume de Tarefas por Categoria
-        </h2>
-        <ChartContainer
-          config={{ count: { label: 'Tarefas' } }}
-          className="h-[100px] w-full aspect-auto"
-        >
-          <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-            <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
+        <div className="bg-card p-4 rounded-xl border shadow-sm flex flex-col gap-1">
+          <span className="text-sm font-medium text-muted-foreground">Total de Tarefas</span>
+          <div className="text-2xl font-bold">{filteredTasks.length}</div>
+          <p className="text-xs text-muted-foreground">Nos filtros atuais</p>
+        </div>
+        {visibleColumns.slice(0, 3).map((col) => {
+          const count = filteredTasks.filter((t) => t.columnId === col.id).length
+          const percentage =
+            filteredTasks.length > 0 ? Math.round((count / filteredTasks.length) * 100) : 0
+          return (
+            <div
+              key={col.id}
+              className="bg-card p-4 rounded-xl border shadow-sm flex flex-col gap-1"
+            >
+              <span className="text-sm font-medium text-muted-foreground truncate">
+                {col.title}
+              </span>
+              <div className="flex items-baseline gap-2">
+                <div className="text-2xl font-bold">{count}</div>
+                <div className="text-xs text-muted-foreground">{percentage}%</div>
+              </div>
+              <div className="w-full bg-muted rounded-full h-1.5 mt-2">
+                <div
+                  className="bg-primary h-1.5 rounded-full"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="flex flex-col gap-3 bg-card p-4 rounded-lg border shadow-sm shrink-0">

@@ -29,6 +29,7 @@ import {
   CommandItem,
 } from '@/components/ui/command'
 import { CategoryManager } from './CategoryManager'
+import { ClientFormModal } from './ClientFormModal'
 
 export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const {
@@ -48,6 +49,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const [clientSearch, setClientSearch] = useState('')
   const [editingClientId, setEditingClientId] = useState<string | null>(null)
   const [editingClientName, setEditingClientName] = useState('')
+  const [clientFormOpen, setClientFormOpen] = useState(false)
 
   const task = tasks.find((t) => t.id === taskId)
 
@@ -127,18 +129,8 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                                   size="sm"
                                   className="w-full"
                                   onClick={() => {
-                                    const newId = `client-${Math.random().toString(36).substr(2, 9)}`
-                                    addClient({
-                                      id: newId,
-                                      name: clientSearch,
-                                      cnpj: '',
-                                      contacts: [],
-                                      modules: [],
-                                      logo: `https://img.usecurling.com/i?q=${encodeURIComponent(clientSearch)}&shape=fill&color=blue`,
-                                    })
-                                    handleClientChange(newId)
+                                    setClientFormOpen(true)
                                     setClientOpen(false)
-                                    setClientSearch('')
                                   }}
                                 >
                                   <Plus className="mr-2 h-4 w-4" />
@@ -146,6 +138,19 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                                 </Button>
                               )}
                             </CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                onSelect={() => {
+                                  setClientSearch('')
+                                  setClientFormOpen(true)
+                                  setClientOpen(false)
+                                }}
+                                className="font-medium text-primary cursor-pointer"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Adicionar novo cliente
+                              </CommandItem>
+                            </CommandGroup>
                             <CommandGroup>
                               {clients.map((c) => (
                                 <CommandItem
@@ -268,20 +273,10 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                                   <CommandItem
                                     value={clientSearch}
                                     onSelect={() => {
-                                      const newId = `client-${Math.random().toString(36).substr(2, 9)}`
-                                      addClient({
-                                        id: newId,
-                                        name: clientSearch,
-                                        cnpj: '',
-                                        contacts: [],
-                                        modules: [],
-                                        logo: `https://img.usecurling.com/i?q=${encodeURIComponent(clientSearch)}&shape=fill&color=blue`,
-                                      })
-                                      handleClientChange(newId)
+                                      setClientFormOpen(true)
                                       setClientOpen(false)
-                                      setClientSearch('')
                                     }}
-                                    className="text-primary font-medium"
+                                    className="text-primary font-medium cursor-pointer"
                                   >
                                     <Plus className="mr-2 h-4 w-4" />
                                     Criar "{clientSearch}"
@@ -500,6 +495,22 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
         </DialogContent>
       </Dialog>
       <CategoryManager open={categoryManagerOpen} onOpenChange={setCategoryManagerOpen} />
+      <ClientFormModal
+        open={clientFormOpen}
+        onOpenChange={setClientFormOpen}
+        client={
+          clientSearch
+            ? ({ id: '', name: clientSearch, cnpj: '', contacts: [], modules: [], logo: '' } as any)
+            : undefined
+        }
+        onSubmit={(data) => {
+          const newId = `client-${Math.random().toString(36).substr(2, 9)}`
+          addClient({ id: newId, ...data })
+          handleClientChange(newId)
+          setClientFormOpen(false)
+          setClientSearch('')
+        }}
+      />
     </>
   )
 }
