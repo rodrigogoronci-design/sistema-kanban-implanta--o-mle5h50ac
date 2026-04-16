@@ -1,10 +1,10 @@
 import useMainStore from '@/stores/main'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 
 export function ProjectsDashboard() {
   const { projectStatuses, projects } = useMainStore()
+  const totalProjects = projects.length
 
   const chartData = projectStatuses.map((status) => {
     const count = projects.filter((p) => p.statusId === status.id).length
@@ -12,45 +12,106 @@ export function ProjectsDashboard() {
       name: status.name,
       count,
       fill: status.color,
-      label: `${status.name} (${count})`,
     }
   })
 
+  const stackedData = [
+    {
+      name: 'Projetos',
+      ...chartData.reduce((acc, curr) => ({ ...acc, [curr.name]: curr.count }), {}),
+    },
+  ]
+
+  const chartConfig = projectStatuses.reduce(
+    (acc, status) => {
+      acc[status.name] = { label: status.name, color: status.color }
+      return acc
+    },
+    {} as Record<string, { label: string; color: string }>,
+  )
+
   return (
-    <Card className="shadow-sm border-muted/60">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg text-primary">Distribuição de Projetos</CardTitle>
-        <CardDescription>Visão geral de projetos organizados por status</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={{ count: { label: 'Projetos' } }} className="h-[280px] w-full mt-2">
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ left: 10, right: 30, top: 0, bottom: 0 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.3} />
-            <XAxis type="number" hide />
-            <YAxis
-              dataKey="label"
-              type="category"
-              width={220}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 13, fill: 'currentColor' }}
-            />
-            <ChartTooltip
-              cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-4 mb-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        {projectStatuses.map((status) => {
+          const count = projects.filter((p) => p.statusId === status.id).length
+          return (
+            <div
+              key={status.id}
+              className="relative overflow-hidden rounded-xl border bg-card p-4 flex flex-col justify-between shadow-sm transition-all hover:shadow-md group"
+            >
+              <div
+                className="absolute top-0 left-0 w-1 h-full opacity-60 transition-opacity group-hover:opacity-100"
+                style={{ backgroundColor: status.color }}
+              />
+              <div className="flex items-center gap-2 mb-2 ml-1">
+                <div
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: status.color }}
+                />
+                <span
+                  className="text-xs font-semibold text-muted-foreground truncate"
+                  title={status.name}
+                >
+                  {status.name}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 ml-1">
+                <span className="text-2xl font-bold text-foreground">{count}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {totalProjects > 0 && (
+        <div className="rounded-xl border bg-card p-4 shadow-sm flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Visão Geral da Distribuição
+            </span>
+            <span className="text-xs text-muted-foreground font-medium">
+              Total: {totalProjects}
+            </span>
+          </div>
+          <ChartContainer config={chartConfig} className="h-[24px] w-full">
+            <BarChart
+              data={stackedData}
+              layout="vertical"
+              margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            >
+              <XAxis type="number" hide />
+              <YAxis dataKey="name" type="category" hide />
+              <Tooltip
+                cursor={{ fill: 'transparent' }}
+                content={<ChartTooltipContent hideLabel />}
+              />
+              {chartData.map((entry) => {
+                const nonZeroData = chartData.filter((d) => d.count > 0)
+                const isOnly = nonZeroData.length === 1
+                const isFirst = nonZeroData.length > 0 && entry.name === nonZeroData[0].name
+                const isLast =
+                  nonZeroData.length > 0 && entry.name === nonZeroData[nonZeroData.length - 1].name
+
+                let radius: [number, number, number, number] = [0, 0, 0, 0]
+                if (isOnly) radius = [4, 4, 4, 4]
+                else if (isFirst) radius = [4, 0, 0, 4]
+                else if (isLast) radius = [0, 4, 4, 0]
+
+                return entry.count > 0 ? (
+                  <Bar
+                    key={entry.name}
+                    dataKey={entry.name}
+                    stackId="a"
+                    fill={entry.fill}
+                    radius={radius}
+                  />
+                ) : null
+              })}
+            </BarChart>
+          </ChartContainer>
+        </div>
+      )}
+    </div>
   )
 }
