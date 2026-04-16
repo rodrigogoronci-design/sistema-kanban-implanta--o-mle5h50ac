@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Clock, Paperclip, MessageSquare } from 'lucide-react'
 import useMainStore from '@/stores/main'
 import { getTaskHours } from '@/lib/time'
+import { cn } from '@/lib/utils'
 
 interface KanbanCardProps {
   task: any
@@ -17,12 +18,34 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
   const category = categories.find((c) => c.id === task.categoryId)
   const totalHours = getTaskHours(task)
 
+  let deadlineClass = ''
+  if (task.dueDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const dueDate = new Date(task.dueDate)
+    dueDate.setHours(0, 0, 0, 0)
+
+    const diffTime = dueDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays < 0) {
+      deadlineClass = 'border-t-4 border-t-destructive'
+    } else if (diffDays <= 2) {
+      deadlineClass = 'border-t-4 border-t-yellow-500'
+    } else {
+      deadlineClass = 'border-t-4 border-t-green-500'
+    }
+  }
+
   return (
     <div
       draggable
       onDragStart={(e) => onDragStart(e, task.id)}
       onClick={onClick}
-      className="bg-background p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors flex flex-col gap-2 group relative"
+      className={cn(
+        'bg-background p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors flex flex-col gap-2 group relative',
+        deadlineClass,
+      )}
     >
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-medium text-sm leading-tight group-hover:text-primary transition-colors pr-10">
