@@ -61,23 +61,28 @@ export default function Layout() {
       })
   }, [])
 
-  const userRole = colaborador?.role || 'Colaborador'
-  const allowedRoutes = permissions[userRole] || ['/', '/projects']
+  const defaultPermissions: Record<string, string[]> = {
+    Administrador: ['/', '/clients', '/projects', '/users', '/reports'],
+    Gerente: ['/', '/clients', '/projects', '/reports'],
+    Colaborador: ['/', '/projects'],
+  }
+
+  const userRole = colaborador?.role || 'Administrador'
+  const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
+  const allowedRoutes = activePermissions[userRole] || activePermissions['Administrador'] || ['/']
   const allowedRoutesStr = JSON.stringify(allowedRoutes)
 
   useEffect(() => {
-    if (Object.keys(permissions).length > 0) {
-      const routes = JSON.parse(allowedRoutesStr)
-      const isAllowed =
-        location.pathname === '/'
-          ? routes.includes('/')
-          : routes.some((route: string) => route !== '/' && location.pathname.startsWith(route))
+    const routes = JSON.parse(allowedRoutesStr)
+    const isAllowed =
+      location.pathname === '/'
+        ? routes.includes('/')
+        : routes.some((route: string) => route !== '/' && location.pathname.startsWith(route))
 
-      if (!isAllowed) {
-        navigate('/')
-      }
+    if (!isAllowed && location.pathname !== '/') {
+      navigate('/')
     }
-  }, [location.pathname, permissions, allowedRoutesStr, navigate])
+  }, [location.pathname, allowedRoutesStr, navigate])
 
   const filteredNavItems = navItems.filter((item) => allowedRoutes.includes(item.url))
 
