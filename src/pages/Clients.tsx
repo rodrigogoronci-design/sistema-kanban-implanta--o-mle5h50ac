@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import useMainStore, { Client } from '@/stores/main'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -10,228 +10,201 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Pencil, Search, Building2, ExternalLink } from 'lucide-react'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { ClientFormModal } from '@/components/ClientFormModal'
-import { getTaskHours } from '@/lib/time'
-import { format, parseISO } from 'date-fns'
+import { Plus, Trash2, Loader2, Building } from 'lucide-react'
 
 export default function Clients() {
-  const { clients, tasks, addClient, updateClient, deleteClient } = useMainStore()
+  const [clients, setClients] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
-  const [formOpen, setFormOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | undefined>(undefined)
-  const [clientToDelete, setClientToDelete] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [formData, setFormData] = useState({
+    name: '',
+    cnpj: '',
+    website: '',
+    server_ip: '',
+  })
 
-  const filteredClients = useMemo(() => {
-    return clients.filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
-  }, [clients, searchQuery])
-
-  const handleFormSubmit = (data: Omit<Client, 'id'>) => {
-    if (editingClient) {
-      updateClient(editingClient.id, data)
-      toast({ title: 'Sucesso', description: 'Cliente atualizado com sucesso!' })
-    } else {
-      addClient({
-        id: Math.random().toString(),
-        ...data,
+  const fetchClients = async () => {
+    const { data, error } = await supabase.from('clients').select('*').order('name')
+    if (error) {
+      toast({
+        title: 'Erro ao carregar clientes',
+        description: error.message,
+        variant: 'destructive',
       })
-      toast({ title: 'Sucesso', description: 'Cliente cadastrado com sucesso!' })
+    } else {
+      setClients(data || [])
     }
-    setFormOpen(false)
+    setLoading(false)
   }
 
-  const handleDeleteConfirm = () => {
-    if (clientToDelete) {
-      deleteClient(clientToDelete)
-      toast({ title: 'Sucesso', description: 'Cliente removido.' })
+  useEffect(() => {
+    fetchClients()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const { error } = await supabase.from('clients').insert([formData])
+      if (error) throw error
+
+      toast({ title: 'Cliente criado com sucesso' })
+      setIsOpen(false)
+      fetchClients()
+      setFormData({ name: '', cnpj: '', website: '', server_ip: '' })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
     }
-    setClientToDelete(null)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este cliente?')) return
+
+    try {
+      const { error } = await supabase.from('clients').delete().eq('id', id)
+      if (error) throw error
+      toast({ title: 'Cliente excluído' })
+      fetchClients()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-primary">Clientes</h2>
-          <p className="text-muted-foreground mt-1">
-            Gerencie o portfólio de empresas em implantação e seus contatos.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
+          <p className="text-sm text-muted-foreground">Empresas e organizações em implantação.</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingClient(undefined)
-            setFormOpen(true)
-          }}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Novo Cliente
-        </Button>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Novo Cliente
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome / Razão Social</Label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>CNPJ</Label>
+                <Input
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData((s) => ({ ...s, cnpj: e.target.value }))}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Website</Label>
+                  <Input
+                    value={formData.website}
+                    onChange={(e) => setFormData((s) => ({ ...s, website: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>IP do Servidor</Label>
+                  <Input
+                    value={formData.server_ip}
+                    onChange={(e) => setFormData((s) => ({ ...s, server_ip: e.target.value }))}
+                    placeholder="Ex: 192.168.0.1"
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  'Salvar Cliente'
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[80px] text-center">Logo</TableHead>
+            <TableRow className="bg-muted/50">
               <TableHead>Empresa</TableHead>
               <TableHead>CNPJ</TableHead>
-              <TableHead>Data Cadastro</TableHead>
-              <TableHead>Contatos</TableHead>
               <TableHead>Website</TableHead>
-              <TableHead className="text-right">Total Horas</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Servidor (IP)</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredClients.map((client) => {
-              const clientTasks = tasks.filter((t) => t.clientId === client.id)
-              const totalHours = clientTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
-
-              return (
-                <TableRow
-                  key={client.id}
-                  className="group cursor-pointer"
-                  onClick={() => {
-                    setEditingClient(client)
-                    setFormOpen(true)
-                  }}
-                >
-                  <TableCell className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-                    <Avatar className="w-10 h-10 border bg-muted/50 shadow-sm rounded-md p-0.5">
-                      <AvatarImage
-                        src={client.logo}
-                        className="object-contain mix-blend-multiply"
-                      />
-                      <AvatarFallback className="rounded-md bg-transparent">
-                        <Building2 className="w-5 h-5 text-muted-foreground" />
-                      </AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell className="font-semibold">{client.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {client.registrationDate
-                      ? format(parseISO(client.registrationDate), 'dd/MM/yyyy')
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {client.contacts?.length
-                      ? `${client.contacts.length} contato${client.contacts.length > 1 ? 's' : ''}`
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground truncate max-w-[150px]">
-                    {client.website || '-'}
-                  </TableCell>
-                  <TableCell className="text-right font-mono font-medium text-primary">
-                    {totalHours.toFixed(1)}h
-                  </TableCell>
-                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {client.website && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                          title="Acessar Site"
-                        >
-                          <a
-                            href={
-                              client.website.startsWith('http')
-                                ? client.website
-                                : `https://${client.website}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        onClick={() => {
-                          setEditingClient(client)
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setClientToDelete(client.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-            {filteredClients.length === 0 && (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                  Nenhum cliente encontrado.
+                <TableCell colSpan={5} className="text-center py-8">
+                  Carregando clientes...
                 </TableCell>
               </TableRow>
+            ) : clients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum cliente cadastrado.
+                </TableCell>
+              </TableRow>
+            ) : (
+              clients.map((client) => (
+                <TableRow key={client.id} className="hover:bg-muted/50 transition-colors">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-primary/10 p-1.5 rounded-md text-primary">
+                        <Building className="w-4 h-4" />
+                      </div>
+                      {client.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">{client.website || '-'}</TableCell>
+                  <TableCell>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                      {client.server_ip || '-'}
+                    </code>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(client.id)}
+                      className="hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
-
-      <ClientFormModal
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        client={editingClient}
-        onSubmit={handleFormSubmit}
-      />
-
-      <AlertDialog
-        open={!!clientToDelete}
-        onOpenChange={(open) => !open && setClientToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita e removerá o cliente permanentemente.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

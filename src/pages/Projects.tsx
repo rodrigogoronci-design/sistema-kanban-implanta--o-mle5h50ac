@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import useMainStore, { Project } from '@/stores/main'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -10,245 +11,227 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Plus, Trash2, Pencil, Settings2, FolderOpen } from 'lucide-react'
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-
-import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
-import { StatusManagementModal } from '@/components/projects/StatusManagementModal'
-import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
-import { ProjectGalleryModal } from '@/components/projects/ProjectGalleryModal'
-import { getTaskHours } from '@/lib/time'
+import { Plus, Trash2, Loader2, Briefcase } from 'lucide-react'
 
 export default function Projects() {
-  const {
-    projects,
-    clients,
-    users,
-    projectStatuses,
-    tasks,
-    addProject,
-    updateProject,
-    deleteProject,
-  } = useMainStore()
+  const [projects, setProjects] = useState<any[]>([])
+  const [clients, setClients] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
-  const [formOpen, setFormOpen] = useState(false)
-  const [statusModalOpen, setStatusModalOpen] = useState(false)
-  const [editingProject, setEditingProject] = useState<Project | undefined>(undefined)
-  const [projectToDelete, setProjectToDelete] = useState<string | null>(null)
-  const [galleryProject, setGalleryProject] = useState<Project | undefined>(undefined)
+  const [formData, setFormData] = useState({
+    name: '',
+    client_id: '',
+    analyst_id: '',
+  })
 
-  const handleFormSubmit = (data: Omit<Project, 'id'>) => {
-    if (editingProject) {
-      updateProject(editingProject.id, data)
-      toast({ title: 'Sucesso', description: 'Projeto atualizado com sucesso!' })
-    } else {
-      addProject({
-        id: Math.random().toString(),
-        ...data,
+  const fetchData = async () => {
+    const [pRes, cRes, uRes] = await Promise.all([
+      supabase.from('projects').select('*, clients(name), colaboradores(nome)').order('name'),
+      supabase.from('clients').select('id, name').order('name'),
+      supabase.from('colaboradores').select('id, nome').order('nome'),
+    ])
+
+    if (pRes.error)
+      toast({
+        title: 'Erro ao carregar projetos',
+        description: pRes.error.message,
+        variant: 'destructive',
       })
-      toast({ title: 'Sucesso', description: 'Projeto criado com sucesso!' })
-    }
-    setFormOpen(false)
+    else setProjects(pRes.data || [])
+
+    if (cRes.data) setClients(cRes.data)
+    if (uRes.data) setUsers(uRes.data)
+
+    setLoading(false)
   }
 
-  const handleDeleteConfirm = () => {
-    if (projectToDelete) {
-      deleteProject(projectToDelete)
-      toast({ title: 'Sucesso', description: 'Projeto removido.' })
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      const { error } = await supabase.from('projects').insert([
+        {
+          name: formData.name,
+          client_id: formData.client_id || null,
+          analyst_id: formData.analyst_id || null,
+        },
+      ])
+      if (error) throw error
+
+      toast({ title: 'Projeto criado com sucesso' })
+      setIsOpen(false)
+      fetchData()
+      setFormData({ name: '', client_id: '', analyst_id: '' })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } finally {
+      setIsSubmitting(false)
     }
-    setProjectToDelete(null)
   }
 
-  const formatDate = (isoString?: string) => {
-    if (!isoString) return '-'
-    return format(new Date(isoString), 'dd/MM/yyyy', { locale: ptBR })
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este projeto?')) return
+
+    try {
+      const { error } = await supabase.from('projects').delete().eq('id', id)
+      if (error) throw error
+      toast({ title: 'Projeto excluído' })
+      fetchData()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-10">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-card p-6 rounded-xl border shadow-sm">
+    <div className="space-y-6 max-w-6xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-primary">Projetos</h2>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Gerencie o ciclo de vida, status e responsáveis dos projetos de implantação.
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os projetos de implantação.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setStatusModalOpen(true)}>
-            <Settings2 className="w-4 h-4 mr-2" /> Gerenciar Status
-          </Button>
-          <Button
-            onClick={() => {
-              setEditingProject(undefined)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="w-4 h-4 mr-2" /> Novo Projeto
-          </Button>
-        </div>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogTrigger asChild>
+            <Button className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Criar Novo Projeto</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome do Projeto</Label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cliente Vinculado</Label>
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(v) => setFormData((s) => ({ ...s, client_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Analista Responsável</Label>
+                <Select
+                  value={formData.analyst_id}
+                  onValueChange={(v) => setFormData((s) => ({ ...s, analyst_id: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um responsável" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  'Salvar Projeto'
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <ProjectsDashboard />
-
-      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableRow className="bg-muted/50">
               <TableHead>Nome do Projeto</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Responsável</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Início (Impl.)</TableHead>
-              <TableHead className="text-right">Horas</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Analista Responsável</TableHead>
+              <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.map((proj) => {
-              const client = clients.find((c) => c.id === proj.clientId)
-              const user = users.find((u) => u.id === proj.analystId)
-              const status = projectStatuses.find((s) => s.id === proj.statusId)
-
-              const projectTasks = tasks.filter((t) => t.projectId === proj.id)
-              const totalHours = projectTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
-
-              return (
-                <TableRow key={proj.id} className="group">
-                  <TableCell className="font-semibold">{proj.name}</TableCell>
-                  <TableCell>
-                    {client ? (
-                      <Badge variant="secondary">{client.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{user?.name || '-'}</TableCell>
-                  <TableCell>
-                    <Select
-                      value={proj.statusId}
-                      onValueChange={(v) => updateProject(proj.id, { statusId: v })}
-                    >
-                      <SelectTrigger className="h-8 min-w-[160px] border-dashed bg-background/50 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2 truncate">
-                          <div
-                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: status?.color || '#ccc' }}
-                          />
-                          <span className="truncate">{status?.name || 'Sem status'}</span>
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {projectStatuses.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-2.5 h-2.5 rounded-full"
-                                style={{ backgroundColor: s.color }}
-                              />
-                              {s.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-mono text-sm">
-                    {formatDate(proj.implStart)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono font-medium">
-                    {totalHours.toFixed(1)}h
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        onClick={() => setGalleryProject(proj)}
-                        title="Galeria de Arquivos"
-                      >
-                        <FolderOpen className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        onClick={() => {
-                          setEditingProject(proj)
-                          setFormOpen(true)
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setProjectToDelete(proj.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-            {projects.length === 0 && (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-8">
+                  Carregando projetos...
+                </TableCell>
+              </TableRow>
+            ) : projects.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                   Nenhum projeto cadastrado.
                 </TableCell>
               </TableRow>
+            ) : (
+              projects.map((project) => (
+                <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-muted-foreground" />
+                      {project.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {project.clients?.name || '-'}
+                  </TableCell>
+                  <TableCell>{project.colaboradores?.nome || '-'}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(project.id)}
+                      className="hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
-
-      <ProjectFormModal
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        project={editingProject}
-        onSubmit={handleFormSubmit}
-      />
-      <StatusManagementModal open={statusModalOpen} onOpenChange={setStatusModalOpen} />
-
-      <ProjectGalleryModal
-        project={galleryProject}
-        open={!!galleryProject}
-        onOpenChange={(open) => !open && setGalleryProject(undefined)}
-      />
-
-      <AlertDialog
-        open={!!projectToDelete}
-        onOpenChange={(open) => !open && setProjectToDelete(null)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O projeto será permanentemente removido do sistema.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
