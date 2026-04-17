@@ -40,22 +40,12 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     clients,
     projects,
     categories,
+    analysts,
     addClient,
     updateClient,
     deleteClient,
   } = useMainStore()
   const [categoryOpen, setCategoryOpen] = useState(false)
-  const [analysts, setAnalysts] = useState<any[]>([])
-
-  useEffect(() => {
-    supabase
-      .from('analistas')
-      .select('id, nome, status')
-      .order('nome')
-      .then(({ data }) => {
-        if (data) setAnalysts(data)
-      })
-  }, [])
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [clientOpen, setClientOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
@@ -469,19 +459,19 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 flex flex-col justify-end">
-                    <Label className="text-muted-foreground">Data Agendada</Label>
+                    <Label className="text-muted-foreground">Data de Início</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant={'outline'}
                           className={cn(
                             'w-full justify-start text-left font-normal bg-background',
-                            !task.scheduledDate && 'text-muted-foreground',
+                            !task.startDate && 'text-muted-foreground',
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {task.scheduledDate ? (
-                            format(parseISO(task.scheduledDate), 'dd/MM/yyyy')
+                          {task.startDate ? (
+                            format(parseISO(task.startDate), 'dd/MM/yyyy')
                           ) : (
                             <span>Selecione...</span>
                           )}
@@ -490,23 +480,43 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={task.scheduledDate ? parseISO(task.scheduledDate) : undefined}
+                          selected={task.startDate ? parseISO(task.startDate) : undefined}
                           onSelect={(date) =>
-                            updateTask(task.id, { scheduledDate: date?.toISOString() })
+                            updateTask(task.id, { startDate: date?.toISOString() })
                           }
                           initialFocus
                         />
                       </PopoverContent>
                     </Popover>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-muted-foreground">Hora Agendada</Label>
-                    <Input
-                      type="time"
-                      value={task.scheduledTime || ''}
-                      onChange={(e) => updateTask(task.id, { scheduledTime: e.target.value })}
-                      className="bg-background"
-                    />
+                  <div className="space-y-2 flex flex-col justify-end">
+                    <Label className="text-muted-foreground">Data de Fim</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-background',
+                            !task.endDate && 'text-muted-foreground',
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {task.endDate ? (
+                            format(parseISO(task.endDate), 'dd/MM/yyyy')
+                          ) : (
+                            <span>Selecione...</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={task.endDate ? parseISO(task.endDate) : undefined}
+                          onSelect={(date) => updateTask(task.id, { endDate: date?.toISOString() })}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 

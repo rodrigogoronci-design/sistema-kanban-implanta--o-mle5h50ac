@@ -68,7 +68,7 @@ export default function Index() {
     tasks,
     columns,
     updateTask,
-    users,
+    analysts,
     clients,
     projects,
     categories,
@@ -178,7 +178,7 @@ export default function Index() {
       id: crypto.randomUUID(),
       ...newTaskForm,
       categoryId: newTaskForm.categoryId || undefined,
-      columnId: backlogColumn ? backlogColumn.id : 'backlog',
+      columnId: backlogColumn ? backlogColumn.id : '',
       description: '',
       checklist: [],
       timeEntries: [],
@@ -347,9 +347,9 @@ export default function Index() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {users.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
+                        {analysts.map((a) => (
+                          <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
+                            {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -492,9 +492,9 @@ export default function Index() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Responsável</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
-                  {u.name}
+              {analysts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.nome}
                 </SelectItem>
               ))}
             </SelectContent>

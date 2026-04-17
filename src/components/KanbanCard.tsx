@@ -12,10 +12,10 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardProps) {
-  const { clients, users, categories } = useMainStore()
+  const { clients, analysts, categories } = useMainStore()
 
   const client = clients.find((c) => c.id === task.clientId)
-  const user = users.find((u) => u.id === task.responsibleId)
+  const analyst = analysts.find((a) => a.id === task.responsibleId)
   const category = categories.find((c) => c.id === task.categoryId)
   const totalHours = getTaskHours(task)
 
@@ -66,13 +66,13 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
 
       {client && <div className="text-xs text-muted-foreground truncate">{client.name}</div>}
 
-      {(task.scheduledDate || task.scheduledTime) && (
+      {(task.startDate || task.endDate) && (
         <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50/80 w-fit px-1.5 py-0.5 rounded border border-blue-200 mt-0.5 font-medium">
           <CalendarClock className="w-3 h-3" />
           <span>
-            {task.scheduledDate && format(parseISO(task.scheduledDate), 'dd/MM/yyyy')}
-            {task.scheduledDate && task.scheduledTime && ' às '}
-            {task.scheduledTime}
+            {task.startDate && format(parseISO(task.startDate), 'dd/MM/yyyy')}
+            {task.startDate && task.endDate && ' até '}
+            {task.endDate && format(parseISO(task.endDate), 'dd/MM/yyyy')}
           </span>
         </div>
       )}
@@ -94,15 +94,15 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
 
       <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">
         <div className="flex items-center gap-2 text-xs">
-          {user ? (
+          {analyst ? (
             <div
               className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
-              title={`Responsável: ${user.name}`}
+              title={`Responsável: ${analyst.nome}`}
             >
               <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                {user.name.charAt(0).toUpperCase()}
+                {analyst.nome.charAt(0).toUpperCase()}
               </div>
-              <span className="truncate max-w-[60px]">{user.name.split(' ')[0]}</span>
+              <span className="truncate max-w-[60px]">{analyst.nome.split(' ')[0]}</span>
             </div>
           ) : (
             <span className="text-[10px] italic text-muted-foreground/70">Não atribuído</span>

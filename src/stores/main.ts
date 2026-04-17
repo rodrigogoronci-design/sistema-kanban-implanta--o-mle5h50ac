@@ -8,6 +8,12 @@ export interface User {
   phone: string
   avatar: string
 }
+export interface Analyst {
+  id: string
+  nome: string
+  status: string
+  userId?: string
+}
 export interface ClientContact {
   id: string
   name: string
@@ -101,6 +107,7 @@ export interface Column {
 
 export interface MainState {
   users: User[]
+  analysts: Analyst[]
   clients: Client[]
   projects: Project[]
   tasks: Task[]
@@ -113,6 +120,7 @@ export interface MainState {
 
 const initialState: MainState = {
   users: [],
+  analysts: [],
   clients: [],
   projects: [],
   tasks: [],
@@ -156,6 +164,7 @@ async function loadInitialData() {
   try {
     const [
       { data: colabs },
+      { data: analistas },
       { data: clients },
       { data: contacts },
       { data: projs },
@@ -170,6 +179,7 @@ async function loadInitialData() {
       { data: timeEntries },
     ] = await Promise.all([
       supabase.from('colaboradores').select('*'),
+      supabase.from('analistas').select('*'),
       supabase.from('clients').select('*'),
       supabase.from('client_contacts').select('*'),
       supabase.from('projects').select('*'),
@@ -193,6 +203,12 @@ async function loadInitialData() {
         email: c.email,
         phone: c.telefone || '',
         avatar: c.image_gender ? `https://img.usecurling.com/ppl/thumbnail?seed=${c.nome}` : '',
+      })),
+      analysts: (analistas || []).map((a: any) => ({
+        id: a.id,
+        nome: a.nome,
+        status: a.status,
+        userId: a.user_id,
       })),
       clients: (clients || []).map((c: any) => ({
         id: c.id,
@@ -335,6 +351,8 @@ export default function useMainStore() {
       if ('columnId' in payload) dbPayload.column_id = payload.columnId || null
       if ('description' in payload) dbPayload.description = payload.description || null
       if ('dueDate' in payload) dbPayload.due_date = payload.dueDate || null
+      if ('startDate' in payload) dbPayload.start_date = payload.startDate || null
+      if ('endDate' in payload) dbPayload.end_date = payload.endDate || null
 
       if (Object.keys(dbPayload).length > 0) {
         supabase
@@ -451,6 +469,8 @@ export default function useMainStore() {
           column_id: task.columnId || null,
           description: task.description || null,
           due_date: task.dueDate || null,
+          start_date: task.startDate || null,
+          end_date: task.endDate || null,
           created_at: task.createdAt || new Date().toISOString(),
         })
         .then(({ error }) => {
