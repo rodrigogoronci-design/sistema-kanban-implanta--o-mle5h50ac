@@ -14,7 +14,7 @@ import Analysts from './pages/Analysts'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
-  const { loading, session } = useAuth()
+  const { loading, session, profile } = useAuth()
 
   if (loading) {
     return (
@@ -32,7 +32,7 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
-        <Route path="/users" element={<Users />} />
+        {profile?.role === 'Administrador' && <Route path="/users" element={<Users />} />}
         <Route path="/clients" element={<Clients />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/analysts" element={<Analysts />} />
