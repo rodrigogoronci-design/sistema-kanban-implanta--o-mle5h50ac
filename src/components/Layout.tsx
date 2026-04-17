@@ -101,7 +101,7 @@ export default function Layout() {
             <div className="bg-accent p-1.5 rounded-md text-white flex items-center justify-center shadow-sm">
               <Briefcase className="w-5 h-5" />
             </div>
-            <span className="truncate">DeployFlow</span>
+            <span className="truncate">Implantação</span>
           </div>
         </SidebarHeader>
         <SidebarContent className="py-4">
