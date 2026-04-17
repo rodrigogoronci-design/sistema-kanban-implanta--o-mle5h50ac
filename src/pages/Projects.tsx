@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useMainStore, { Project } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import {
