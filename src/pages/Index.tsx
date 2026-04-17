@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
 import ArchiveManager from '@/components/ArchiveManager'
+import { CategoryManager } from '@/components/CategoryManager'
 import { cn } from '@/lib/utils'
 import { format, isSameDay, parseISO, differenceInDays, startOfDay } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -121,6 +122,7 @@ export default function Index() {
 
   const [openNewTask, setOpenNewTask] = useState(false)
   const [openArchiveManager, setOpenArchiveManager] = useState(false)
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [newTaskForm, setNewTaskForm] = useState({
     title: '',
     clientId: '',
@@ -342,7 +344,18 @@ export default function Index() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Categoria</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>Categoria</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
+                        onClick={() => setShowCategoryModal(true)}
+                      >
+                        Gerenciar
+                      </Button>
+                    </div>
                     <Select
                       value={newTaskForm.categoryId}
                       onValueChange={(v) => setNewTaskForm((s) => ({ ...s, categoryId: v }))}
@@ -710,6 +723,7 @@ export default function Index() {
       )}
 
       <ArchiveManager open={openArchiveManager} onOpenChange={setOpenArchiveManager} />
+      <CategoryManager open={showCategoryModal} onOpenChange={setShowCategoryModal} />
 
       <AlertDialog open={!!deleteColId} onOpenChange={(open) => !open && setDeleteColId(null)}>
         <AlertDialogContent>
