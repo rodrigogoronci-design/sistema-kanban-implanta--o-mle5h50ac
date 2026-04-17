@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/dialog'
 import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 
 interface Props {
   task: Task
@@ -34,21 +36,45 @@ export function TaskAttachments({ task, onUpdate }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
 
-  const processFiles = (files: FileList | File[]) => {
+  const processFiles = async (files: FileList | File[]) => {
     if (files && files.length > 0) {
-      const newAttachments: Attachment[] = Array.from(files).map((file) => ({
-        id: Math.random().toString(36).substring(2, 9),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file),
-        createdAt: new Date().toISOString(),
-      }))
+      setIsUploading(true)
+      const newAttachments: Attachment[] = []
 
-      onUpdate({
-        attachments: [...(task.attachments || []), ...newAttachments],
-      })
+      for (const file of Array.from(files)) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+        const filePath = `${task.id}/${fileName}`
+
+        const { error } = await supabase.storage.from('attachments').upload(filePath, file)
+
+        if (error) {
+          console.error('Error uploading file:', error)
+          continue
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('attachments').getPublicUrl(filePath)
+
+        newAttachments.push({
+          id: crypto.randomUUID(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: publicUrl,
+          createdAt: new Date().toISOString(),
+        })
+      }
+
+      if (newAttachments.length > 0) {
+        onUpdate({
+          attachments: [...(task.attachments || []), ...newAttachments],
+        })
+      }
+      setIsUploading(false)
     }
   }
 
@@ -81,9 +107,17 @@ export function TaskAttachments({ task, onUpdate }: Props) {
     }
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (attachment: Attachment) => {
+    if (attachment.url.includes('supabase.co')) {
+      const pathParts = attachment.url.split('/attachments/')
+      if (pathParts.length > 1) {
+        const filePath = pathParts[1]
+        await supabase.storage.from('attachments').remove([filePath])
+      }
+    }
+
     onUpdate({
-      attachments: (task.attachments || []).filter((a) => a.id !== id),
+      attachments: (task.attachments || []).filter((a) => a.id !== attachment.id),
     })
   }
 
@@ -111,9 +145,15 @@ export function TaskAttachments({ task, onUpdate }: Props) {
         <Label className="text-base font-semibold flex items-center gap-2">
           <Paperclip className="w-4 h-4" />
           Anexos
+          {isUploading && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground ml-2" />}
         </Label>
-        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-          Adicionar Arquivo
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          {isUploading ? 'Enviando...' : 'Adicionar Arquivo'}
         </Button>
         <input
           type="file"
@@ -121,15 +161,9 @@ export function TaskAttachments({ task, onUpdate }: Props) {
           className="hidden"
           multiple
           onChange={handleFileChange}
+          disabled={isUploading}
         />
       </div>
-
-      <Alert className="bg-amber-50 text-amber-900 border-amber-200 py-2">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-xs">
-          Arquivos e tags são armazenados em memória e serão perdidos ao recarregar a página.
-        </AlertDescription>
-      </Alert>
 
       <div
         onDragOver={handleDragOver}
@@ -140,6 +174,7 @@ export function TaskAttachments({ task, onUpdate }: Props) {
           isDragging && (task.attachments || []).length > 0
             ? 'ring-2 ring-primary ring-inset overflow-hidden'
             : '',
+          isUploading && 'opacity-70 pointer-events-none',
         )}
       >
         {(task.attachments || []).length > 0 ? (
@@ -217,7 +252,7 @@ export function TaskAttachments({ task, onUpdate }: Props) {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDelete(file.id)}
+                    onClick={() => handleDelete(file)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -233,15 +268,21 @@ export function TaskAttachments({ task, onUpdate }: Props) {
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-muted/10 hover:bg-muted/30',
             )}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isUploading && fileInputRef.current?.click()}
           >
             <div className="flex flex-col items-center gap-2 pointer-events-none">
               <div className="p-3 bg-secondary rounded-full">
-                <Paperclip className="w-6 h-6 text-muted-foreground" />
+                {isUploading ? (
+                  <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                ) : (
+                  <Paperclip className="w-6 h-6 text-muted-foreground" />
+                )}
               </div>
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Clique para fazer upload ou arraste arquivos
+                  {isUploading
+                    ? 'Enviando arquivos...'
+                    : 'Clique para fazer upload ou arraste arquivos'}
                 </p>
                 <p className="text-xs text-muted-foreground">PDF, DOCX, Imagens, etc.</p>
               </div>
