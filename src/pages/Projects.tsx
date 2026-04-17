@@ -31,6 +31,28 @@ export default function Projects() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
   const [analysts, setAnalysts] = useState<any[]>([])
+  const [pendingDatesUpdate, setPendingDatesUpdate] = useState<{
+    name: string
+    clientId: string
+    payload: any
+  } | null>(null)
+
+  useEffect(() => {
+    if (pendingDatesUpdate && projects.length > 0) {
+      const match = projects.find(
+        (p) => p.name === pendingDatesUpdate.name && p.clientId === pendingDatesUpdate.clientId,
+      )
+      if (match) {
+        supabase
+          .from('projects')
+          .update(pendingDatesUpdate.payload)
+          .eq('id', match.id)
+          .then(() => {
+            setPendingDatesUpdate(null)
+          })
+      }
+    }
+  }, [projects, pendingDatesUpdate])
 
   useEffect(() => {
     supabase
@@ -51,11 +73,28 @@ export default function Projects() {
     setModalOpen(true)
   }
 
-  const handleSubmit = (data: Omit<Project, 'id'>) => {
+  const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
+    const dbPayload = {
+      forecast_start: data.forecast_start || data.forecastStart,
+      forecast_end: data.forecast_end || data.forecastEnd,
+      impl_start: data.impl_start || data.implStart,
+      impl_end: data.impl_end || data.implEnd,
+      train_start: data.train_start || data.trainStart,
+      train_end: data.train_end || data.trainEnd,
+      op_start: data.op_start || data.opStart,
+      op_end: data.op_end || data.opEnd,
+    }
+
     if (editingProject) {
       updateProject(editingProject.id, data)
+      try {
+        await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
+      } catch (e) {
+        console.error('Error updating dates:', e)
+      }
     } else {
       addProject(data as Project)
+      setPendingDatesUpdate({ name: data.name, clientId: data.clientId, payload: dbPayload })
     }
     setModalOpen(false)
   }
@@ -135,13 +174,21 @@ export default function Projects() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {(project as any).forecastStart
-                        ? format(parseISO((project as any).forecastStart), 'dd/MM/yyyy')
+                      {(project as any).forecastStart || (project as any).forecast_start
+                        ? format(
+                            parseISO(
+                              (project as any).forecastStart || (project as any).forecast_start,
+                            ),
+                            'dd/MM/yyyy',
+                          )
                         : '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {(project as any).forecastEnd
-                        ? format(parseISO((project as any).forecastEnd), 'dd/MM/yyyy')
+                      {(project as any).forecastEnd || (project as any).forecast_end
+                        ? format(
+                            parseISO((project as any).forecastEnd || (project as any).forecast_end),
+                            'dd/MM/yyyy',
+                          )
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right">

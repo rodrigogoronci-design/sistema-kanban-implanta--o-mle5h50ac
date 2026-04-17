@@ -71,14 +71,16 @@ export function ProjectFormModal({
           clientId: project.clientId,
           analystId: project.analystId,
           statusId: project.statusId,
-          forecastStart: toDateInput((project as any).forecastStart),
-          forecastEnd: toDateInput((project as any).forecastEnd),
-          implStart: toDateInput(project.implStart),
-          implEnd: toDateInput(project.implEnd),
-          trainStart: toDateInput(project.trainStart),
-          trainEnd: toDateInput(project.trainEnd),
-          opStart: toDateInput(project.opStart),
-          opEnd: toDateInput(project.opEnd),
+          forecastStart: toDateInput(
+            (project as any).forecastStart || (project as any).forecast_start,
+          ),
+          forecastEnd: toDateInput((project as any).forecastEnd || (project as any).forecast_end),
+          implStart: toDateInput((project as any).implStart || (project as any).impl_start),
+          implEnd: toDateInput((project as any).implEnd || (project as any).impl_end),
+          trainStart: toDateInput((project as any).trainStart || (project as any).train_start),
+          trainEnd: toDateInput((project as any).trainEnd || (project as any).train_end),
+          opStart: toDateInput((project as any).opStart || (project as any).op_start),
+          opEnd: toDateInput((project as any).opEnd || (project as any).op_end),
         })
       } else {
         setFormData({
@@ -107,13 +109,21 @@ export function ProjectFormModal({
       ...formData,
       forecastStart: toIso(formData.forecastStart),
       forecastEnd: toIso(formData.forecastEnd),
+      forecast_start: toIso(formData.forecastStart),
+      forecast_end: toIso(formData.forecastEnd),
       implStart: toIso(formData.implStart),
       implEnd: toIso(formData.implEnd),
+      impl_start: toIso(formData.implStart),
+      impl_end: toIso(formData.implEnd),
       trainStart: toIso(formData.trainStart),
       trainEnd: toIso(formData.trainEnd),
+      train_start: toIso(formData.trainStart),
+      train_end: toIso(formData.trainEnd),
       opStart: toIso(formData.opStart),
       opEnd: toIso(formData.opEnd),
-    })
+      op_start: toIso(formData.opStart),
+      op_end: toIso(formData.opEnd),
+    } as any)
   }
 
   const updateField = (field: keyof typeof formData, value: string) => {
