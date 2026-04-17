@@ -38,7 +38,7 @@ import { Button } from '@/components/ui/button'
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, colaborador, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const [permissions, setPermissions] = useState<Record<string, string[]>>({})
 
   const navItems = [
@@ -69,7 +69,7 @@ export default function Layout() {
     Colaborador: ['/', '/projects'],
   }
 
-  const userRole = colaborador?.role || 'Administrador'
+  const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
   const allowedRoutes = activePermissions[userRole] || activePermissions['Administrador'] || ['/']
   const allowedRoutesStr = JSON.stringify(allowedRoutes)
@@ -90,6 +90,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await signOut()
+    navigate('/')
   }
 
   return (
@@ -130,19 +131,17 @@ export default function Layout() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start px-2 py-6">
                 <Avatar className="h-8 w-8 mr-2 border border-border">
-                  <AvatarImage
-                    src={`https://img.usecurling.com/ppl/thumbnail?seed=${colaborador?.nome || 'user'}`}
-                  />
+                  <AvatarImage src={profile?.avatar_url || ''} />
                   <AvatarFallback>
-                    {colaborador?.nome?.substring(0, 2).toUpperCase() || 'US'}
+                    {profile?.nome?.substring(0, 2).toUpperCase() || 'US'}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start text-left truncate">
                   <span className="text-sm font-medium leading-none">
-                    {colaborador?.nome || 'Usuário'}
+                    {profile?.nome || 'Usuário'}
                   </span>
                   <span className="text-xs text-muted-foreground mt-1">
-                    {colaborador?.email || user?.email}
+                    {profile?.email || user?.email}
                   </span>
                 </div>
               </Button>
