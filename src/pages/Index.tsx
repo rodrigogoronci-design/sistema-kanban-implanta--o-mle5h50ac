@@ -84,6 +84,7 @@ import {
   GripHorizontal,
   ChevronLeft,
   ChevronRight,
+  Maximize,
 } from 'lucide-react'
 
 export default function Index() {
@@ -111,6 +112,7 @@ export default function Index() {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [editingColumnTitle, setEditingColumnTitle] = useState('')
   const [deleteColId, setDeleteColId] = useState<string | null>(null)
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false)
 
   const handleEditColumnStart = (col: { id: string; title: string }) => {
     setEditingColumnId(col.id)
@@ -254,6 +256,134 @@ export default function Index() {
     filterProject !== 'all' ||
     filterCategory !== 'all' ||
     filterDueDate
+
+  const renderCalendar = (isModal = false) => (
+    <div
+      className={cn(
+        'flex flex-col h-full bg-card overflow-hidden',
+        !isModal && 'rounded-xl border shadow-sm',
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center justify-between p-4 border-b shrink-0',
+          isModal && 'pr-12',
+        )}
+      >
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" onClick={() => setCalendarDate(new Date())}>
+            Hoje
+          </Button>
+        </div>
+        <h2 className="text-lg font-semibold capitalize hidden sm:block">
+          {format(calendarDate, 'MMMM yyyy', { locale: ptBR })}
+        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold capitalize sm:hidden mr-2">
+            {format(calendarDate, 'MMMM', { locale: ptBR })}
+          </h2>
+          {!isModal && (
+            <Button variant="outline" size="sm" onClick={() => setCalendarModalOpen(true)}>
+              <Maximize className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:block">Expandir</span>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 overflow-auto flex flex-col">
+        <div className="grid grid-cols-7 border-b bg-muted/50 shrink-0">
+          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
+            <div key={d} className="p-2 text-center text-sm font-medium text-muted-foreground">
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+          {eachDayOfInterval({
+            start: startOfWeek(startOfMonth(calendarDate)),
+            end: endOfWeek(endOfMonth(calendarDate)),
+          }).map((day) => {
+            const dateStr = format(day, 'yyyy-MM-dd')
+            const dayTasks = filteredTasks
+              .filter((t) => t.scheduledDate === dateStr)
+              .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''))
+            const isCurrentMonth = isSameMonth(day, calendarDate)
+
+            return (
+              <div
+                key={dateStr}
+                onClick={() => setSelectedDayModal({ date: day, tasks: dayTasks })}
+                className={cn(
+                  'border-b border-r p-1 md:p-2 flex flex-col gap-1 min-h-[80px] cursor-pointer hover:bg-muted/50 transition-colors',
+                  !isCurrentMonth && 'bg-muted/30 text-muted-foreground',
+                  isToday(day) && 'bg-primary/5',
+                  isModal ? 'md:min-h-[100px]' : 'md:min-h-[120px]',
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={cn(
+                      'text-xs md:text-sm font-medium w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full',
+                      isToday(day) && 'bg-primary text-primary-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </span>
+                  {dayTasks.length > 0 && (
+                    <span className="md:hidden text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                      {dayTasks.length}
+                    </span>
+                  )}
+                </div>
+                <div className="hidden md:flex flex-col gap-1 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {dayTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (isModal) setCalendarModalOpen(false)
+                        setSelectedTaskId(task.id)
+                      }}
+                      className="text-xs truncate px-2 py-1 rounded bg-background border shadow-sm cursor-pointer hover:border-primary transition-colors flex items-center gap-1"
+                      title={task.title}
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{
+                          backgroundColor:
+                            categories.find((c) => c.id === task.categoryId)?.color || '#ccc',
+                        }}
+                      />
+                      {task.scheduledTime && (
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {task.scheduledTime.substring(0, 5)}
+                        </span>
+                      )}
+                      <span className="truncate">{task.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-4">
@@ -584,111 +714,7 @@ export default function Index() {
 
       <div className="flex-1 overflow-hidden">
         {view === 'calendar' ? (
-          <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b shrink-0">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" onClick={() => setCalendarDate(new Date())}>
-                  Hoje
-                </Button>
-              </div>
-              <h2 className="text-lg font-semibold capitalize">
-                {format(calendarDate, 'MMMM yyyy', { locale: ptBR })}
-              </h2>
-            </div>
-            <div className="flex-1 overflow-auto flex flex-col">
-              <div className="grid grid-cols-7 border-b bg-muted/50 shrink-0">
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
-                  <div
-                    key={d}
-                    className="p-2 text-center text-sm font-medium text-muted-foreground"
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 flex-1 auto-rows-fr">
-                {eachDayOfInterval({
-                  start: startOfWeek(startOfMonth(calendarDate)),
-                  end: endOfWeek(endOfMonth(calendarDate)),
-                }).map((day, i) => {
-                  const dateStr = format(day, 'yyyy-MM-dd')
-                  const dayTasks = filteredTasks
-                    .filter((t) => t.scheduledDate === dateStr)
-                    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''))
-                  const isCurrentMonth = isSameMonth(day, calendarDate)
-
-                  return (
-                    <div
-                      key={dateStr}
-                      onClick={() => setSelectedDayModal({ date: day, tasks: dayTasks })}
-                      className={cn(
-                        'border-b border-r p-1 md:p-2 flex flex-col gap-1 min-h-[80px] md:min-h-[120px] cursor-pointer hover:bg-muted/50 transition-colors',
-                        !isCurrentMonth && 'bg-muted/30 text-muted-foreground',
-                        isToday(day) && 'bg-primary/5',
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={cn(
-                            'text-xs md:text-sm font-medium w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full',
-                            isToday(day) && 'bg-primary text-primary-foreground',
-                          )}
-                        >
-                          {format(day, 'd')}
-                        </span>
-                        {dayTasks.length > 0 && (
-                          <span className="md:hidden text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
-                            {dayTasks.length}
-                          </span>
-                        )}
-                      </div>
-                      <div className="hidden md:flex flex-col gap-1 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {dayTasks.map((task) => (
-                          <div
-                            key={task.id}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedTaskId(task.id)
-                            }}
-                            className="text-xs truncate px-2 py-1 rounded bg-background border shadow-sm cursor-pointer hover:border-primary transition-colors flex items-center gap-1"
-                            title={task.title}
-                          >
-                            <div
-                              className="w-2 h-2 rounded-full shrink-0"
-                              style={{
-                                backgroundColor:
-                                  categories.find((c) => c.id === task.categoryId)?.color || '#ccc',
-                              }}
-                            />
-                            {task.scheduledTime && (
-                              <span className="text-[10px] text-muted-foreground shrink-0">
-                                {task.scheduledTime.substring(0, 5)}
-                              </span>
-                            )}
-                            <span className="truncate">{task.title}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+          renderCalendar(false)
         ) : view === 'gallery' ? (
           <GlobalAttachmentGallery
             tasks={filteredTasks}
@@ -923,6 +949,15 @@ export default function Index() {
               ))
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={calendarModalOpen} onOpenChange={setCalendarModalOpen}>
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Calendário Expandido</DialogTitle>
+          </DialogHeader>
+          {renderCalendar(true)}
         </DialogContent>
       </Dialog>
 
