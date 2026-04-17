@@ -38,7 +38,7 @@ import { Button } from '@/components/ui/button'
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, colaborador } = useAuth()
+  const { user, colaborador, signOut } = useAuth()
   const [permissions, setPermissions] = useState<Record<string, string[]>>({})
 
   const navItems = [
@@ -89,8 +89,7 @@ export default function Layout() {
   const filteredNavItems = navItems.filter((item) => allowedRoutes.includes(item.url))
 
   const handleLogout = async () => {
-    // Autenticação desativada, recarrega a página apenas
-    window.location.reload()
+    await signOut()
   }
 
   return (
