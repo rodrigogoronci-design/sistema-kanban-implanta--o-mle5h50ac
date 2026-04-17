@@ -104,6 +104,9 @@ export default function Index() {
   const [view, setView] = useState<'kanban' | 'list' | 'gallery' | 'calendar'>('kanban')
   const [calendarDate, setCalendarDate] = useState(new Date())
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [selectedDayModal, setSelectedDayModal] = useState<{ date: Date; tasks: any[] } | null>(
+    null,
+  )
 
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
   const [editingColumnTitle, setEditingColumnTitle] = useState('')
@@ -631,8 +634,9 @@ export default function Index() {
                   return (
                     <div
                       key={dateStr}
+                      onClick={() => setSelectedDayModal({ date: day, tasks: dayTasks })}
                       className={cn(
-                        'border-b border-r p-2 flex flex-col gap-1 min-h-[120px]',
+                        'border-b border-r p-1 md:p-2 flex flex-col gap-1 min-h-[80px] md:min-h-[120px] cursor-pointer hover:bg-muted/50 transition-colors',
                         !isCurrentMonth && 'bg-muted/30 text-muted-foreground',
                         isToday(day) && 'bg-primary/5',
                       )}
@@ -640,18 +644,26 @@ export default function Index() {
                       <div className="flex items-center justify-between">
                         <span
                           className={cn(
-                            'text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full',
+                            'text-xs md:text-sm font-medium w-6 h-6 md:w-7 md:h-7 flex items-center justify-center rounded-full',
                             isToday(day) && 'bg-primary text-primary-foreground',
                           )}
                         >
                           {format(day, 'd')}
                         </span>
+                        {dayTasks.length > 0 && (
+                          <span className="md:hidden text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                            {dayTasks.length}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex flex-col gap-1 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      <div className="hidden md:flex flex-col gap-1 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {dayTasks.map((task) => (
                           <div
                             key={task.id}
-                            onClick={() => setSelectedTaskId(task.id)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedTaskId(task.id)
+                            }}
                             className="text-xs truncate px-2 py-1 rounded bg-background border shadow-sm cursor-pointer hover:border-primary transition-colors flex items-center gap-1"
                             title={task.title}
                           >
@@ -798,19 +810,20 @@ export default function Index() {
                   <TableHead>Título</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Projeto</TableHead>
-                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Data Agendada</TableHead>
+                  <TableHead>Hora</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTasks.map((t) => {
                   let rowStatusColor = ''
-                  if (t.dueDate) {
-                    const due = startOfDay(parseISO(t.dueDate))
+                  if (t.scheduledDate) {
+                    const scheduled = startOfDay(parseISO(t.scheduledDate))
                     const today = startOfDay(new Date())
-                    const diff = differenceInDays(due, today)
+                    const diff = differenceInDays(scheduled, today)
                     if (diff < 0) rowStatusColor = 'bg-red-50/50 dark:bg-red-950/20'
-                    else if (diff <= 2) rowStatusColor = 'bg-yellow-50/50 dark:bg-yellow-950/20'
+                    else if (diff === 0) rowStatusColor = 'bg-yellow-50/50 dark:bg-yellow-950/20'
                     else rowStatusColor = 'bg-green-50/50 dark:bg-green-950/20'
                   }
 
@@ -831,7 +844,10 @@ export default function Index() {
                         {projects.find((p) => p.id === t.projectId)?.name}
                       </TableCell>
                       <TableCell>
-                        {t.dueDate ? format(parseISO(t.dueDate), 'dd/MM/yyyy') : '-'}
+                        {t.scheduledDate ? format(parseISO(t.scheduledDate), 'dd/MM/yyyy') : '-'}
+                      </TableCell>
+                      <TableCell>
+                        {t.scheduledTime ? t.scheduledTime.substring(0, 5) : '-'}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
@@ -843,7 +859,7 @@ export default function Index() {
                 })}
                 {filteredTasks.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhuma tarefa encontrada com os filtros atuais.
                     </TableCell>
                   </TableRow>
@@ -857,6 +873,58 @@ export default function Index() {
       {selectedTaskId && (
         <TaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
       )}
+
+      <Dialog open={!!selectedDayModal} onOpenChange={(open) => !open && setSelectedDayModal(null)}>
+        <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Tarefas -{' '}
+              {selectedDayModal?.date
+                ? format(selectedDayModal.date, "dd 'de' MMMM, yyyy", { locale: ptBR })
+                : ''}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4 overflow-y-auto flex-1 pr-1">
+            {selectedDayModal?.tasks.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-8">
+                Nenhuma tarefa agendada para este dia.
+              </p>
+            ) : (
+              selectedDayModal?.tasks.map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => {
+                    setSelectedDayModal(null)
+                    setSelectedTaskId(task.id)
+                  }}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:border-primary cursor-pointer transition-colors shadow-sm"
+                >
+                  <div className="flex flex-col gap-1 min-w-0">
+                    <span className="font-medium text-sm truncate">{task.title}</span>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{
+                          backgroundColor:
+                            categories.find((c) => c.id === task.categoryId)?.color || '#ccc',
+                        }}
+                      />
+                      <span className="truncate">
+                        {clients.find((c) => c.id === task.clientId)?.name}
+                      </span>
+                    </div>
+                  </div>
+                  {task.scheduledTime && (
+                    <Badge variant="outline" className="shrink-0 ml-2">
+                      {task.scheduledTime.substring(0, 5)}
+                    </Badge>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <ArchiveManager open={openArchiveManager} onOpenChange={setOpenArchiveManager} />
       <CategoryManager open={showCategoryModal} onOpenChange={setShowCategoryModal} />
