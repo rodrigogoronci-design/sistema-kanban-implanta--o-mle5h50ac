@@ -181,10 +181,24 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                           <Input
                             id="registrationDate"
                             type="date"
-                            value={formData.registrationDate || ''}
-                            onChange={(e) =>
-                              setFormData({ ...formData, registrationDate: e.target.value })
+                            value={
+                              formData.registrationDate
+                                ? formData.registrationDate.substring(0, 10)
+                                : ''
                             }
+                            onChange={(e) => {
+                              const val = e.target.value
+                              let isoDate = val
+                              if (val) {
+                                try {
+                                  // Fix timezone off-by-one by setting time to noon UTC
+                                  isoDate = new Date(`${val}T12:00:00Z`).toISOString()
+                                } catch (err) {
+                                  isoDate = val
+                                }
+                              }
+                              setFormData({ ...formData, registrationDate: isoDate || undefined })
+                            }}
                           />
                         </div>
                         <div className="grid gap-2">
