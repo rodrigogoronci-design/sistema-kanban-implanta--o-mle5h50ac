@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import useMainStore, { Task, Attachment } from '@/stores/main'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -11,16 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  AlertCircle,
-  Download,
-  Eye,
-  File,
-  FileText,
-  Image as ImageIcon,
-  Paperclip,
-  Tag,
-} from 'lucide-react'
+import { Download, Eye, File, FileText, Image as ImageIcon, Paperclip, Tag } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { AttachmentTagPopover } from './AttachmentTagPopover'
@@ -119,14 +109,6 @@ export default function GlobalAttachmentGallery({ tasks, searchTerm, onTaskClick
           </PopoverContent>
         </Popover>
       </div>
-
-      <Alert className="bg-amber-50 text-amber-900 border-amber-200 py-2 shrink-0">
-        <AlertCircle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-sm">
-          Arquivos e tags são armazenados em memória e serão perdidos ao recarregar a página.
-          Conecte um backend para persistência.
-        </AlertDescription>
-      </Alert>
 
       <div className="flex-1 overflow-auto rounded-xl border bg-card shadow-sm p-4">
         {attachments.length > 0 ? (
