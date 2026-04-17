@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Edit2, Building2 } from 'lucide-react'
+import { Plus, Trash2, Edit2, Building2, ExternalLink } from 'lucide-react'
 import { ClientFormModal } from '@/components/ClientFormModal'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { format, parseISO } from 'date-fns'
@@ -123,6 +123,21 @@ export default function Clients() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-2">
+                      {client.website && (
+                        <Button variant="ghost" size="icon" asChild title="Acessar site">
+                          <a
+                            href={
+                              client.website.startsWith('http')
+                                ? client.website
+                                : `https://${client.website}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(client)}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
