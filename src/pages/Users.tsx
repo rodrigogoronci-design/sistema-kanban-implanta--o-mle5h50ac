@@ -32,12 +32,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([])
+  const [sectors, setSectors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const [isCreatingSector, setIsCreatingSector] = useState(false)
+  const [newSectorName, setNewSectorName] = useState('')
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -45,22 +48,35 @@ export default function Users() {
     email: '',
     password: '',
     role: 'Colaborador',
-    departamento: '',
+    setor_id: 'none',
     avatar_url: '',
   })
 
-  const fetchUsers = async () => {
-    const { data, error } = await supabase.from('colaboradores').select('*').order('nome')
-    if (error) {
-      toast({ title: 'Erro ao carregar', description: error.message, variant: 'destructive' })
+  const fetchData = async () => {
+    const [usersRes, sectorsRes] = await Promise.all([
+      supabase.from('colaboradores').select('*, setores(nome)').order('nome'),
+      supabase.from('setores').select('*').order('nome'),
+    ])
+
+    if (usersRes.error) {
+      toast({
+        title: 'Erro ao carregar',
+        description: usersRes.error.message,
+        variant: 'destructive',
+      })
     } else {
-      setUsers(data || [])
+      setUsers(usersRes.data || [])
     }
+
+    if (sectorsRes.data) {
+      setSectors(sectorsRes.data)
+    }
+
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchUsers()
+    fetchData()
   }, [])
 
   const resetForm = () => {
@@ -69,11 +85,13 @@ export default function Users() {
       email: '',
       password: '',
       role: 'Colaborador',
-      departamento: '',
+      setor_id: 'none',
       avatar_url: '',
     })
     setIsEditing(false)
     setCurrentUserId(null)
+    setIsCreatingSector(false)
+    setNewSectorName('')
   }
 
   const handleEdit = (user: any) => {
@@ -82,12 +100,31 @@ export default function Users() {
       email: user.email || '',
       password: '',
       role: user.role || 'Colaborador',
-      departamento: user.departamento || '',
+      setor_id: user.setor_id || 'none',
       avatar_url: user.avatar_url || '',
     })
     setCurrentUserId(user.id)
     setIsEditing(true)
     setIsOpen(true)
+    setIsCreatingSector(false)
+  }
+
+  const handleCreateSector = async () => {
+    if (!newSectorName.trim()) return
+    const { data, error } = await supabase
+      .from('setores')
+      .insert({ nome: newSectorName })
+      .select()
+      .single()
+    if (error) {
+      toast({ title: 'Erro ao criar setor', description: error.message, variant: 'destructive' })
+    } else if (data) {
+      setSectors([...sectors, data])
+      setFormData((s) => ({ ...s, setor_id: data.id }))
+      setIsCreatingSector(false)
+      setNewSectorName('')
+      toast({ title: 'Setor criado com sucesso' })
+    }
   }
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +169,7 @@ export default function Users() {
       toast({ title: isEditing ? 'Usuário atualizado com sucesso' : 'Usuário criado com sucesso' })
       setIsOpen(false)
       resetForm()
-      fetchUsers()
+      fetchData()
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } finally {
@@ -149,7 +186,7 @@ export default function Users() {
       })
       if (error) throw error
       toast({ title: 'Usuário excluído' })
-      fetchUsers()
+      fetchData()
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     }
@@ -174,7 +211,7 @@ export default function Users() {
               <Plus className="w-4 h-4 mr-2" /> Novo Usuário
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{isEditing ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
             </DialogHeader>
@@ -240,13 +277,36 @@ export default function Users() {
                   onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Departamento</Label>
-                  <Input
-                    value={formData.departamento}
-                    onChange={(e) => setFormData((s) => ({ ...s, departamento: e.target.value }))}
-                  />
+                  <Label>Setor</Label>
+                  <Select
+                    value={formData.setor_id}
+                    onValueChange={(v) => {
+                      if (v === 'new') {
+                        setIsCreatingSector(true)
+                        setFormData((s) => ({ ...s, setor_id: 'none' }))
+                      } else {
+                        setFormData((s) => ({ ...s, setor_id: v }))
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um setor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum setor</SelectItem>
+                      {sectors.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.nome}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="new" className="font-semibold text-primary">
+                        + Criar novo setor
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Perfil de Acesso</Label>
@@ -264,7 +324,32 @@ export default function Users() {
                   </Select>
                 </div>
               </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+
+              {isCreatingSector && (
+                <div className="p-3 bg-muted/50 rounded-md space-y-3 border border-border/50">
+                  <Label className="text-sm">Novo Setor</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Digite o nome..."
+                      value={newSectorName}
+                      onChange={(e) => setNewSectorName(e.target.value)}
+                      autoFocus
+                    />
+                    <Button type="button" onClick={handleCreateSector}>
+                      Salvar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreatingSector(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : isEditing ? (
@@ -284,7 +369,7 @@ export default function Users() {
             <TableRow className="bg-muted/50">
               <TableHead>Nome</TableHead>
               <TableHead>E-mail</TableHead>
-              <TableHead>Departamento</TableHead>
+              <TableHead>Setor</TableHead>
               <TableHead>Perfil</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
@@ -315,7 +400,7 @@ export default function Users() {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                  <TableCell>{user.departamento || '-'}</TableCell>
+                  <TableCell>{user.setores?.nome || '-'}</TableCell>
                   <TableCell>
                     <Badge
                       variant={user.role === 'Administrador' ? 'default' : 'secondary'}

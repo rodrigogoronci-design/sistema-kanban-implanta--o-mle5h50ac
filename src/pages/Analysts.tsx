@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Trash2, Edit2, Loader2, UserCheck } from 'lucide-react'
+import { Plus, Trash2, Edit2, Loader2, UserCheck, Briefcase } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 export default function Analysts() {
@@ -40,15 +40,14 @@ export default function Analysts() {
 
   const [formData, setFormData] = useState({
     nome: '',
-    especialidade: '',
     user_id: 'none',
     status: 'Ativo',
   })
 
   const fetchData = async () => {
     const [analystsRes, usersRes] = await Promise.all([
-      supabase.from('analistas').select('*, colaboradores(nome)').order('nome'),
-      supabase.from('colaboradores').select('id, nome').order('nome'),
+      supabase.from('analistas').select('*, colaboradores(nome, setores(nome))').order('nome'),
+      supabase.from('colaboradores').select('id, nome, setores(nome)').order('nome'),
     ])
 
     if (analystsRes.error) {
@@ -74,7 +73,7 @@ export default function Analysts() {
 
   const handleOpenNew = () => {
     setEditingId(null)
-    setFormData({ nome: '', especialidade: '', user_id: 'none', status: 'Ativo' })
+    setFormData({ nome: '', user_id: 'none', status: 'Ativo' })
     setIsOpen(true)
   }
 
@@ -82,7 +81,6 @@ export default function Analysts() {
     setEditingId(analyst.id)
     setFormData({
       nome: analyst.nome,
-      especialidade: analyst.especialidade || '',
       user_id: analyst.user_id || 'none',
       status: analyst.status || 'Ativo',
     })
@@ -96,7 +94,6 @@ export default function Analysts() {
     try {
       const payload = {
         nome: formData.nome,
-        especialidade: formData.especialidade,
         user_id: formData.user_id === 'none' ? null : formData.user_id,
         status: formData.status,
       }
@@ -138,6 +135,8 @@ export default function Analysts() {
     }
   }
 
+  const selectedUser = users.find((u) => u.id === formData.user_id)
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -167,14 +166,6 @@ export default function Analysts() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Especialidade</Label>
-                <Input
-                  value={formData.especialidade}
-                  onChange={(e) => setFormData((s) => ({ ...s, especialidade: e.target.value }))}
-                  placeholder="Ex: Implantação de Sistemas"
-                />
-              </div>
-              <div className="space-y-2">
                 <Label>Usuário Vinculado (Opcional)</Label>
                 <Select
                   value={formData.user_id}
@@ -195,6 +186,14 @@ export default function Analysts() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Vincular a um usuário permite associar as ações do sistema diretamente a ele.
                 </p>
+                {selectedUser && selectedUser.setores && (
+                  <div className="flex items-center gap-2 mt-2 p-2 bg-muted rounded-md text-sm border border-border/50">
+                    <Briefcase className="w-4 h-4 text-muted-foreground" />
+                    <span>
+                      Setor vinculado: <strong>{selectedUser.setores.nome}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -228,7 +227,7 @@ export default function Analysts() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Nome</TableHead>
-              <TableHead>Especialidade</TableHead>
+              <TableHead>Setor</TableHead>
               <TableHead>Usuário Vinculado</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="w-[100px]"></TableHead>
@@ -257,7 +256,7 @@ export default function Analysts() {
                     </div>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {analyst.especialidade || '-'}
+                    {analyst.colaboradores?.setores?.nome || '-'}
                   </TableCell>
                   <TableCell>{analyst.colaboradores?.nome || '-'}</TableCell>
                   <TableCell>
