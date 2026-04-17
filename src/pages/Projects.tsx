@@ -135,10 +135,14 @@ export default function Projects() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {project.implStart ? format(parseISO(project.implStart), 'dd/MM/yyyy') : '-'}
+                      {(project as any).forecastStart
+                        ? format(parseISO((project as any).forecastStart), 'dd/MM/yyyy')
+                        : '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {project.opEnd ? format(parseISO(project.opEnd), 'dd/MM/yyyy') : '-'}
+                      {(project as any).forecastEnd
+                        ? format(parseISO((project as any).forecastEnd), 'dd/MM/yyyy')
+                        : '-'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary" className="font-mono">

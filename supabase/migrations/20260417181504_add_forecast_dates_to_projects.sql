@@ -1,0 +1,2 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS forecast_start TIMESTAMPTZ;
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS forecast_end TIMESTAMPTZ;
