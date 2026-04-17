@@ -11,10 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { getTaskHours } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
 import { StatusManagementModal } from './StatusManagementModal'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const toDateInput = (iso?: string) => (iso ? iso.split('T')[0] : '')
 const toIso = (dateStr?: string) => (dateStr ? `${dateStr}T12:00:00Z` : null)
@@ -33,6 +44,7 @@ export function ProjectFormModal({
   const { clients, projectStatuses, tasks } = useMainStore()
   const [analysts, setAnalysts] = useState<any[]>([])
   const [showStatusModal, setShowStatusModal] = useState(false)
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false)
 
   useEffect(() => {
     supabase
@@ -154,20 +166,60 @@ export function ProjectFormModal({
                 required
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label>Cliente Vinculado</Label>
-              <Select value={formData.clientId} onValueChange={(v) => updateField('clientId', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={clientPopoverOpen}
+                    className={cn(
+                      'w-full justify-between font-normal',
+                      !formData.clientId && 'text-muted-foreground',
+                    )}
+                  >
+                    <span className="truncate">
+                      {formData.clientId
+                        ? clients.find((c) => c.id === formData.clientId)?.name
+                        : 'Selecione um cliente...'}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="p-0"
+                  align="start"
+                  style={{ width: 'var(--radix-popover-trigger-width)' }}
+                >
+                  <Command>
+                    <CommandInput placeholder="Pesquisar cliente..." />
+                    <CommandList>
+                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        {clients.map((c) => (
+                          <CommandItem
+                            key={c.id}
+                            value={`${c.name} ${c.id}`}
+                            onSelect={() => {
+                              updateField('clientId', c.id)
+                              setClientPopoverOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                'mr-2 h-4 w-4 shrink-0',
+                                formData.clientId === c.id ? 'opacity-100' : 'opacity-0',
+                              )}
+                            />
+                            <span className="truncate">{c.name}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Analista Responsável</Label>
