@@ -31,11 +31,31 @@ export default function Projects() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
   const [analysts, setAnalysts] = useState<any[]>([])
+  const [projectDates, setProjectDates] = useState<Record<string, any>>({})
   const [pendingDatesUpdate, setPendingDatesUpdate] = useState<{
     name: string
     clientId: string
     payload: any
   } | null>(null)
+
+  useEffect(() => {
+    const fetchDates = async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select(
+          'id, forecast_start, forecast_end, impl_start, impl_end, train_start, train_end, op_start, op_end',
+        )
+
+      if (data) {
+        const datesMap: Record<string, any> = {}
+        data.forEach((p) => {
+          datesMap[p.id] = p
+        })
+        setProjectDates(datesMap)
+      }
+    }
+    fetchDates()
+  }, [projects])
 
   useEffect(() => {
     if (pendingDatesUpdate && projects.length > 0) {
@@ -55,6 +75,10 @@ export default function Projects() {
               .single()
             if (data) {
               await supabase.from('projects').update(payload).eq('id', match.id)
+              setProjectDates((prev) => ({
+                ...prev,
+                [match.id]: payload,
+              }))
               break
             }
             await new Promise((r) => setTimeout(r, 1000))
@@ -80,31 +104,42 @@ export default function Projects() {
   }
 
   const handleEdit = (project: Project) => {
-    setEditingProject(project)
+    const extendedProject = {
+      ...project,
+      ...(projectDates[project.id] || {}),
+    }
+    setEditingProject(extendedProject as Project)
     setModalOpen(true)
   }
 
   const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
     const dbPayload = {
-      forecast_start: data.forecast_start !== undefined ? data.forecast_start : null,
-      forecast_end: data.forecast_end !== undefined ? data.forecast_end : null,
-      impl_start: data.impl_start !== undefined ? data.impl_start : null,
-      impl_end: data.impl_end !== undefined ? data.impl_end : null,
-      train_start: data.train_start !== undefined ? data.train_start : null,
-      train_end: data.train_end !== undefined ? data.train_end : null,
-      op_start: data.op_start !== undefined ? data.op_start : null,
-      op_end: data.op_end !== undefined ? data.op_end : null,
+      forecast_start: data.forecast_start || null,
+      forecast_end: data.forecast_end || null,
+      impl_start: data.impl_start || null,
+      impl_end: data.impl_end || null,
+      train_start: data.train_start || null,
+      train_end: data.train_end || null,
+      op_start: data.op_start || null,
+      op_end: data.op_end || null,
     }
 
     if (editingProject) {
       updateProject(editingProject.id, data)
+      setProjectDates((prev) => ({
+        ...prev,
+        [editingProject.id]: {
+          ...prev[editingProject.id],
+          ...dbPayload,
+        },
+      }))
       setTimeout(async () => {
         try {
           await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
         } catch (e) {
           console.error('Error updating dates:', e)
         }
-      }, 1000)
+      }, 500)
     } else {
       addProject(data as Project)
       setPendingDatesUpdate({ name: data.name, clientId: data.clientId, payload: dbPayload })
@@ -187,12 +222,16 @@ export default function Projects() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {(project as any).forecastStart || (project as any).forecast_start
+                      {projectDates[project.id]?.forecast_start ||
+                      (project as any).forecastStart ||
+                      (project as any).forecast_start
                         ? (() => {
                             try {
                               return format(
                                 parseISO(
-                                  (project as any).forecastStart || (project as any).forecast_start,
+                                  projectDates[project.id]?.forecast_start ||
+                                    (project as any).forecastStart ||
+                                    (project as any).forecast_start,
                                 ),
                                 'dd/MM/yyyy',
                               )
@@ -203,12 +242,16 @@ export default function Projects() {
                         : '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {(project as any).forecastEnd || (project as any).forecast_end
+                      {projectDates[project.id]?.forecast_end ||
+                      (project as any).forecastEnd ||
+                      (project as any).forecast_end
                         ? (() => {
                             try {
                               return format(
                                 parseISO(
-                                  (project as any).forecastEnd || (project as any).forecast_end,
+                                  projectDates[project.id]?.forecast_end ||
+                                    (project as any).forecastEnd ||
+                                    (project as any).forecast_end,
                                 ),
                                 'dd/MM/yyyy',
                               )
