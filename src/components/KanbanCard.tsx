@@ -66,13 +66,13 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
 
       {client && <div className="text-xs text-muted-foreground truncate">{client.name}</div>}
 
-      {(task.startDate || task.endDate) && (
+      {(task.scheduledDate || task.scheduledTime) && (
         <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50/80 w-fit px-1.5 py-0.5 rounded border border-blue-200 mt-0.5 font-medium">
           <CalendarClock className="w-3 h-3" />
           <span>
-            {task.startDate && format(parseISO(task.startDate), 'dd/MM/yyyy')}
-            {task.startDate && task.endDate && ' até '}
-            {task.endDate && format(parseISO(task.endDate), 'dd/MM/yyyy')}
+            {task.scheduledDate && format(parseISO(task.scheduledDate), 'dd/MM/yyyy')}
+            {task.scheduledDate && task.scheduledTime && ' às '}
+            {task.scheduledTime && task.scheduledTime.slice(0, 5)}
           </span>
         </div>
       )}

@@ -459,19 +459,19 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 flex flex-col justify-end">
-                    <Label className="text-muted-foreground">Data de Início</Label>
+                    <Label className="text-muted-foreground">Data Agendada</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant={'outline'}
                           className={cn(
                             'w-full justify-start text-left font-normal bg-background',
-                            !task.startDate && 'text-muted-foreground',
+                            !task.scheduledDate && 'text-muted-foreground',
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {task.startDate ? (
-                            format(parseISO(task.startDate), 'dd/MM/yyyy')
+                          {task.scheduledDate ? (
+                            format(parseISO(task.scheduledDate), 'dd/MM/yyyy')
                           ) : (
                             <span>Selecione...</span>
                           )}
@@ -480,9 +480,11 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={task.startDate ? parseISO(task.startDate) : undefined}
+                          selected={task.scheduledDate ? parseISO(task.scheduledDate) : undefined}
                           onSelect={(date) =>
-                            updateTask(task.id, { startDate: date?.toISOString() })
+                            updateTask(task.id, {
+                              scheduledDate: date ? format(date, 'yyyy-MM-dd') : undefined,
+                            })
                           }
                           initialFocus
                         />
@@ -490,33 +492,13 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Popover>
                   </div>
                   <div className="space-y-2 flex flex-col justify-end">
-                    <Label className="text-muted-foreground">Data de Fim</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={'outline'}
-                          className={cn(
-                            'w-full justify-start text-left font-normal bg-background',
-                            !task.endDate && 'text-muted-foreground',
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {task.endDate ? (
-                            format(parseISO(task.endDate), 'dd/MM/yyyy')
-                          ) : (
-                            <span>Selecione...</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={task.endDate ? parseISO(task.endDate) : undefined}
-                          onSelect={(date) => updateTask(task.id, { endDate: date?.toISOString() })}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Label className="text-muted-foreground">Horário Agendado</Label>
+                    <Input
+                      type="time"
+                      value={task.scheduledTime?.slice(0, 5) || ''}
+                      onChange={(e) => updateTask(task.id, { scheduledTime: e.target.value })}
+                      className="bg-background"
+                    />
                   </div>
                 </div>
 
