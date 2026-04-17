@@ -43,13 +43,24 @@ export default function Projects() {
         (p) => p.name === pendingDatesUpdate.name && p.clientId === pendingDatesUpdate.clientId,
       )
       if (match) {
-        supabase
-          .from('projects')
-          .update(pendingDatesUpdate.payload)
-          .eq('id', match.id)
-          .then(() => {
-            setPendingDatesUpdate(null)
-          })
+        const payload = pendingDatesUpdate.payload
+        setPendingDatesUpdate(null)
+
+        const updateDates = async () => {
+          for (let i = 0; i < 5; i++) {
+            const { data } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('id', match.id)
+              .single()
+            if (data) {
+              await supabase.from('projects').update(payload).eq('id', match.id)
+              break
+            }
+            await new Promise((r) => setTimeout(r, 1000))
+          }
+        }
+        updateDates()
       }
     }
   }, [projects, pendingDatesUpdate])
@@ -75,23 +86,25 @@ export default function Projects() {
 
   const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
     const dbPayload = {
-      forecast_start: data.forecast_start || data.forecastStart,
-      forecast_end: data.forecast_end || data.forecastEnd,
-      impl_start: data.impl_start || data.implStart,
-      impl_end: data.impl_end || data.implEnd,
-      train_start: data.train_start || data.trainStart,
-      train_end: data.train_end || data.trainEnd,
-      op_start: data.op_start || data.opStart,
-      op_end: data.op_end || data.opEnd,
+      forecast_start: data.forecast_start !== undefined ? data.forecast_start : null,
+      forecast_end: data.forecast_end !== undefined ? data.forecast_end : null,
+      impl_start: data.impl_start !== undefined ? data.impl_start : null,
+      impl_end: data.impl_end !== undefined ? data.impl_end : null,
+      train_start: data.train_start !== undefined ? data.train_start : null,
+      train_end: data.train_end !== undefined ? data.train_end : null,
+      op_start: data.op_start !== undefined ? data.op_start : null,
+      op_end: data.op_end !== undefined ? data.op_end : null,
     }
 
     if (editingProject) {
       updateProject(editingProject.id, data)
-      try {
-        await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
-      } catch (e) {
-        console.error('Error updating dates:', e)
-      }
+      setTimeout(async () => {
+        try {
+          await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
+        } catch (e) {
+          console.error('Error updating dates:', e)
+        }
+      }, 1000)
     } else {
       addProject(data as Project)
       setPendingDatesUpdate({ name: data.name, clientId: data.clientId, payload: dbPayload })
@@ -175,20 +188,34 @@ export default function Projects() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {(project as any).forecastStart || (project as any).forecast_start
-                        ? format(
-                            parseISO(
-                              (project as any).forecastStart || (project as any).forecast_start,
-                            ),
-                            'dd/MM/yyyy',
-                          )
+                        ? (() => {
+                            try {
+                              return format(
+                                parseISO(
+                                  (project as any).forecastStart || (project as any).forecast_start,
+                                ),
+                                'dd/MM/yyyy',
+                              )
+                            } catch {
+                              return '-'
+                            }
+                          })()
                         : '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {(project as any).forecastEnd || (project as any).forecast_end
-                        ? format(
-                            parseISO((project as any).forecastEnd || (project as any).forecast_end),
-                            'dd/MM/yyyy',
-                          )
+                        ? (() => {
+                            try {
+                              return format(
+                                parseISO(
+                                  (project as any).forecastEnd || (project as any).forecast_end,
+                                ),
+                                'dd/MM/yyyy',
+                              )
+                            } catch {
+                              return '-'
+                            }
+                          })()
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right">

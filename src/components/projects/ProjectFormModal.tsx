@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { StatusManagementModal } from './StatusManagementModal'
 
 const toDateInput = (iso?: string) => (iso ? iso.split('T')[0] : '')
-const toIso = (dateStr?: string) => (dateStr ? new Date(dateStr).toISOString() : undefined)
+const toIso = (dateStr?: string) => (dateStr ? `${dateStr}T12:00:00Z` : null)
 
 export function ProjectFormModal({
   open,
