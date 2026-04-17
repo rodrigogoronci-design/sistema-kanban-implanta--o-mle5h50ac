@@ -19,7 +19,23 @@ import KanbanCard from '@/components/KanbanCard'
 import ArchiveManager from '@/components/ArchiveManager'
 import { CategoryManager } from '@/components/CategoryManager'
 import { cn } from '@/lib/utils'
-import { format, isSameDay, parseISO, differenceInDays, startOfDay } from 'date-fns'
+import {
+  format,
+  isSameDay,
+  parseISO,
+  differenceInDays,
+  startOfDay,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isToday,
+  addMonths,
+  subMonths,
+} from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import {
@@ -61,7 +77,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { MoreVertical, Archive, Trash2, GripHorizontal } from 'lucide-react'
+import {
+  MoreVertical,
+  Archive,
+  Trash2,
+  GripHorizontal,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 
 export default function Index() {
   const {
@@ -78,7 +101,8 @@ export default function Index() {
     deleteColumn,
     reorderColumns,
   } = useMainStore()
-  const [view, setView] = useState<'kanban' | 'list' | 'gallery'>('kanban')
+  const [view, setView] = useState<'kanban' | 'list' | 'gallery' | 'calendar'>('kanban')
+  const [calendarDate, setCalendarDate] = useState(new Date())
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null)
@@ -254,13 +278,16 @@ export default function Index() {
           >
             <Archive className="w-4 h-4 mr-2" /> Colunas Arquivadas
           </Button>
-          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[160px]">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs value={view} onValueChange={(v) => setView(v as any)} className="w-[200px]">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="kanban" title="Kanban">
                 <LayoutGrid className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger value="list" title="Lista">
                 <ListIcon className="w-4 h-4" />
+              </TabsTrigger>
+              <TabsTrigger value="calendar" title="Calendário">
+                <CalendarIcon className="w-4 h-4" />
               </TabsTrigger>
               <TabsTrigger value="gallery" title="Galeria de Anexos">
                 <Images className="w-4 h-4" />
@@ -553,7 +580,104 @@ export default function Index() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {view === 'gallery' ? (
+        {view === 'calendar' ? (
+          <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b shrink-0">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCalendarDate(subMonths(calendarDate, 1))}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCalendarDate(addMonths(calendarDate, 1))}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" onClick={() => setCalendarDate(new Date())}>
+                  Hoje
+                </Button>
+              </div>
+              <h2 className="text-lg font-semibold capitalize">
+                {format(calendarDate, 'MMMM yyyy', { locale: ptBR })}
+              </h2>
+            </div>
+            <div className="flex-1 overflow-auto flex flex-col">
+              <div className="grid grid-cols-7 border-b bg-muted/50 shrink-0">
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
+                  <div
+                    key={d}
+                    className="p-2 text-center text-sm font-medium text-muted-foreground"
+                  >
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+                {eachDayOfInterval({
+                  start: startOfWeek(startOfMonth(calendarDate)),
+                  end: endOfWeek(endOfMonth(calendarDate)),
+                }).map((day, i) => {
+                  const dateStr = format(day, 'yyyy-MM-dd')
+                  const dayTasks = filteredTasks
+                    .filter((t) => t.scheduledDate === dateStr)
+                    .sort((a, b) => (a.scheduledTime || '').localeCompare(b.scheduledTime || ''))
+                  const isCurrentMonth = isSameMonth(day, calendarDate)
+
+                  return (
+                    <div
+                      key={dateStr}
+                      className={cn(
+                        'border-b border-r p-2 flex flex-col gap-1 min-h-[120px]',
+                        !isCurrentMonth && 'bg-muted/30 text-muted-foreground',
+                        isToday(day) && 'bg-primary/5',
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={cn(
+                            'text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full',
+                            isToday(day) && 'bg-primary text-primary-foreground',
+                          )}
+                        >
+                          {format(day, 'd')}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1 overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {dayTasks.map((task) => (
+                          <div
+                            key={task.id}
+                            onClick={() => setSelectedTaskId(task.id)}
+                            className="text-xs truncate px-2 py-1 rounded bg-background border shadow-sm cursor-pointer hover:border-primary transition-colors flex items-center gap-1"
+                            title={task.title}
+                          >
+                            <div
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{
+                                backgroundColor:
+                                  categories.find((c) => c.id === task.categoryId)?.color || '#ccc',
+                              }}
+                            />
+                            {task.scheduledTime && (
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {task.scheduledTime.substring(0, 5)}
+                              </span>
+                            )}
+                            <span className="truncate">{task.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        ) : view === 'gallery' ? (
           <GlobalAttachmentGallery
             tasks={filteredTasks}
             searchTerm={search}
