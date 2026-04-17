@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { getTaskHours } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
+import { StatusManagementModal } from './StatusManagementModal'
 
 const toDateInput = (iso?: string) => (iso ? iso.split('T')[0] : '')
 const toIso = (dateStr?: string) => (dateStr ? new Date(dateStr).toISOString() : undefined)
@@ -31,6 +32,7 @@ export function ProjectFormModal({
 }) {
   const { clients, projectStatuses, tasks } = useMainStore()
   const [analysts, setAnalysts] = useState<any[]>([])
+  const [showStatusModal, setShowStatusModal] = useState(false)
 
   useEffect(() => {
     supabase
@@ -173,7 +175,18 @@ export function ProjectFormModal({
               </Select>
             </div>
             <div className="col-span-2 space-y-2">
-              <Label>Status Atual</Label>
+              <div className="flex items-center justify-between">
+                <Label>Status Atual</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
+                  onClick={() => setShowStatusModal(true)}
+                >
+                  Gerenciar Status
+                </Button>
+              </div>
               <Select value={formData.statusId} onValueChange={(v) => updateField('statusId', v)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o status..." />
@@ -268,6 +281,9 @@ export function ProjectFormModal({
           </Button>
         </form>
       </DialogContent>
+      {showStatusModal && (
+        <StatusManagementModal open={showStatusModal} onOpenChange={setShowStatusModal} />
+      )}
     </Dialog>
   )
 }
