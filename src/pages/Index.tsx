@@ -175,7 +175,7 @@ export default function Index() {
     const backlogColumn = columns.find((c) => c.title.toLowerCase() === 'backlog') || columns[0]
 
     addTask({
-      id: Math.random().toString(),
+      id: crypto.randomUUID(),
       ...newTaskForm,
       categoryId: newTaskForm.categoryId || undefined,
       columnId: backlogColumn ? backlogColumn.id : 'backlog',

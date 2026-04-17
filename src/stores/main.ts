@@ -337,7 +337,13 @@ export default function useMainStore() {
       if ('dueDate' in payload) dbPayload.due_date = payload.dueDate || null
 
       if (Object.keys(dbPayload).length > 0) {
-        supabase.from('tasks').update(dbPayload).eq('id', id).then()
+        supabase
+          .from('tasks')
+          .update(dbPayload)
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating task:', error)
+          })
       }
 
       if (payload.checklist) {
@@ -345,7 +351,8 @@ export default function useMainStore() {
           .from('subtasks')
           .delete()
           .eq('task_id', id)
-          .then(() => {
+          .then(({ error }) => {
+            if (error) console.error('Error deleting subtasks:', error)
             if (payload.checklist && payload.checklist.length > 0) {
               supabase
                 .from('subtasks')
@@ -357,7 +364,9 @@ export default function useMainStore() {
                     completed: c.completed,
                   })),
                 )
-                .then()
+                .then(({ error }) => {
+                  if (error) console.error('Error inserting subtasks:', error)
+                })
             }
           })
       }
@@ -367,7 +376,8 @@ export default function useMainStore() {
           .from('time_entries')
           .delete()
           .eq('task_id', id)
-          .then(() => {
+          .then(({ error }) => {
+            if (error) console.error('Error deleting time entries:', error)
             if (payload.timeEntries && payload.timeEntries.length > 0) {
               supabase
                 .from('time_entries')
@@ -380,7 +390,9 @@ export default function useMainStore() {
                     observation: t.observation || null,
                   })),
                 )
-                .then()
+                .then(({ error }) => {
+                  if (error) console.error('Error inserting time entries:', error)
+                })
             }
           })
       }
@@ -390,7 +402,8 @@ export default function useMainStore() {
           .from('attachments')
           .delete()
           .eq('task_id', id)
-          .then(() => {
+          .then(({ error }) => {
+            if (error) console.error('Error deleting attachments:', error)
             if (payload.attachments && payload.attachments.length > 0) {
               supabase
                 .from('attachments')
@@ -405,12 +418,18 @@ export default function useMainStore() {
                     created_at: a.createdAt,
                   })),
                 )
-                .then(() => {
+                .then(({ error }) => {
+                  if (error) console.error('Error inserting attachments:', error)
                   const tagsToInsert = payload.attachments!.flatMap((a) =>
                     (a.tagIds || []).map((tid) => ({ attachment_id: a.id, tag_id: tid })),
                   )
                   if (tagsToInsert.length > 0) {
-                    supabase.from('task_attachment_tags').insert(tagsToInsert).then()
+                    supabase
+                      .from('task_attachment_tags')
+                      .insert(tagsToInsert)
+                      .then(({ error }) => {
+                        if (error) console.error('Error inserting attachment tags:', error)
+                      })
                   }
                 })
             }
@@ -434,7 +453,9 @@ export default function useMainStore() {
           due_date: task.dueDate || null,
           created_at: task.createdAt || new Date().toISOString(),
         })
-        .then()
+        .then(({ error }) => {
+          if (error) console.error('Error adding task:', error)
+        })
     },
     addCategory: (category: Omit<Category, 'id'>) => {
       const id = `cat-${Math.random().toString(36).substr(2, 9)}`
@@ -654,7 +675,9 @@ export default function useMainStore() {
           archived: column.archived || false,
           position: store.state.columns.length,
         })
-        .then()
+        .then(({ error }) => {
+          if (error) console.error('Error adding column:', error)
+        })
     },
     updateColumn: (id: string, payload: Partial<Column>) => {
       store.setState((s) => ({
@@ -665,12 +688,24 @@ export default function useMainStore() {
       if ('title' in payload) dbPayload.title = payload.title
       if ('archived' in payload) dbPayload.archived = payload.archived
       if (Object.keys(dbPayload).length > 0) {
-        supabase.from('columns').update(dbPayload).eq('id', id).then()
+        supabase
+          .from('columns')
+          .update(dbPayload)
+          .eq('id', id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating column:', error)
+          })
       }
     },
     deleteColumn: (id: string) => {
       store.setState((s) => ({ ...s, columns: s.columns.filter((c) => c.id !== id) }))
-      supabase.from('columns').delete().eq('id', id).then()
+      supabase
+        .from('columns')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error('Error deleting column:', error)
+        })
     },
     reorderColumns: (startIndex: number, endIndex: number) => {
       store.setState((s) => {
