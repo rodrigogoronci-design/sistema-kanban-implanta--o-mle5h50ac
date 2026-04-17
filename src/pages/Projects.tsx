@@ -15,6 +15,7 @@ import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours } from '@/lib/time'
+import { supabase } from '@/lib/supabase/client'
 
 export default function Projects() {
   const {
@@ -29,6 +30,16 @@ export default function Projects() {
   } = useMainStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
+  const [analysts, setAnalysts] = useState<any[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('analistas')
+      .select('id, nome')
+      .then(({ data }) => {
+        if (data) setAnalysts(data)
+      })
+  }, [])
 
   const handleCreate = () => {
     setEditingProject(undefined)
@@ -93,7 +104,9 @@ export default function Projects() {
             ) : (
               projects.map((project) => {
                 const client = clients.find((c) => c.id === project.clientId)
-                const analyst = users.find((u) => u.id === project.analystId)
+                const analyst =
+                  analysts.find((a) => a.id === project.analystId) ||
+                  users.find((u) => u.id === project.analystId)
                 const status = projectStatuses.find((s) => s.id === project.statusId)
                 const pTasks = tasks.filter((t) => t.projectId === project.id)
                 const hours = pTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
@@ -107,7 +120,7 @@ export default function Projects() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{client?.name || '-'}</TableCell>
-                    <TableCell>{analyst?.name || '-'}</TableCell>
+                    <TableCell>{analyst?.nome || analyst?.name || '-'}</TableCell>
                     <TableCell>
                       {status ? (
                         <div className="flex items-center gap-2">

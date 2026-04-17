@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import useMainStore, { Project } from '@/stores/main'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -28,7 +29,18 @@ export function ProjectFormModal({
   project?: Project
   onSubmit: (data: Omit<Project, 'id'>) => void
 }) {
-  const { clients, users, projectStatuses, tasks } = useMainStore()
+  const { clients, projectStatuses, tasks } = useMainStore()
+  const [analysts, setAnalysts] = useState<any[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('analistas')
+      .select('id, nome, status')
+      .order('nome')
+      .then(({ data }) => {
+        if (data) setAnalysts(data)
+      })
+  }, [])
   const [formData, setFormData] = useState<
     Omit<Project, 'id'> & { forecastStart?: string; forecastEnd?: string }
   >({
@@ -152,9 +164,9 @@ export function ProjectFormModal({
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name}
+                  {analysts.map((a) => (
+                    <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
+                      {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
                     </SelectItem>
                   ))}
                 </SelectContent>

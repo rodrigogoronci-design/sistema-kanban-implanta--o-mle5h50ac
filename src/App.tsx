@@ -10,6 +10,7 @@ import Clients from './pages/Clients'
 import Projects from './pages/Projects'
 import Reports from './pages/Reports'
 import Login from './pages/Login'
+import Analysts from './pages/Analysts'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
@@ -34,6 +35,7 @@ const AppRoutes = () => {
         <Route path="/users" element={<Users />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/projects" element={<Projects />} />
+        <Route path="/analysts" element={<Analysts />} />
         <Route path="/reports" element={<Reports />} />
       </Route>
       <Route path="*" element={<NotFound />} />

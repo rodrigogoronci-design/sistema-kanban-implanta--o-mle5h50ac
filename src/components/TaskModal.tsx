@@ -20,7 +20,8 @@ import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon, Check, ChevronsUpDown, Settings, Edit2, Trash2, X, Plus } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import {
   Command,
   CommandInput,
@@ -36,7 +37,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const {
     tasks,
     updateTask,
-    users,
     clients,
     projects,
     categories,
@@ -45,6 +45,17 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     deleteClient,
   } = useMainStore()
   const [categoryOpen, setCategoryOpen] = useState(false)
+  const [analysts, setAnalysts] = useState<any[]>([])
+
+  useEffect(() => {
+    supabase
+      .from('analistas')
+      .select('id, nome, status')
+      .order('nome')
+      .then(({ data }) => {
+        if (data) setAnalysts(data)
+      })
+  }, [])
   const [categoryManagerOpen, setCategoryManagerOpen] = useState(false)
   const [clientOpen, setClientOpen] = useState(false)
   const [clientSearch, setClientSearch] = useState('')
@@ -466,9 +477,9 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>
-                          {u.name}
+                      {analysts.map((a) => (
+                        <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
+                          {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
                         </SelectItem>
                       ))}
                     </SelectContent>

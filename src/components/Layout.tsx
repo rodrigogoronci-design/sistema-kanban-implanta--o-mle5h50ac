@@ -24,6 +24,7 @@ import {
   LogOut,
   Settings,
   PieChart,
+  UserCheck,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ export default function Layout() {
     { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
     { title: 'Clientes', url: '/clients', icon: Building2 },
     { title: 'Projetos', url: '/projects', icon: Briefcase },
+    { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
   ]
@@ -62,8 +64,8 @@ export default function Layout() {
   }, [])
 
   const defaultPermissions: Record<string, string[]> = {
-    Administrador: ['/', '/clients', '/projects', '/users', '/reports'],
-    Gerente: ['/', '/clients', '/projects', '/reports'],
+    Administrador: ['/', '/clients', '/projects', '/analysts', '/users', '/reports'],
+    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports'],
     Colaborador: ['/', '/projects'],
   }
 
