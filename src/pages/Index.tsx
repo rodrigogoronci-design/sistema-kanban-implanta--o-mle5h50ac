@@ -171,15 +171,27 @@ export default function Index() {
 
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const backlogColumn = columns.find((c) => c.title.toLowerCase() === 'backlog') || columns[0]
+
     addTask({
       id: Math.random().toString(),
       ...newTaskForm,
       categoryId: newTaskForm.categoryId || undefined,
-      columnId: 'backlog',
+      columnId: backlogColumn ? backlogColumn.id : 'backlog',
       description: '',
       checklist: [],
       timeEntries: [],
       createdAt: new Date().toISOString(),
+    })
+
+    setNewTaskForm({
+      title: '',
+      clientId: '',
+      projectId: '',
+      responsibleId: '',
+      priority: 'Média' as any,
+      categoryId: '',
     })
     setOpenNewTask(false)
   }
