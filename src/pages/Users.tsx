@@ -26,14 +26,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Trash2, Loader2, ShieldCheck } from 'lucide-react'
+import { Plus, Trash2, Loader2, ShieldCheck, Pencil, Upload } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export default function Users() {
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const { toast } = useToast()
 
   const [formData, setFormData] = useState({
@@ -42,6 +46,7 @@ export default function Users() {
     password: '',
     role: 'Colaborador',
     departamento: '',
+    avatar_url: '',
   })
 
   const fetchUsers = async () => {
@@ -58,21 +63,76 @@ export default function Users() {
     fetchUsers()
   }, [])
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      role: 'Colaborador',
+      departamento: '',
+      avatar_url: '',
+    })
+    setIsEditing(false)
+    setCurrentUserId(null)
+  }
+
+  const handleEdit = (user: any) => {
+    setFormData({
+      name: user.nome || '',
+      email: user.email || '',
+      password: '',
+      role: user.role || 'Colaborador',
+      departamento: user.departamento || '',
+      avatar_url: user.avatar_url || '',
+    })
+    setCurrentUserId(user.id)
+    setIsEditing(true)
+    setIsOpen(true)
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingAvatar(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+
+      setFormData((s) => ({ ...s, avatar_url: data.publicUrl }))
+      toast({ title: 'Foto carregada com sucesso!' })
+    } catch (error: any) {
+      toast({ title: 'Erro ao carregar foto', description: error.message, variant: 'destructive' })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
+      const action = isEditing ? 'update' : 'create'
+      const payload = isEditing ? { ...formData, id: currentUserId } : formData
+
       const { error } = await supabase.functions.invoke('manage-user', {
-        body: { action: 'create', payload: formData },
+        body: { action, payload },
       })
 
       if (error) throw error
 
-      toast({ title: 'Usuário criado com sucesso' })
+      toast({ title: isEditing ? 'Usuário atualizado com sucesso' : 'Usuário criado com sucesso' })
       setIsOpen(false)
+      resetForm()
       fetchUsers()
-      setFormData({ name: '', email: '', password: '', role: 'Colaborador', departamento: '' })
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } finally {
@@ -102,17 +162,56 @@ export default function Users() {
           <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
           <p className="text-sm text-muted-foreground">Gerencie o acesso e os perfis da equipe.</p>
         </div>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(open) => {
+            setIsOpen(open)
+            if (!open) resetForm()
+          }}
+        >
           <DialogTrigger asChild>
-            <Button className="shrink-0">
+            <Button className="shrink-0" onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" /> Novo Usuário
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar Novo Usuário</DialogTitle>
+              <DialogTitle>{isEditing ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col items-center justify-center space-y-4 mb-4">
+                <Avatar className="w-24 h-24">
+                  <AvatarImage src={formData.avatar_url} />
+                  <AvatarFallback className="text-2xl">
+                    {formData.name?.substring(0, 2).toUpperCase() || 'UP'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="avatar-upload"
+                    onChange={handleAvatarUpload}
+                    disabled={isUploadingAvatar}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => document.getElementById('avatar-upload')?.click()}
+                    disabled={isUploadingAvatar}
+                  >
+                    {isUploadingAvatar ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Upload className="w-4 h-4 mr-2" />
+                    )}
+                    {formData.avatar_url ? 'Trocar Foto' : 'Adicionar Foto'}
+                  </Button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Nome Completo</Label>
                 <Input
@@ -131,10 +230,12 @@ export default function Users() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Senha Temporária</Label>
+                <Label>
+                  {isEditing ? 'Nova Senha (deixe em branco para não alterar)' : 'Senha Temporária'}
+                </Label>
                 <Input
                   type="password"
-                  required
+                  required={!isEditing}
                   value={formData.password}
                   onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
                 />
@@ -166,6 +267,8 @@ export default function Users() {
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isEditing ? (
+                  'Atualizar Usuário'
                 ) : (
                   'Salvar Usuário'
                 )}
@@ -183,7 +286,7 @@ export default function Users() {
               <TableHead>E-mail</TableHead>
               <TableHead>Departamento</TableHead>
               <TableHead>Perfil</TableHead>
-              <TableHead className="w-[80px]"></TableHead>
+              <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -202,7 +305,15 @@ export default function Users() {
             ) : (
               users.map((user) => (
                 <TableRow key={user.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium">{user.nome}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-8 h-8">
+                        <AvatarImage src={user.avatar_url} />
+                        <AvatarFallback>{user.nome?.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{user.nome}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>{user.departamento || '-'}</TableCell>
                   <TableCell>
@@ -215,14 +326,24 @@ export default function Users() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(user.id)}
-                      className="hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-2 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(user)}
+                        className="hover:bg-primary/10 hover:text-primary"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(user.id)}
+                        className="hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
