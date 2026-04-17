@@ -32,7 +32,7 @@ const AppRoutes = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
-        {profile?.role === 'Administrador' && <Route path="/users" element={<Users />} />}
+        <Route path="/users" element={<Users />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/analysts" element={<Analysts />} />

@@ -30,6 +30,8 @@ import { Plus, Trash2, Loader2, ShieldCheck, Pencil, Upload } from 'lucide-react
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
+import { PermissionsDialog } from '@/components/PermissionsDialog'
+
 export default function Users() {
   const [users, setUsers] = useState<any[]>([])
   const [sectors, setSectors] = useState<any[]>([])
@@ -199,168 +201,174 @@ export default function Users() {
           <h1 className="text-2xl font-bold tracking-tight">Usuários</h1>
           <p className="text-sm text-muted-foreground">Gerencie o acesso e os perfis da equipe.</p>
         </div>
-        <Dialog
-          open={isOpen}
-          onOpenChange={(open) => {
-            setIsOpen(open)
-            if (!open) resetForm()
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="shrink-0" onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" /> Novo Usuário
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{isEditing ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col items-center justify-center space-y-4 mb-4">
-                <Avatar className="w-24 h-24">
-                  <AvatarImage src={formData.avatar_url} />
-                  <AvatarFallback className="text-2xl">
-                    {formData.name?.substring(0, 2).toUpperCase() || 'UP'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="avatar-upload"
-                    onChange={handleAvatarUpload}
-                    disabled={isUploadingAvatar}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="button"
-                    onClick={() => document.getElementById('avatar-upload')?.click()}
-                    disabled={isUploadingAvatar}
-                  >
-                    {isUploadingAvatar ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <Upload className="w-4 h-4 mr-2" />
-                    )}
-                    {formData.avatar_url ? 'Trocar Foto' : 'Adicionar Foto'}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Nome Completo</Label>
-                <Input
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>
-                  {isEditing ? 'Nova Senha (deixe em branco para não alterar)' : 'Senha Temporária'}
-                </Label>
-                <Input
-                  type="password"
-                  required={!isEditing}
-                  value={formData.password}
-                  onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Setor</Label>
-                  <Select
-                    value={formData.setor_id}
-                    onValueChange={(v) => {
-                      if (v === 'new') {
-                        setIsCreatingSector(true)
-                        setFormData((s) => ({ ...s, setor_id: 'none' }))
-                      } else {
-                        setFormData((s) => ({ ...s, setor_id: v }))
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um setor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum setor</SelectItem>
-                      {sectors.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.nome}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="new" className="font-semibold text-primary">
-                        + Criar novo setor
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Perfil de Acesso</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(v) => setFormData((s) => ({ ...s, role: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Administrador">Administrador</SelectItem>
-                      <SelectItem value="Colaborador">Colaborador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {isCreatingSector && (
-                <div className="p-3 bg-muted/50 rounded-md space-y-3 border border-border/50">
-                  <Label className="text-sm">Novo Setor</Label>
+        <div className="flex items-center gap-2">
+          <PermissionsDialog />
+          <Dialog
+            open={isOpen}
+            onOpenChange={(open) => {
+              setIsOpen(open)
+              if (!open) resetForm()
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="shrink-0" onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" /> Novo Usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{isEditing ? 'Editar Usuário' : 'Criar Novo Usuário'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col items-center justify-center space-y-4 mb-4">
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={formData.avatar_url} />
+                    <AvatarFallback className="text-2xl">
+                      {formData.name?.substring(0, 2).toUpperCase() || 'UP'}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Digite o nome..."
-                      value={newSectorName}
-                      onChange={(e) => setNewSectorName(e.target.value)}
-                      autoFocus
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      id="avatar-upload"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploadingAvatar}
                     />
-                    <Button type="button" onClick={handleCreateSector}>
-                      Salvar
-                    </Button>
                     <Button
-                      type="button"
                       variant="outline"
-                      onClick={() => setIsCreatingSector(false)}
+                      size="sm"
+                      type="button"
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      disabled={isUploadingAvatar}
                     >
-                      Cancelar
+                      {isUploadingAvatar ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Upload className="w-4 h-4 mr-2" />
+                      )}
+                      {formData.avatar_url ? 'Trocar Foto' : 'Adicionar Foto'}
                     </Button>
                   </div>
                 </div>
-              )}
 
-              <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : isEditing ? (
-                  'Atualizar Usuário'
-                ) : (
-                  'Salvar Usuário'
+                <div className="space-y-2">
+                  <Label>Nome Completo</Label>
+                  <Input
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData((s) => ({ ...s, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail</Label>
+                  <Input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => setFormData((s) => ({ ...s, email: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>
+                    {isEditing
+                      ? 'Nova Senha (deixe em branco para não alterar)'
+                      : 'Senha Temporária'}
+                  </Label>
+                  <Input
+                    type="password"
+                    required={!isEditing}
+                    value={formData.password}
+                    onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Setor</Label>
+                    <Select
+                      value={formData.setor_id}
+                      onValueChange={(v) => {
+                        if (v === 'new') {
+                          setIsCreatingSector(true)
+                          setFormData((s) => ({ ...s, setor_id: 'none' }))
+                        } else {
+                          setFormData((s) => ({ ...s, setor_id: v }))
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um setor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum setor</SelectItem>
+                        {sectors.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.nome}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="new" className="font-semibold text-primary">
+                          + Criar novo setor
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Perfil de Acesso</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(v) => setFormData((s) => ({ ...s, role: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Administrador">Administrador</SelectItem>
+                        <SelectItem value="Gerente">Gerente</SelectItem>
+                        <SelectItem value="Colaborador">Colaborador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {isCreatingSector && (
+                  <div className="p-3 bg-muted/50 rounded-md space-y-3 border border-border/50">
+                    <Label className="text-sm">Novo Setor</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Digite o nome..."
+                        value={newSectorName}
+                        onChange={(e) => setNewSectorName(e.target.value)}
+                        autoFocus
+                      />
+                      <Button type="button" onClick={handleCreateSector}>
+                        Salvar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsCreatingSector(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+
+                <Button type="submit" className="w-full mt-4" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : isEditing ? (
+                    'Atualizar Usuário'
+                  ) : (
+                    'Salvar Usuário'
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
