@@ -216,6 +216,26 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                           </div>
                         </div>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="serverIp">IP do Servidor</Label>
+                          <Input
+                            id="serverIp"
+                            value={formData.serverIp || ''}
+                            onChange={(e) => setFormData({ ...formData, serverIp: e.target.value })}
+                            placeholder="Ex: 192.168.0.1"
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="notes">Observações</Label>
+                          <Input
+                            id="notes"
+                            value={formData.notes || ''}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            placeholder="Informações adicionais..."
+                          />
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
 

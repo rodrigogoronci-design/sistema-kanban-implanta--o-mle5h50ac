@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import useMainStore, { Client } from '@/stores/main'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
+import { ClientFormModal } from '@/components/ClientFormModal'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -9,122 +10,220 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Edit2, Building2, ExternalLink } from 'lucide-react'
-import { ClientFormModal } from '@/components/ClientFormModal'
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
-import { format, parseISO } from 'date-fns'
+import { Plus, ExternalLink, Pencil, Trash2, Building2 } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useToast } from '@/hooks/use-toast'
+import { Badge } from '@/components/ui/badge'
 
 export default function Clients() {
-  const { clients, addClient, updateClient, deleteClient } = useMainStore()
+  const [clients, setClients] = useState<any[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
+  const [tasks, setTasks] = useState<any[]>([])
+  const [columns, setColumns] = useState<any[]>([])
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingClient, setEditingClient] = useState<Client | undefined>()
+  const [selectedClient, setSelectedClient] = useState<any | null>(null)
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleCreate = () => {
-    setEditingClient(undefined)
+  const fetchData = async () => {
+    setLoading(true)
+    const [clientsRes, contactsRes, tasksRes, columnsRes] = await Promise.all([
+      supabase.from('clients').select('*').order('name'),
+      supabase.from('client_contacts').select('*'),
+      supabase.from('tasks').select('*'),
+      supabase.from('columns').select('*'),
+    ])
+
+    if (clientsRes.data) setClients(clientsRes.data)
+    if (contactsRes.data) setContacts(contactsRes.data)
+    if (tasksRes.data) setTasks(tasksRes.data)
+    if (columnsRes.data) setColumns(columnsRes.data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const handleAdd = () => {
+    setSelectedClient(null)
     setModalOpen(true)
   }
 
-  const handleEdit = (client: Client) => {
-    setEditingClient(client)
+  const handleEdit = (client: any) => {
+    const clientContacts = contacts
+      .filter((c) => c.client_id === client.id)
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email || '',
+        phone: c.phone || '',
+      }))
+
+    setSelectedClient({
+      id: client.id,
+      name: client.name,
+      cnpj: client.cnpj,
+      website: client.website,
+      logo: client.logo,
+      registrationDate: client.registration_date,
+      serverIp: client.server_ip,
+      notes: client.notes,
+      modules: client.modules,
+      contacts: clientContacts,
+    })
     setModalOpen(true)
   }
 
-  const handleSubmit = (data: Omit<Client, 'id'>) => {
-    if (editingClient) {
-      updateClient(editingClient.id, data)
-    } else {
-      addClient(data as Client)
+  const handleSave = async (data: any) => {
+    try {
+      let clientId = selectedClient?.id
+
+      const clientPayload = {
+        name: data.name,
+        cnpj: data.cnpj || null,
+        website: data.website || null,
+        logo: data.logo || null,
+        registration_date: data.registrationDate || null,
+        server_ip: data.serverIp || null,
+        notes: data.notes || null,
+        modules: data.modules || [],
+      }
+
+      if (clientId) {
+        const { error } = await supabase.from('clients').update(clientPayload).eq('id', clientId)
+        if (error) throw error
+      } else {
+        const { data: newClient, error } = await supabase
+          .from('clients')
+          .insert([clientPayload])
+          .select()
+          .single()
+        if (error) throw error
+        clientId = newClient.id
+      }
+
+      if (clientId) {
+        await supabase.from('client_contacts').delete().eq('client_id', clientId)
+        if (data.contacts && data.contacts.length > 0) {
+          const contactsPayload = data.contacts.map((c: any) => ({
+            client_id: clientId,
+            name: c.name,
+            email: c.email || null,
+            phone: c.phone || null,
+          }))
+          const { error: contactsError } = await supabase
+            .from('client_contacts')
+            .insert(contactsPayload)
+          if (contactsError) throw contactsError
+        }
+      }
+
+      toast({ title: 'Sucesso', description: 'Cliente salvo com sucesso!' })
+      setModalOpen(false)
+      fetchData()
+    } catch (error: any) {
+      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' })
     }
-    setModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Deseja realmente excluir este cliente?')) {
-      deleteClient(id)
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este cliente?')) return
+    try {
+      const { error } = await supabase.from('clients').delete().eq('id', id)
+      if (error) throw error
+      toast({ title: 'Sucesso', description: 'Cliente excluído com sucesso!' })
+      fetchData()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     }
+  }
+
+  const getClientStatus = (clientId: string) => {
+    const clientTask = tasks.find((t) => t.client_id === clientId)
+    if (!clientTask) return '-'
+    const column = columns.find((c) => c.id === clientTask.column_id)
+    return column ? column.title : '-'
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Clientes</h1>
-          <p className="text-sm text-muted-foreground">Empresas e organizações em implantação.</p>
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 animate-fade-in-up">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
+        <div className="flex items-center space-x-2">
+          <Button onClick={handleAdd}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
+          </Button>
         </div>
-        <Button onClick={handleCreate} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Novo Cliente
-        </Button>
       </div>
 
-      <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead>Empresa</TableHead>
+              <TableHead>Cliente</TableHead>
               <TableHead>CNPJ</TableHead>
-              <TableHead>Cadastro</TableHead>
-              <TableHead>Contatos</TableHead>
-              <TableHead>Servidor</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clients.length === 0 ? (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                  <div className="flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : clients.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
                   Nenhum cliente cadastrado.
                 </TableCell>
               </TableRow>
             ) : (
               clients.map((client) => (
-                <TableRow key={client.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium">
+                <TableRow key={client.id}>
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      {client.logo ? (
-                        <Avatar className="w-8 h-8 border shadow-sm rounded-md bg-muted/50 p-0.5">
-                          <AvatarImage
-                            src={client.logo}
-                            className="object-contain mix-blend-multiply"
-                          />
-                          <AvatarFallback className="rounded-md bg-transparent">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                          </AvatarFallback>
-                        </Avatar>
-                      ) : (
-                        <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                          <Building2 className="w-4 h-4" />
-                        </div>
-                      )}
+                      <Avatar className="h-10 w-10 border bg-muted/50 shadow-sm rounded-md p-0.5">
+                        <AvatarImage
+                          src={client.logo || ''}
+                          alt={client.name}
+                          className="object-contain mix-blend-multiply"
+                        />
+                        <AvatarFallback className="rounded-md bg-transparent">
+                          <Building2 className="h-5 w-5 text-muted-foreground" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="flex flex-col">
-                        <span>{client.name}</span>
+                        <span className="font-medium">{client.name}</span>
                         {client.website && (
-                          <span className="text-xs text-muted-foreground">{client.website}</span>
+                          <span className="text-xs text-muted-foreground max-w-[200px] truncate">
+                            {client.website}
+                          </span>
                         )}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{client.cnpj || '-'}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {client.registrationDate
-                      ? format(parseISO(client.registrationDate), 'dd/MM/yyyy')
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {client.contacts?.length || 0} contatos
+                  <TableCell className="font-mono text-sm text-muted-foreground">
+                    {client.cnpj || '-'}
                   </TableCell>
                   <TableCell>
-                    {client.serverIp ? (
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                        {client.serverIp}
-                      </code>
-                    ) : (
-                      '-'
-                    )}
+                    <Badge variant="outline" className="font-normal bg-muted/20">
+                      {getClientStatus(client.id)}
+                    </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       {client.website && (
-                        <Button variant="ghost" size="icon" asChild title="Acessar site">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-primary"
+                          asChild
+                        >
                           <a
                             href={
                               client.website.startsWith('http')
@@ -133,19 +232,25 @@ export default function Clients() {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
+                            title="Acessar Website"
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(client)}>
-                        <Edit2 className="w-4 h-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
+                        onClick={() => handleEdit(client)}
+                      >
+                        <Pencil className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleDelete(client.id)}
-                        className="hover:bg-destructive/10 hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -161,8 +266,8 @@ export default function Clients() {
       <ClientFormModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        client={editingClient}
-        onSubmit={handleSubmit}
+        client={selectedClient}
+        onSubmit={handleSave}
       />
     </div>
   )
