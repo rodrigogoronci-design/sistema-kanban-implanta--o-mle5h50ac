@@ -467,6 +467,49 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 flex flex-col justify-end">
+                    <Label className="text-muted-foreground">Data Agendada</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-background',
+                            !task.scheduledDate && 'text-muted-foreground',
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {task.scheduledDate ? (
+                            format(parseISO(task.scheduledDate), 'dd/MM/yyyy')
+                          ) : (
+                            <span>Selecione...</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={task.scheduledDate ? parseISO(task.scheduledDate) : undefined}
+                          onSelect={(date) =>
+                            updateTask(task.id, { scheduledDate: date?.toISOString() })
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Hora Agendada</Label>
+                    <Input
+                      type="time"
+                      value={task.scheduledTime || ''}
+                      onChange={(e) => updateTask(task.id, { scheduledTime: e.target.value })}
+                      className="bg-background"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Responsável</Label>
                   <Select
