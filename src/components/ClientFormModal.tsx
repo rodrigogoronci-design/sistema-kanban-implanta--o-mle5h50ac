@@ -31,7 +31,7 @@ interface Props {
 export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props) {
   const [formData, setFormData] = useState<Partial<Client>>({})
   const [newContact, setNewContact] = useState({ name: '', email: '', phone: '' })
-  const { projects, tasks, projectStatuses } = useMainStore()
+  const { projects, tasks, projectStatuses, columns } = useMainStore()
 
   useEffect(() => {
     if (client) {
@@ -394,30 +394,33 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                             <TableHeader>
                               <TableRow className="bg-muted/50">
                                 <TableHead>Atividade</TableHead>
-                                <TableHead>Prioridade</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Data Criação</TableHead>
                                 <TableHead className="text-right">Horas Gastas</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {clientTasks.map((t) => (
-                                <TableRow key={t.id}>
-                                  <TableCell className="font-medium">{t.title}</TableCell>
-                                  <TableCell>
-                                    <Badge variant="outline" className="text-xs font-normal">
-                                      {t.priority}
-                                    </Badge>
-                                  </TableCell>
-                                  <TableCell className="text-muted-foreground text-sm">
-                                    {t.createdAt
-                                      ? format(parseISO(t.createdAt), 'dd/MM/yyyy')
-                                      : '-'}
-                                  </TableCell>
-                                  <TableCell className="text-right font-mono text-muted-foreground">
-                                    {getTaskHours(t).toFixed(1)}h
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                              {clientTasks.map((t) => {
+                                const column = columns.find((c) => c.id === t.columnId)
+                                return (
+                                  <TableRow key={t.id}>
+                                    <TableCell className="font-medium">{t.title}</TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="text-xs font-normal">
+                                        {column?.title || '-'}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">
+                                      {t.createdAt
+                                        ? format(parseISO(t.createdAt), 'dd/MM/yyyy')
+                                        : '-'}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-muted-foreground">
+                                      {getTaskHours(t).toFixed(1)}h
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
                               {clientTasks.length === 0 && (
                                 <TableRow>
                                   <TableCell
