@@ -20,9 +20,10 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useMainStore, { Project } from '@/stores/main'
+import { StatusManagementModal } from './StatusManagementModal'
 import { ProjectTasksTab } from './ProjectTasksTab'
 import { ProjectGalleryTab } from './ProjectGalleryTab'
 
@@ -37,6 +38,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
   const { clients, analysts, projectStatuses } = useMainStore()
   const [formData, setFormData] = useState<Partial<Project> & any>({})
   const [clientOpen, setClientOpen] = useState(false)
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -137,7 +139,19 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
       </div>
 
       <div className="space-y-2">
-        <Label>Status</Label>
+        <div className="flex items-center justify-between">
+          <Label>Status</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() => setIsStatusModalOpen(true)}
+            title="Gerenciar Status"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
         <Select
           value={formData.statusId || ''}
           onValueChange={(v) => setFormData({ ...formData, statusId: v })}
@@ -279,62 +293,65 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-6 pb-4 border-b">
-          <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-4 border-b">
+            <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
+          </DialogHeader>
 
-        {project ? (
-          <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
-            <div className="px-6 pt-4">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Detalhes</TabsTrigger>
-                <TabsTrigger value="tasks">Atividades</TabsTrigger>
-                <TabsTrigger value="gallery">Galeria</TabsTrigger>
-              </TabsList>
-            </div>
+          {project ? (
+            <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+              <div className="px-6 pt-4">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details">Detalhes</TabsTrigger>
+                  <TabsTrigger value="tasks">Atividades</TabsTrigger>
+                  <TabsTrigger value="gallery">Galeria</TabsTrigger>
+                </TabsList>
+              </div>
 
-            <TabsContent
-              value="details"
-              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-            >
+              <TabsContent
+                value="details"
+                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+              >
+                <form id="project-form" onSubmit={handleSubmit}>
+                  {renderFormFields()}
+                </form>
+              </TabsContent>
+
+              <TabsContent
+                value="tasks"
+                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+              >
+                <ProjectTasksTab project={project as Project} />
+              </TabsContent>
+
+              <TabsContent
+                value="gallery"
+                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+              >
+                <ProjectGalleryTab project={project as Project} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-6">
               <form id="project-form" onSubmit={handleSubmit}>
                 {renderFormFields()}
               </form>
-            </TabsContent>
+            </div>
+          )}
 
-            <TabsContent
-              value="tasks"
-              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-            >
-              <ProjectTasksTab project={project as Project} />
-            </TabsContent>
-
-            <TabsContent
-              value="gallery"
-              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-            >
-              <ProjectGalleryTab project={project as Project} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-6">
-            <form id="project-form" onSubmit={handleSubmit}>
-              {renderFormFields()}
-            </form>
+          <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" form="project-form">
+              Salvar
+            </Button>
           </div>
-        )}
-
-        <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="project-form">
-            Salvar
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      <StatusManagementModal open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen} />
+    </>
   )
 }
