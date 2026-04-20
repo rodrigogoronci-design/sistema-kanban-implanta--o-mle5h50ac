@@ -25,8 +25,25 @@ export function TaskActivities({ task, onUpdate }: Props) {
       return
     }
 
+    const uuid =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = (Math.random() * 16) | 0,
+              v = c === 'x' ? r : (r & 0x3) | 0x8
+            return v.toString(16)
+          })
+
     onUpdate({
-      timeEntries: [...(task.timeEntries || []), { id: Math.random().toString(), ...newActivity }],
+      timeEntries: [
+        ...(task.timeEntries || []),
+        {
+          id: uuid,
+          start: newActivity.start_time,
+          end: newActivity.end_time,
+          observation: newActivity.observation,
+        },
+      ],
     })
 
     setNewActivity({ start_time: '', end_time: '', observation: '' })
@@ -98,11 +115,11 @@ export function TaskActivities({ task, onUpdate }: Props) {
               <div className="text-sm text-foreground space-y-1">
                 <div>
                   <span className="font-medium text-muted-foreground">Início:</span>{' '}
-                  {formatDate(entry.start_time || entry.start)}
+                  {formatDate((entry as any).start_time || entry.start)}
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Fim:</span>{' '}
-                  {formatDate(entry.end_time || entry.end)}
+                  {formatDate((entry as any).end_time || entry.end)}
                 </div>
               </div>
               <Button

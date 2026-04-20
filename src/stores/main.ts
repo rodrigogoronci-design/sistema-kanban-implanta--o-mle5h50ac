@@ -403,17 +403,16 @@ export default function useMainStore() {
           .then(({ error }) => {
             if (error) console.error('Error deleting time entries:', error)
             if (payload.timeEntries && payload.timeEntries.length > 0) {
+              const entriesToInsert = payload.timeEntries.map((t: any) => ({
+                id: t.id && typeof t.id === 'string' && t.id.includes('-') ? t.id : generateUUID(),
+                task_id: id,
+                start_time: t.start || t.start_time,
+                end_time: t.end || t.end_time || null,
+                observation: t.observation || null,
+              }))
               supabase
                 .from('time_entries')
-                .insert(
-                  payload.timeEntries.map((t) => ({
-                    id: t.id || generateUUID(),
-                    task_id: id,
-                    start_time: t.start,
-                    end_time: t.end || null,
-                    observation: t.observation || null,
-                  })),
-                )
+                .insert(entriesToInsert)
                 .then(({ error }) => {
                   if (error) console.error('Error inserting time entries:', error)
                 })

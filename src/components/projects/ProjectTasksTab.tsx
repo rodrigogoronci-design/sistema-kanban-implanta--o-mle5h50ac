@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function ProjectTasksTab({ project }: Props) {
-  const { tasks, columns, analysts, timeEntries } = useMainStore()
+  const { tasks, columns, analysts } = useMainStore()
 
   const projectTasks = useMemo(() => {
     return tasks?.filter((t) => t.projectId === project.id) || []
@@ -34,12 +34,13 @@ export function ProjectTasksTab({ project }: Props) {
       // ignore error
     }
 
-    if (!hours && timeEntries && Array.isArray(timeEntries)) {
-      const taskTimeEntries = timeEntries.filter((t: any) => t.taskId === task.id)
-      hours = taskTimeEntries.reduce((acc: number, entry: any) => {
-        if (!entry.startTime || !entry.endTime) return acc
-        const start = new Date(entry.startTime).getTime()
-        const end = new Date(entry.endTime).getTime()
+    if (!hours && task.timeEntries && Array.isArray(task.timeEntries)) {
+      hours = task.timeEntries.reduce((acc: number, entry: any) => {
+        const startStr = entry.start || entry.startTime || entry.start_time
+        const endStr = entry.end || entry.endTime || entry.end_time
+        if (!startStr || !endStr) return acc
+        const start = new Date(startStr).getTime()
+        const end = new Date(endStr).getTime()
         return acc + (end - start) / (1000 * 60 * 60)
       }, 0)
     }
@@ -48,7 +49,7 @@ export function ProjectTasksTab({ project }: Props) {
 
   const totalHours = useMemo(() => {
     return projectTasks.reduce((acc, t) => acc + getSafeHours(t), 0)
-  }, [projectTasks, timeEntries])
+  }, [projectTasks])
 
   return (
     <div className="space-y-4">
