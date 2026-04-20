@@ -93,7 +93,9 @@ export function ProjectTasksTab({ project }: Props) {
                 let hours = 0
                 try {
                   hours = getTaskHours(task) || 0
-                } catch (e) {}
+                } catch (e) {
+                  // ignore
+                }
 
                 const isHighPriority = task.priority === 'Alta' || task.priority === 'Urgente'
                 const isMediumPriority = task.priority === 'Média'
