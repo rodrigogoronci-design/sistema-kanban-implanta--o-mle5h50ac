@@ -12,12 +12,28 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardProps) {
-  const { clients, analysts, categories } = useMainStore()
+  const { clients, analysts, categories, timeEntries } = useMainStore()
 
-  const client = clients.find((c) => c.id === task.clientId)
-  const analyst = analysts.find((a) => a.id === task.responsibleId)
-  const category = categories.find((c) => c.id === task.categoryId)
-  const totalHours = getTaskHours(task)
+  const client = clients?.find((c) => c.id === task.clientId)
+  const analyst = analysts?.find((a) => a.id === task.responsibleId)
+  const category = categories?.find((c) => c.id === task.categoryId)
+
+  let totalHours = 0
+  try {
+    totalHours = getTaskHours(task) || 0
+  } catch (e) {}
+
+  if (!totalHours && timeEntries && Array.isArray(timeEntries)) {
+    const taskTimeEntries = timeEntries.filter((t: any) => t.taskId === task.id)
+    totalHours = taskTimeEntries.reduce((acc: number, entry: any) => {
+      if (!entry.startTime || !entry.endTime) return acc
+      const start = new Date(entry.startTime).getTime()
+      const end = new Date(entry.endTime).getTime()
+      return acc + (end - start) / (1000 * 60 * 60)
+    }, 0)
+  }
+
+  if (isNaN(totalHours)) totalHours = 0
 
   let deadlineClass = ''
   if (task.dueDate) {

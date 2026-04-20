@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
 import { getTaskHours } from '@/lib/time'
-import { Calendar, Clock, User2, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, AlertCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -20,21 +20,33 @@ interface Props {
 }
 
 export function ProjectTasksTab({ project }: Props) {
-  const { tasks, columns, users } = useMainStore()
+  const { tasks, columns, analysts, timeEntries } = useMainStore()
 
   const projectTasks = useMemo(() => {
-    return tasks.filter((t) => t.projectId === project.id)
+    return tasks?.filter((t) => t.projectId === project.id) || []
   }, [tasks, project.id])
 
+  const getSafeHours = (task: any) => {
+    let hours = 0
+    try {
+      hours = getTaskHours(task) || 0
+    } catch (e) {}
+
+    if (!hours && timeEntries && Array.isArray(timeEntries)) {
+      const taskTimeEntries = timeEntries.filter((t: any) => t.taskId === task.id)
+      hours = taskTimeEntries.reduce((acc: number, entry: any) => {
+        if (!entry.startTime || !entry.endTime) return acc
+        const start = new Date(entry.startTime).getTime()
+        const end = new Date(entry.endTime).getTime()
+        return acc + (end - start) / (1000 * 60 * 60)
+      }, 0)
+    }
+    return isNaN(hours) ? 0 : hours
+  }
+
   const totalHours = useMemo(() => {
-    return projectTasks.reduce((acc, t) => {
-      try {
-        return acc + (getTaskHours(t) || 0)
-      } catch {
-        return acc
-      }
-    }, 0)
-  }, [projectTasks])
+    return projectTasks.reduce((acc, t) => acc + getSafeHours(t), 0)
+  }, [projectTasks, timeEntries])
 
   return (
     <div className="space-y-4">
@@ -88,14 +100,9 @@ export function ProjectTasksTab({ project }: Props) {
               </TableRow>
             ) : (
               projectTasks.map((task) => {
-                const column = columns.find((c) => c.id === task.columnId)
-                const user = users.find((u) => u.id === task.responsibleId)
-                let hours = 0
-                try {
-                  hours = getTaskHours(task) || 0
-                } catch (e) {
-                  // ignore
-                }
+                const column = columns?.find((c) => c.id === task.columnId)
+                const analyst = analysts?.find((a) => a.id === task.responsibleId)
+                const hours = getSafeHours(task)
 
                 const isHighPriority = task.priority === 'Alta' || task.priority === 'Urgente'
                 const isMediumPriority = task.priority === 'Média'
@@ -144,19 +151,19 @@ export function ProjectTasksTab({ project }: Props) {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {user ? (
+                      {analyst ? (
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7 border">
-                            <AvatarImage src={user.avatar_url || user.avatarUrl} />
+                            <AvatarImage src={analyst.avatar_url || analyst.avatarUrl} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                              {(user.nome || user.name || 'U').charAt(0).toUpperCase()}
+                              {(analyst.nome || analyst.name || 'A').charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span
                             className="text-sm truncate max-w-[120px]"
-                            title={user.nome || user.name}
+                            title={analyst.nome || analyst.name}
                           >
-                            {user.nome || user.name}
+                            {analyst.nome || analyst.name}
                           </span>
                         </div>
                       ) : (
