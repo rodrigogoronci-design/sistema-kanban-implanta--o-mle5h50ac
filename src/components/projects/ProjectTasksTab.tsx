@@ -30,7 +30,9 @@ export function ProjectTasksTab({ project }: Props) {
     let hours = 0
     try {
       hours = getTaskHours(task) || 0
-    } catch (e) {}
+    } catch (e) {
+      // ignore error
+    }
 
     if (!hours && timeEntries && Array.isArray(timeEntries)) {
       const taskTimeEntries = timeEntries.filter((t: any) => t.taskId === task.id)

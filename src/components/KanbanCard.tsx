@@ -21,7 +21,9 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
   let totalHours = 0
   try {
     totalHours = getTaskHours(task) || 0
-  } catch (e) {}
+  } catch (e) {
+    // ignore error
+  }
 
   if (!totalHours && timeEntries && Array.isArray(timeEntries)) {
     const taskTimeEntries = timeEntries.filter((t: any) => t.taskId === task.id)
