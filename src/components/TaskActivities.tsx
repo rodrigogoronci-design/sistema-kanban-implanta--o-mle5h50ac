@@ -12,29 +12,29 @@ interface Props {
 }
 
 export function TaskActivities({ task, onUpdate }: Props) {
-  const [newActivity, setNewActivity] = useState({ start: '', end: '', observation: '' })
+  const [newActivity, setNewActivity] = useState({ start_time: '', end_time: '', observation: '' })
   const [error, setError] = useState('')
 
   const handleSaveActivity = () => {
-    if (!newActivity.start || !newActivity.end) {
+    if (!newActivity.start_time || !newActivity.end_time) {
       setError('Preencha os campos de início e fim')
       return
     }
-    if (new Date(newActivity.end) < new Date(newActivity.start)) {
+    if (new Date(newActivity.end_time) < new Date(newActivity.start_time)) {
       setError('A data final não pode ser anterior à inicial')
       return
     }
 
     onUpdate({
-      timeEntries: [...task.timeEntries, { id: Math.random().toString(), ...newActivity }],
+      timeEntries: [...(task.timeEntries || []), { id: Math.random().toString(), ...newActivity }],
     })
 
-    setNewActivity({ start: '', end: '', observation: '' })
+    setNewActivity({ start_time: '', end_time: '', observation: '' })
     setError('')
   }
 
   const removeActivity = (id: string) => {
-    onUpdate({ timeEntries: task.timeEntries.filter((t) => t.id !== id) })
+    onUpdate({ timeEntries: (task.timeEntries || []).filter((t) => t.id !== id) })
   }
 
   const formatDate = (dateStr: string) => {
@@ -56,16 +56,16 @@ export function TaskActivities({ task, onUpdate }: Props) {
             <Label className="text-xs text-muted-foreground">Início</Label>
             <Input
               type="datetime-local"
-              value={newActivity.start}
-              onChange={(e) => setNewActivity((s) => ({ ...s, start: e.target.value }))}
+              value={newActivity.start_time}
+              onChange={(e) => setNewActivity((s) => ({ ...s, start_time: e.target.value }))}
             />
           </div>
           <div className="flex-1 space-y-1.5">
             <Label className="text-xs text-muted-foreground">Fim</Label>
             <Input
               type="datetime-local"
-              value={newActivity.end}
-              onChange={(e) => setNewActivity((s) => ({ ...s, end: e.target.value }))}
+              value={newActivity.end_time}
+              onChange={(e) => setNewActivity((s) => ({ ...s, end_time: e.target.value }))}
             />
           </div>
         </div>
@@ -89,7 +89,7 @@ export function TaskActivities({ task, onUpdate }: Props) {
       </div>
 
       <div className="space-y-3 mt-4">
-        {task.timeEntries.map((entry) => (
+        {(task.timeEntries || []).map((entry) => (
           <div
             key={entry.id}
             className="flex flex-col gap-2 bg-background p-3 rounded-lg border border-border/50 shadow-sm"
@@ -98,11 +98,11 @@ export function TaskActivities({ task, onUpdate }: Props) {
               <div className="text-sm text-foreground space-y-1">
                 <div>
                   <span className="font-medium text-muted-foreground">Início:</span>{' '}
-                  {formatDate(entry.start)}
+                  {formatDate(entry.start_time || entry.start)}
                 </div>
                 <div>
                   <span className="font-medium text-muted-foreground">Fim:</span>{' '}
-                  {formatDate(entry.end)}
+                  {formatDate(entry.end_time || entry.end)}
                 </div>
               </div>
               <Button
@@ -121,7 +121,7 @@ export function TaskActivities({ task, onUpdate }: Props) {
             )}
           </div>
         ))}
-        {task.timeEntries.length === 0 && (
+        {(!task.timeEntries || task.timeEntries.length === 0) && (
           <p className="text-sm text-muted-foreground text-center py-6 border border-dashed rounded-lg bg-muted/10">
             Nenhuma atividade registrada.
           </p>
