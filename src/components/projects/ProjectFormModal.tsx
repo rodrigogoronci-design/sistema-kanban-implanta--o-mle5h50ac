@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase/client'
-import useMainStore, { Project } from '@/stores/main'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -11,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Command,
   CommandEmpty,
@@ -19,333 +20,321 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
-import { getTaskHours } from '@/lib/time'
-import { Badge } from '@/components/ui/badge'
-import { StatusManagementModal } from './StatusManagementModal'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import useMainStore, { Project } from '@/stores/main'
+import { ProjectTasksTab } from './ProjectTasksTab'
+import { ProjectGalleryTab } from './ProjectGalleryTab'
 
-const toDateInput = (iso?: string) => (iso ? iso.split('T')[0] : '')
-const toIso = (dateStr?: string) => (dateStr ? `${dateStr}T12:00:00Z` : null)
-
-export function ProjectFormModal({
-  open,
-  onOpenChange,
-  project,
-  onSubmit,
-}: {
+interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   project?: Project
-  onSubmit: (data: Omit<Project, 'id'>) => void
-}) {
-  const { clients, projectStatuses, tasks } = useMainStore()
-  const [analysts, setAnalysts] = useState<any[]>([])
-  const [showStatusModal, setShowStatusModal] = useState(false)
-  const [clientPopoverOpen, setClientPopoverOpen] = useState(false)
+  onSubmit: (data: Omit<Project, 'id'> & any) => void
+}
 
-  useEffect(() => {
-    supabase
-      .from('analistas')
-      .select('id, nome, status')
-      .order('nome')
-      .then(({ data }) => {
-        if (data) setAnalysts(data)
-      })
-  }, [])
-  const [formData, setFormData] = useState<
-    Omit<Project, 'id'> & { forecastStart?: string; forecastEnd?: string }
-  >({
-    name: '',
-    clientId: '',
-    analystId: '',
-    statusId: '',
-    forecastStart: '',
-    forecastEnd: '',
-    implStart: '',
-    implEnd: '',
-    trainStart: '',
-    trainEnd: '',
-    opStart: '',
-    opEnd: '',
-  })
-
-  const projectTasks = project ? tasks.filter((t) => t.projectId === project.id) : []
-  const totalHours = projectTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
+export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Props) {
+  const { clients, users, projectStatuses } = useMainStore()
+  const [formData, setFormData] = useState<Partial<Project> & any>({})
+  const [clientOpen, setClientOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
       if (project) {
-        setFormData({
-          name: project.name,
-          clientId: project.clientId,
-          analystId: project.analystId,
-          statusId: project.statusId,
-          forecastStart: toDateInput(
-            (project as any).forecastStart || (project as any).forecast_start,
-          ),
-          forecastEnd: toDateInput((project as any).forecastEnd || (project as any).forecast_end),
-          implStart: toDateInput((project as any).implStart || (project as any).impl_start),
-          implEnd: toDateInput((project as any).implEnd || (project as any).impl_end),
-          trainStart: toDateInput((project as any).trainStart || (project as any).train_start),
-          trainEnd: toDateInput((project as any).trainEnd || (project as any).train_end),
-          opStart: toDateInput((project as any).opStart || (project as any).op_start),
-          opEnd: toDateInput((project as any).opEnd || (project as any).op_end),
-        })
+        setFormData({ ...project })
       } else {
         setFormData({
           name: '',
           clientId: '',
           analystId: '',
-          statusId: projectStatuses[0]?.id || '',
-          forecastStart: '',
-          forecastEnd: '',
-          implStart: '',
-          implEnd: '',
-          trainStart: '',
-          trainEnd: '',
-          opStart: '',
-          opEnd: '',
+          statusId: '',
         })
       }
     }
-  }, [open, project, projectStatuses])
+  }, [open, project])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.name || !formData.clientId || !formData.statusId) return
-
-    onSubmit({
-      ...formData,
-      forecastStart: toIso(formData.forecastStart),
-      forecastEnd: toIso(formData.forecastEnd),
-      forecast_start: toIso(formData.forecastStart),
-      forecast_end: toIso(formData.forecastEnd),
-      implStart: toIso(formData.implStart),
-      implEnd: toIso(formData.implEnd),
-      impl_start: toIso(formData.implStart),
-      impl_end: toIso(formData.implEnd),
-      trainStart: toIso(formData.trainStart),
-      trainEnd: toIso(formData.trainEnd),
-      train_start: toIso(formData.trainStart),
-      train_end: toIso(formData.trainEnd),
-      opStart: toIso(formData.opStart),
-      opEnd: toIso(formData.opEnd),
-      op_start: toIso(formData.opStart),
-      op_end: toIso(formData.opEnd),
-    } as any)
+    onSubmit(formData as any)
   }
 
-  const updateField = (field: keyof typeof formData, value: string) => {
-    setFormData((s) => ({ ...s, [field]: value }))
-  }
+  const renderFormFields = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="col-span-1 md:col-span-2 space-y-2">
+        <Label>Nome do Projeto *</Label>
+        <Input
+          required
+          value={formData.name || ''}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Ex: Implantação ERP"
+        />
+      </div>
+
+      <div className="space-y-2 flex flex-col">
+        <Label>Cliente Vinculado</Label>
+        <Popover open={clientOpen} onOpenChange={setClientOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={clientOpen}
+              className="w-full justify-between font-normal"
+            >
+              {formData.clientId
+                ? clients.find((c) => c.id === formData.clientId)?.name
+                : 'Selecione ou pesquise um cliente...'}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Pesquisar cliente..." />
+              <CommandList>
+                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                <CommandGroup>
+                  {clients.map((client) => (
+                    <CommandItem
+                      key={client.id}
+                      value={client.name}
+                      onSelect={() => {
+                        setFormData({ ...formData, clientId: client.id })
+                        setClientOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4',
+                          formData.clientId === client.id ? 'opacity-100' : 'opacity-0',
+                        )}
+                      />
+                      {client.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Responsável</Label>
+        <Select
+          value={formData.analystId || ''}
+          onValueChange={(v) => setFormData({ ...formData, analystId: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione um responsável" />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((u: any) => (
+              <SelectItem key={u.id} value={u.id}>
+                {u.nome || u.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Status</Label>
+        <Select
+          value={formData.statusId || ''}
+          onValueChange={(v) => setFormData({ ...formData, statusId: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o status" />
+          </SelectTrigger>
+          <SelectContent>
+            {projectStatuses.map((s: any) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="col-span-1 md:col-span-2 pt-4 border-t mt-2">
+        <h4 className="text-sm font-semibold mb-4">Prazos e Datas</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Início Previsto</Label>
+            <Input
+              type="date"
+              value={
+                formData.forecast_start?.split('T')[0] ||
+                formData.forecastStart?.split('T')[0] ||
+                ''
+              }
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  forecast_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Término Previsto</Label>
+            <Input
+              type="date"
+              value={
+                formData.forecast_end?.split('T')[0] || formData.forecastEnd?.split('T')[0] || ''
+              }
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  forecast_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Início Implantação</Label>
+            <Input
+              type="date"
+              value={formData.impl_start?.split('T')[0] || formData.implStart?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  impl_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Término Implantação</Label>
+            <Input
+              type="date"
+              value={formData.impl_end?.split('T')[0] || formData.implEnd?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  impl_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Início Treinamento</Label>
+            <Input
+              type="date"
+              value={
+                formData.train_start?.split('T')[0] || formData.trainStart?.split('T')[0] || ''
+              }
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  train_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Término Treinamento</Label>
+            <Input
+              type="date"
+              value={formData.train_end?.split('T')[0] || formData.trainEnd?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  train_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Início Operação</Label>
+            <Input
+              type="date"
+              value={formData.op_start?.split('T')[0] || formData.opStart?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  op_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Término Operação</Label>
+            <Input
+              type="date"
+              value={formData.op_end?.split('T')[0] || formData.opEnd?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  op_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                })
+              }
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <div className="flex items-start justify-between pr-8">
-            <DialogTitle>{project ? 'Editar Projeto' : 'Criar Novo Projeto'}</DialogTitle>
-            {project && (
-              <Badge variant="secondary" className="font-mono text-xs">
-                Total de Horas: {totalHours.toFixed(1)}h
-              </Badge>
-            )}
-          </div>
+      <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-6 pb-4 border-b">
+          <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="name">Nome do Projeto</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => updateField('name', e.target.value)}
-                required
-              />
+
+        {project ? (
+          <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+            <div className="px-6 pt-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="details">Detalhes</TabsTrigger>
+                <TabsTrigger value="tasks">Atividades</TabsTrigger>
+                <TabsTrigger value="gallery">Galeria</TabsTrigger>
+              </TabsList>
             </div>
-            <div className="space-y-2 flex flex-col">
-              <Label>Cliente Vinculado</Label>
-              <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={clientPopoverOpen}
-                    className={cn(
-                      'w-full justify-between font-normal',
-                      !formData.clientId && 'text-muted-foreground',
-                    )}
-                  >
-                    <span className="truncate">
-                      {formData.clientId
-                        ? clients.find((c) => c.id === formData.clientId)?.name
-                        : 'Selecione um cliente...'}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="p-0"
-                  align="start"
-                  style={{ width: 'var(--radix-popover-trigger-width)' }}
-                >
-                  <Command>
-                    <CommandInput placeholder="Pesquisar cliente..." />
-                    <CommandList>
-                      <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                      <CommandGroup>
-                        {clients.map((c) => (
-                          <CommandItem
-                            key={c.id}
-                            value={`${c.name} ${c.id}`}
-                            onSelect={() => {
-                              updateField('clientId', c.id)
-                              setClientPopoverOpen(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                'mr-2 h-4 w-4 shrink-0',
-                                formData.clientId === c.id ? 'opacity-100' : 'opacity-0',
-                              )}
-                            />
-                            <span className="truncate">{c.name}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Analista Responsável</Label>
-              <Select value={formData.analystId} onValueChange={(v) => updateField('analystId', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {analysts.map((a) => (
-                    <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
-                      {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="col-span-2 space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Status Atual</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 text-xs text-primary hover:text-primary/80 hover:bg-transparent"
-                  onClick={() => setShowStatusModal(true)}
-                >
-                  Gerenciar Status
-                </Button>
-              </div>
-              <Select value={formData.statusId} onValueChange={(v) => updateField('statusId', v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {projectStatuses.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: status.color }}
-                        />
-                        {status.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
+            <TabsContent
+              value="details"
+              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+            >
+              <form id="project-form" onSubmit={handleSubmit}>
+                {renderFormFields()}
+              </form>
+            </TabsContent>
+
+            <TabsContent
+              value="tasks"
+              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+            >
+              <ProjectTasksTab project={project as Project} />
+            </TabsContent>
+
+            <TabsContent
+              value="gallery"
+              className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+            >
+              <ProjectGalleryTab project={project as Project} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-6">
+            <form id="project-form" onSubmit={handleSubmit}>
+              {renderFormFields()}
+            </form>
           </div>
-          <div className="border-t pt-4 mt-4 space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground">Datas do Cronograma</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs">Previsão Início</Label>
-                <Input
-                  type="date"
-                  value={formData.forecastStart}
-                  onChange={(e) => updateField('forecastStart', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Previsão Fim</Label>
-                <Input
-                  type="date"
-                  value={formData.forecastEnd}
-                  onChange={(e) => updateField('forecastEnd', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Início Implantação</Label>
-                <Input
-                  type="date"
-                  value={formData.implStart}
-                  onChange={(e) => updateField('implStart', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Fim Implantação</Label>
-                <Input
-                  type="date"
-                  value={formData.implEnd}
-                  onChange={(e) => updateField('implEnd', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Início Treinamento</Label>
-                <Input
-                  type="date"
-                  value={formData.trainStart}
-                  onChange={(e) => updateField('trainStart', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Fim Treinamento</Label>
-                <Input
-                  type="date"
-                  value={formData.trainEnd}
-                  onChange={(e) => updateField('trainEnd', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Início Op. Assistida</Label>
-                <Input
-                  type="date"
-                  value={formData.opStart}
-                  onChange={(e) => updateField('opStart', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Fim Op. Assistida</Label>
-                <Input
-                  type="date"
-                  value={formData.opEnd}
-                  onChange={(e) => updateField('opEnd', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-          <Button type="submit" className="w-full mt-4">
-            {project ? 'Salvar Alterações' : 'Salvar Projeto'}
+        )}
+
+        <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
           </Button>
-        </form>
+          <Button type="submit" form="project-form">
+            Salvar
+          </Button>
+        </div>
       </DialogContent>
-      {showStatusModal && (
-        <StatusManagementModal open={showStatusModal} onOpenChange={setShowStatusModal} />
-      )}
     </Dialog>
   )
 }
