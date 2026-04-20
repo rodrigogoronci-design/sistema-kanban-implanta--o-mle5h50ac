@@ -20,6 +20,7 @@ export default function Clients() {
   const [contacts, setContacts] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [columns, setColumns] = useState<any[]>([])
+  const [clientStatuses, setClientStatuses] = useState<any[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
@@ -27,17 +28,19 @@ export default function Clients() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [clientsRes, contactsRes, tasksRes, columnsRes] = await Promise.all([
+    const [clientsRes, contactsRes, tasksRes, columnsRes, statusesRes] = await Promise.all([
       supabase.from('clients').select('*').order('name'),
       supabase.from('client_contacts').select('*'),
       supabase.from('tasks').select('*'),
       supabase.from('columns').select('*'),
+      supabase.from('client_statuses').select('*').order('name'),
     ])
 
     if (clientsRes.data) setClients(clientsRes.data)
     if (contactsRes.data) setContacts(contactsRes.data)
     if (tasksRes.data) setTasks(tasksRes.data)
     if (columnsRes.data) setColumns(columnsRes.data)
+    if (statusesRes.data) setClientStatuses(statusesRes.data)
     setLoading(false)
   }
 
@@ -71,6 +74,7 @@ export default function Clients() {
       notes: client.notes,
       modules: client.modules,
       contacts: clientContacts,
+      statusId: client.status_id,
     })
     setModalOpen(true)
   }
@@ -88,6 +92,7 @@ export default function Clients() {
         server_ip: data.serverIp || null,
         notes: data.notes || null,
         modules: data.modules || [],
+        status_id: data.statusId || null,
       }
 
       if (clientId) {
@@ -137,13 +142,6 @@ export default function Clients() {
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     }
-  }
-
-  const getClientStatus = (clientId: string) => {
-    const clientTask = tasks.find((t) => t.client_id === clientId)
-    if (!clientTask) return '-'
-    const column = columns.find((c) => c.id === clientTask.column_id)
-    return column ? column.title : '-'
   }
 
   return (
@@ -211,9 +209,38 @@ export default function Clients() {
                     {client.cnpj || '-'}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="font-normal bg-muted/20">
-                      {getClientStatus(client.id)}
-                    </Badge>
+                    {client.status_id ? (
+                      (() => {
+                        const status = clientStatuses.find((s) => s.id === client.status_id)
+                        if (!status)
+                          return (
+                            <Badge variant="outline" className="font-normal bg-muted/20">
+                              -
+                            </Badge>
+                          )
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="font-normal"
+                            style={{
+                              backgroundColor: `${status.color}20`,
+                              color: status.color,
+                              borderColor: `${status.color}50`,
+                            }}
+                          >
+                            <div
+                              className="w-1.5 h-1.5 rounded-full mr-2"
+                              style={{ backgroundColor: status.color }}
+                            />
+                            {status.name}
+                          </Badge>
+                        )
+                      })()
+                    ) : (
+                      <Badge variant="outline" className="font-normal bg-muted/20">
+                        -
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -267,6 +294,7 @@ export default function Clients() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         client={selectedClient}
+        clientStatuses={clientStatuses}
         onSubmit={handleSave}
       />
     </div>

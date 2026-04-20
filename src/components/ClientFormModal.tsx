@@ -5,6 +5,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Client } from '@/stores/main'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import useMainStore from '@/stores/main'
 import { getTaskHours } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
@@ -24,12 +31,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
-  client?: Client
-  onSubmit: (data: Omit<Client, 'id'>) => void
+  client?: any
+  clientStatuses?: any[]
+  onSubmit: (data: any) => void
 }
 
-export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props) {
-  const [formData, setFormData] = useState<Partial<Client>>({})
+export function ClientFormModal({
+  open,
+  onOpenChange,
+  client,
+  clientStatuses = [],
+  onSubmit,
+}: Props) {
+  const [formData, setFormData] = useState<Partial<Client> & { statusId?: string }>({})
   const [newContact, setNewContact] = useState({ name: '', email: '', phone: '' })
   const { projects, tasks, projectStatuses, columns } = useMainStore()
 
@@ -37,7 +51,15 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
     if (client) {
       setFormData(client)
     } else {
-      setFormData({ name: '', cnpj: '', website: '', logo: '', contacts: [], modules: [] })
+      setFormData({
+        name: '',
+        cnpj: '',
+        website: '',
+        logo: '',
+        contacts: [],
+        modules: [],
+        statusId: '',
+      })
     }
     setNewContact({ name: '', email: '', phone: '' })
   }, [client, open])
@@ -57,6 +79,7 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
       registrationDate: formData.registrationDate,
       serverIp: formData.serverIp,
       notes: formData.notes,
+      statusId: formData.statusId,
     })
   }
 
@@ -232,6 +255,30 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-2">
+                          <Label htmlFor="status">Status</Label>
+                          <Select
+                            value={formData.statusId || ''}
+                            onValueChange={(val) => setFormData({ ...formData, statusId: val })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {clientStatuses.map((status) => (
+                                <SelectItem key={status.id} value={status.id}>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: status.color }}
+                                    />
+                                    {status.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
                           <Label htmlFor="serverIp">IP do Servidor</Label>
                           <Input
                             id="serverIp"
@@ -240,15 +287,15 @@ export function ClientFormModal({ open, onOpenChange, client, onSubmit }: Props)
                             placeholder="Ex: 192.168.0.1"
                           />
                         </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="notes">Observações</Label>
-                          <Input
-                            id="notes"
-                            value={formData.notes || ''}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                            placeholder="Informações adicionais..."
-                          />
-                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="notes">Observações</Label>
+                        <Input
+                          id="notes"
+                          value={formData.notes || ''}
+                          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                          placeholder="Informações adicionais..."
+                        />
                       </div>
                     </div>
                   </TabsContent>
