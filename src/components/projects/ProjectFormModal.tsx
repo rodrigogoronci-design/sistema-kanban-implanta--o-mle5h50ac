@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Props) {
-  const { clients, users, projectStatuses } = useMainStore()
+  const { clients, analysts, projectStatuses } = useMainStore()
   const [formData, setFormData] = useState<Partial<Project> & any>({})
   const [clientOpen, setClientOpen] = useState(false)
 
@@ -127,9 +127,9 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <SelectValue placeholder="Selecione um responsável" />
           </SelectTrigger>
           <SelectContent>
-            {users.map((u: any) => (
-              <SelectItem key={u.id} value={u.id}>
-                {u.nome || u.name}
+            {(analysts || []).map((a: any) => (
+              <SelectItem key={a.id} value={a.id}>
+                {a.nome || a.name}
               </SelectItem>
             ))}
           </SelectContent>
