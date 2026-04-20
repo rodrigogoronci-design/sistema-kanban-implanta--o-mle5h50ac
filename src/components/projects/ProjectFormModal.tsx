@@ -335,6 +335,4 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
           </Button>
         </div>
       </DialogContent>
-    </Dialog>
-  )
-}
+    </
