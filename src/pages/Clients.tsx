@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { ClientFormModal } from '@/components/ClientFormModal'
+import { ClientStatusManagementModal } from '@/components/ClientStatusManagementModal'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -10,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, ExternalLink, Pencil, Trash2, Building2 } from 'lucide-react'
+import { Plus, ExternalLink, Pencil, Trash2, Building2, Settings2 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +23,7 @@ export default function Clients() {
   const [columns, setColumns] = useState<any[]>([])
   const [clientStatuses, setClientStatuses] = useState<any[]>([])
   const [modalOpen, setModalOpen] = useState(false)
+  const [statusModalOpen, setStatusModalOpen] = useState(false)
   const [selectedClient, setSelectedClient] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -149,6 +151,9 @@ export default function Clients() {
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
         <div className="flex items-center space-x-2">
+          <Button variant="outline" onClick={() => setStatusModalOpen(true)}>
+            <Settings2 className="mr-2 h-4 w-4" /> Gerenciar Status
+          </Button>
           <Button onClick={handleAdd}>
             <Plus className="mr-2 h-4 w-4" /> Novo Cliente
           </Button>
@@ -296,6 +301,14 @@ export default function Clients() {
         client={selectedClient}
         clientStatuses={clientStatuses}
         onSubmit={handleSave}
+      />
+
+      <ClientStatusManagementModal
+        open={statusModalOpen}
+        onOpenChange={setStatusModalOpen}
+        clientStatuses={clientStatuses}
+        clients={clients}
+        onSuccess={fetchData}
       />
     </div>
   )
