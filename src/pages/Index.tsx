@@ -201,12 +201,16 @@ export default function Index() {
   const handleCreateTask = (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!newTaskForm.clientId) {
+      return
+    }
+
     const backlogColumn = columns.find((c) => c.title.toLowerCase() === 'backlog') || columns[0]
 
     addTask({
       id: crypto.randomUUID(),
       ...newTaskForm,
-      clientId: newTaskForm.clientId || undefined,
+      clientId: newTaskForm.clientId,
       projectId: newTaskForm.projectId || undefined,
       categoryId: newTaskForm.categoryId || undefined,
       columnId: backlogColumn ? backlogColumn.id : '',
@@ -450,26 +454,22 @@ export default function Index() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Cliente (Opcional)</Label>
+                    <Label>Cliente</Label>
                     <Select
+                      required
                       value={newTaskForm.clientId}
                       onValueChange={(v) => {
-                        if (v === 'none') {
-                          setNewTaskForm((s) => ({ ...s, clientId: '', projectId: '' }))
-                        } else {
-                          setNewTaskForm((s) => ({
-                            ...s,
-                            clientId: v,
-                            projectId: '',
-                          }))
-                        }
+                        setNewTaskForm((s) => ({
+                          ...s,
+                          clientId: v,
+                          projectId: '',
+                        }))
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Nenhum</SelectItem>
                         {clients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
