@@ -206,6 +206,8 @@ export default function Index() {
     addTask({
       id: crypto.randomUUID(),
       ...newTaskForm,
+      clientId: newTaskForm.clientId || undefined,
+      projectId: newTaskForm.projectId || undefined,
       categoryId: newTaskForm.categoryId || undefined,
       columnId: backlogColumn ? backlogColumn.id : '',
       description: '',
@@ -448,23 +450,26 @@ export default function Index() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Cliente</Label>
+                    <Label>Cliente (Opcional)</Label>
                     <Select
-                      required
                       value={newTaskForm.clientId}
                       onValueChange={(v) => {
-                        const clientProjects = projects.filter((p) => p.clientId === v)
-                        setNewTaskForm((s) => ({
-                          ...s,
-                          clientId: v,
-                          projectId: clientProjects.length > 0 ? clientProjects[0].id : '',
-                        }))
+                        if (v === 'none') {
+                          setNewTaskForm((s) => ({ ...s, clientId: '', projectId: '' }))
+                        } else {
+                          setNewTaskForm((s) => ({
+                            ...s,
+                            clientId: v,
+                            projectId: '',
+                          }))
+                        }
                       }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {clients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -474,18 +479,22 @@ export default function Index() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Projeto</Label>
+                    <Label>Projeto (Opcional)</Label>
                     <Select
-                      required
                       value={newTaskForm.projectId}
-                      onValueChange={(v) => setNewTaskForm((s) => ({ ...s, projectId: v }))}
+                      onValueChange={(v) =>
+                        setNewTaskForm((s) => ({ ...s, projectId: v === 'none' ? '' : v }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {projects
-                          .filter((p) => p.clientId === newTaskForm.clientId)
+                          .filter(
+                            (p) => !newTaskForm.clientId || p.clientId === newTaskForm.clientId,
+                          )
                           .map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.name}
@@ -864,10 +873,10 @@ export default function Index() {
                     >
                       <TableCell className="font-semibold">{t.title}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {clients.find((c) => c.id === t.clientId)?.name}
+                        {clients.find((c) => c.id === t.clientId)?.name || '-'}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {projects.find((p) => p.id === t.projectId)?.name}
+                        {projects.find((p) => p.id === t.projectId)?.name || '-'}
                       </TableCell>
                       <TableCell>
                         {t.scheduledDate ? format(parseISO(t.scheduledDate), 'dd/MM/yyyy') : '-'}
@@ -936,7 +945,7 @@ export default function Index() {
                         }}
                       />
                       <span className="truncate">
-                        {clients.find((c) => c.id === task.clientId)?.name}
+                        {clients.find((c) => c.id === task.clientId)?.name || 'Sem cliente'}
                       </span>
                     </div>
                   </div>
