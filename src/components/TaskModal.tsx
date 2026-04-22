@@ -293,15 +293,20 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Projeto</Label>
                     <Select
-                      value={task.projectId}
-                      onValueChange={(val: any) => updateTask(task.id, { projectId: val })}
+                      value={task.projectId || 'none'}
+                      onValueChange={(val: any) =>
+                        updateTask(task.id, { projectId: val === 'none' ? '' : val })
+                      }
                     >
                       <SelectTrigger className="bg-background">
-                        <SelectValue />
+                        <SelectValue placeholder="Nenhum projeto" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="none" className="text-muted-foreground italic">
+                          Nenhum projeto
+                        </SelectItem>
                         {projects
-                          .filter((p) => p.clientId === task.clientId)
+                          .filter((p) => !task.clientId || p.clientId === task.clientId)
                           .map((p) => (
                             <SelectItem key={p.id} value={p.id}>
                               {p.name}
