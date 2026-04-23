@@ -21,6 +21,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Settings } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import useMainStore, { Project } from '@/stores/main'
 import { StatusManagementModal } from './StatusManagementModal'
@@ -158,9 +159,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
                           })
                         }}
                       >
-                        <Check
-                          className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
-                        />
+                        <Checkbox checked={isSelected} className="mr-2 pointer-events-none" />
                         {a.nome || a.name}
                       </CommandItem>
                     )

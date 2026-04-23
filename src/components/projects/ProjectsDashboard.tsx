@@ -1,9 +1,14 @@
-import useMainStore from '@/stores/main'
+import useMainStore, { Project } from '@/stores/main'
 import { BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts'
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart'
 
-export function ProjectsDashboard() {
-  const { projectStatuses, projects } = useMainStore()
+interface Props {
+  projects?: Project[]
+}
+
+export function ProjectsDashboard({ projects: propProjects }: Props) {
+  const { projectStatuses, projects: storeProjects } = useMainStore()
+  const projects = propProjects || storeProjects
   const totalProjects = projects.length
 
   const chartData = projectStatuses.map((status) => {

@@ -16,6 +16,13 @@ import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function Projects() {
   const {
@@ -31,6 +38,14 @@ export default function Projects() {
   } = useMainStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
+  const [analystFilter, setAnalystFilter] = useState<string>('all')
+
+  const filteredProjects = projects.filter((project) => {
+    if (analystFilter !== 'all') {
+      return project.analystIds?.includes(analystFilter)
+    }
+    return true
+  })
 
   const handleCreate = () => {
     setEditingProject(undefined)
@@ -64,12 +79,27 @@ export default function Projects() {
           <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
           <p className="text-sm text-muted-foreground">Gerencie os projetos de implantação.</p>
         </div>
-        <Button onClick={handleCreate} className="shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Novo Projeto
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={analystFilter} onValueChange={setAnalystFilter}>
+            <SelectTrigger className="w-full sm:w-[250px]">
+              <SelectValue placeholder="Filtrar por responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os responsáveis</SelectItem>
+              {analysts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.nome || a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCreate} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+          </Button>
+        </div>
       </div>
 
-      <ProjectsDashboard />
+      <ProjectsDashboard projects={filteredProjects} />
 
       <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
         <Table>
@@ -86,14 +116,14 @@ export default function Projects() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projects.length === 0 ? (
+            {filteredProjects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                  Nenhum projeto cadastrado.
+                  Nenhum projeto encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              projects.map((project) => {
+              filteredProjects.map((project) => {
                 const client = clients.find((c) => c.id === project.clientId)
                 const status = projectStatuses.find((s) => s.id === project.statusId)
                 const pTasks = tasks.filter((t) => t.projectId === project.id)
