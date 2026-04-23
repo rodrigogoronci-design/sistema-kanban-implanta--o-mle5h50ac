@@ -293,4 +293,8 @@ export default function Projects() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         project={editingProject}
-        onSubmit={handle
+        onSubmit={handleSubmit}
+      />
+    </div>
+  )
+}
