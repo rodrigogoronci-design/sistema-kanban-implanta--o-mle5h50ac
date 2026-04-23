@@ -85,6 +85,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 
 export default function Index() {
@@ -139,6 +141,7 @@ export default function Index() {
   const [filterProject, setFilterProject] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterDueDate, setFilterDueDate] = useState<Date | undefined>()
+  const [showCompleted, setShowCompleted] = useState(true)
 
   const clearFilters = () => {
     setSearch('')
@@ -233,6 +236,13 @@ export default function Index() {
 
   const visibleColumns = columns.filter((c) => !c.archived)
 
+  const completedColumnIds = columns
+    .filter(
+      (c) =>
+        c.title.toLowerCase().includes('concluíd') || c.title.toLowerCase().includes('concluid'),
+    )
+    .map((c) => c.id)
+
   const filteredTasks = tasks.filter((t) => {
     if (search) {
       const q = search.toLowerCase()
@@ -241,6 +251,7 @@ export default function Index() {
       const matchesAttachment = t.attachments?.some((a) => a.name.toLowerCase().includes(q))
       if (!matchesTask && !matchesAttachment) return false
     }
+    if (!showCompleted && t.columnId && completedColumnIds.includes(t.columnId)) return false
     if (filterUser !== 'all' && t.responsibleId !== filterUser) return false
     if (filterClient !== 'all' && t.clientId !== filterClient) return false
     if (filterProject !== 'all' && t.projectId !== filterProject) return false
@@ -684,6 +695,15 @@ export default function Index() {
             </SelectContent>
           </Select>
 
+          <Button
+            variant="outline"
+            onClick={() => setShowCompleted(!showCompleted)}
+            className={cn('bg-background', !showCompleted && 'text-muted-foreground')}
+          >
+            {showCompleted ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+            {showCompleted ? 'Ocultar Concluídos' : 'Mostrar Concluídos'}
+          </Button>
+
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -821,8 +841,10 @@ export default function Index() {
                       )
                     })}
                   {filteredTasks.filter((t) => t.columnId === col.id).length === 0 && (
-                    <div className="h-full border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center text-muted-foreground/50 text-sm">
-                      Arraste cards para cá
+                    <div className="h-full border-2 border-dashed border-border/50 rounded-lg flex items-center justify-center text-muted-foreground/50 text-sm text-center p-4">
+                      {!showCompleted && completedColumnIds.includes(col.id)
+                        ? 'Tarefas concluídas estão ocultas'
+                        : 'Arraste cards para cá'}
                     </div>
                   )}
                 </div>
