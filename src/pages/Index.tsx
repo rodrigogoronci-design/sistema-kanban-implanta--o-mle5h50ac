@@ -162,6 +162,8 @@ export default function Index() {
     responsibleId: '',
     priority: 'Média' as any,
     categoryId: '',
+    scheduledDate: undefined as Date | undefined,
+    scheduledTime: '',
   })
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -212,10 +214,16 @@ export default function Index() {
 
     addTask({
       id: crypto.randomUUID(),
-      ...newTaskForm,
+      title: newTaskForm.title,
       clientId: newTaskForm.clientId,
       projectId: newTaskForm.projectId || undefined,
+      responsibleId: newTaskForm.responsibleId,
+      priority: newTaskForm.priority,
       categoryId: newTaskForm.categoryId || undefined,
+      scheduledDate: newTaskForm.scheduledDate
+        ? format(newTaskForm.scheduledDate, 'yyyy-MM-dd')
+        : undefined,
+      scheduledTime: newTaskForm.scheduledTime || undefined,
       columnId: backlogColumn ? backlogColumn.id : '',
       description: '',
       checklist: [],
@@ -230,6 +238,8 @@ export default function Index() {
       responsibleId: '',
       priority: 'Média' as any,
       categoryId: '',
+      scheduledDate: undefined,
+      scheduledTime: '',
     })
     setOpenNewTask(false)
   }
@@ -569,6 +579,50 @@ export default function Index() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 flex flex-col justify-end">
+                    <Label>Data Agendada (Opcional)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-background',
+                            !newTaskForm.scheduledDate && 'text-muted-foreground',
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {newTaskForm.scheduledDate ? (
+                            format(newTaskForm.scheduledDate, 'dd/MM/yyyy')
+                          ) : (
+                            <span>Selecione...</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={newTaskForm.scheduledDate}
+                          onSelect={(date) =>
+                            setNewTaskForm((s) => ({ ...s, scheduledDate: date }))
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2 flex flex-col justify-end">
+                    <Label>Horário (Opcional)</Label>
+                    <Input
+                      type="time"
+                      value={newTaskForm.scheduledTime}
+                      onChange={(e) =>
+                        setNewTaskForm((s) => ({ ...s, scheduledTime: e.target.value }))
+                      }
+                      className="bg-background"
+                    />
                   </div>
                 </div>
                 <Button type="submit" className="w-full">
