@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
-import { getTaskHours } from '@/lib/time'
+import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { Calendar, Clock, AlertCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -69,7 +69,7 @@ export function ProjectTasksTab({ project }: Props) {
           variant="secondary"
           className="text-lg px-4 py-1.5 font-mono bg-background border shadow-sm"
         >
-          {totalHours.toFixed(1)}h
+          {formatHoursAndMinutes(totalHours)}
         </Badge>
       </div>
 
@@ -188,7 +188,7 @@ export function ProjectTasksTab({ project }: Props) {
                         variant="secondary"
                         className="font-mono bg-muted group-hover:bg-background transition-colors"
                       >
-                        {hours.toFixed(1)}h
+                        {formatHoursAndMinutes(hours)}
                       </Badge>
                     </TableCell>
                   </TableRow>
