@@ -18,6 +18,7 @@ import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
 import ArchiveManager from '@/components/ArchiveManager'
 import { CategoryManager } from '@/components/CategoryManager'
+import { ClientFormModal } from '@/components/ClientFormModal'
 import { cn } from '@/lib/utils'
 import {
   format,
@@ -98,11 +99,13 @@ export default function Index() {
     clients,
     projects,
     categories,
+    clientStatuses,
     addTask,
     addColumn,
     updateColumn,
     deleteColumn,
     reorderColumns,
+    addClient,
   } = useMainStore()
   const [view, setView] = useState<'kanban' | 'list' | 'gallery' | 'calendar'>('kanban')
   const [calendarDate, setCalendarDate] = useState(new Date())
@@ -155,6 +158,21 @@ export default function Index() {
   const [openNewTask, setOpenNewTask] = useState(false)
   const [openArchiveManager, setOpenArchiveManager] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showNewClientModal, setShowNewClientModal] = useState(false)
+
+  const handleCreateClient = (data: any) => {
+    const newClient = {
+      id: crypto.randomUUID(),
+      ...data,
+      createdAt: new Date().toISOString(),
+    }
+    if (addClient) {
+      addClient(newClient)
+    }
+    setNewTaskForm((s) => ({ ...s, clientId: newClient.id, projectId: '' }))
+    setShowNewClientModal(false)
+  }
+
   const [newTaskForm, setNewTaskForm] = useState({
     title: '',
     clientId: '',
@@ -480,6 +498,10 @@ export default function Index() {
                       required
                       value={newTaskForm.clientId}
                       onValueChange={(v) => {
+                        if (v === 'NEW_CLIENT') {
+                          setShowNewClientModal(true)
+                          return
+                        }
                         setNewTaskForm((s) => ({
                           ...s,
                           clientId: v,
@@ -491,6 +513,11 @@ export default function Index() {
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="NEW_CLIENT" className="font-semibold text-primary">
+                          <span className="flex items-center gap-2">
+                            <Plus className="w-4 h-4" /> Adicionar novo cliente
+                          </span>
+                        </SelectItem>
                         {clients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -1048,6 +1075,12 @@ export default function Index() {
 
       <ArchiveManager open={openArchiveManager} onOpenChange={setOpenArchiveManager} />
       <CategoryManager open={showCategoryModal} onOpenChange={setShowCategoryModal} />
+      <ClientFormModal
+        open={showNewClientModal}
+        onOpenChange={setShowNewClientModal}
+        clientStatuses={clientStatuses || []}
+        onSubmit={handleCreateClient}
+      />
 
       <AlertDialog open={!!deleteColId} onOpenChange={(open) => !open && setDeleteColId(null)}>
         <AlertDialogContent>
