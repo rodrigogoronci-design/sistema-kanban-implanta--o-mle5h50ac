@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/table'
 import { format, parseISO } from 'date-fns'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus, Trash2, Building2 } from 'lucide-react'
+import { Plus, Trash2, Building2, Edit2, X } from 'lucide-react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 
 interface Props {
@@ -44,7 +44,8 @@ export function ClientFormModal({
   onSubmit,
 }: Props) {
   const [formData, setFormData] = useState<Partial<Client> & { statusId?: string }>({})
-  const [newContact, setNewContact] = useState({ name: '', email: '', phone: '' })
+  const [newContact, setNewContact] = useState({ name: '', email: '', phone: '', department: '' })
+  const [editingContactId, setEditingContactId] = useState<string | null>(null)
   const { projects, tasks, projectStatuses, columns } = useMainStore()
 
   useEffect(() => {
@@ -61,7 +62,8 @@ export function ClientFormModal({
         statusId: '',
       })
     }
-    setNewContact({ name: '', email: '', phone: '' })
+    setNewContact({ name: '', email: '', phone: '', department: '' })
+    setEditingContactId(null)
   }, [client, open])
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,11 +87,36 @@ export function ClientFormModal({
 
   const handleAddContact = () => {
     if (!newContact.name.trim()) return
-    setFormData((prev) => ({
-      ...prev,
-      contacts: [...(prev.contacts || []), { id: `c-${Date.now()}`, ...newContact }],
-    }))
-    setNewContact({ name: '', email: '', phone: '' })
+    if (editingContactId) {
+      setFormData((prev) => ({
+        ...prev,
+        contacts: (prev.contacts || []).map((c) =>
+          c.id === editingContactId ? { ...c, ...newContact } : c,
+        ),
+      }))
+      setEditingContactId(null)
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        contacts: [...(prev.contacts || []), { id: `c-${Date.now()}`, ...newContact }],
+      }))
+    }
+    setNewContact({ name: '', email: '', phone: '', department: '' })
+  }
+
+  const handleEditContact = (contact: any) => {
+    setNewContact({
+      name: contact.name || '',
+      email: contact.email || '',
+      phone: contact.phone || '',
+      department: contact.department || '',
+    })
+    setEditingContactId(contact.id)
+  }
+
+  const cancelEditContact = () => {
+    setNewContact({ name: '', email: '', phone: '', department: '' })
+    setEditingContactId(null)
   }
 
   const handleRemoveContact = (id: string) => {
@@ -302,44 +329,80 @@ export function ClientFormModal({
 
                   <TabsContent value="contacts" className="mt-0 space-y-6">
                     <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row gap-3 items-end">
-                        <div className="grid gap-2 flex-1 w-full">
-                          <Label>Nome do Contato</Label>
-                          <Input
-                            value={newContact.name}
-                            onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                            placeholder="Nome"
-                          />
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3 items-start">
+                          <div className="grid gap-2 flex-1 w-full">
+                            <Label>Nome do Contato</Label>
+                            <Input
+                              value={newContact.name}
+                              onChange={(e) =>
+                                setNewContact({ ...newContact, name: e.target.value })
+                              }
+                              placeholder="Nome"
+                            />
+                          </div>
+                          <div className="grid gap-2 flex-1 w-full">
+                            <Label>Setor</Label>
+                            <Input
+                              value={newContact.department}
+                              onChange={(e) =>
+                                setNewContact({ ...newContact, department: e.target.value })
+                              }
+                              placeholder="Ex: Financeiro"
+                            />
+                          </div>
                         </div>
-                        <div className="grid gap-2 flex-1 w-full">
-                          <Label>E-mail</Label>
-                          <Input
-                            type="email"
-                            value={newContact.email}
-                            onChange={(e) =>
-                              setNewContact({ ...newContact, email: e.target.value })
-                            }
-                            placeholder="email@exemplo.com"
-                          />
+                        <div className="flex flex-col sm:flex-row gap-3 items-end">
+                          <div className="grid gap-2 flex-1 w-full">
+                            <Label>E-mail</Label>
+                            <Input
+                              type="email"
+                              value={newContact.email}
+                              onChange={(e) =>
+                                setNewContact({ ...newContact, email: e.target.value })
+                              }
+                              placeholder="email@exemplo.com"
+                            />
+                          </div>
+                          <div className="grid gap-2 flex-1 w-full">
+                            <Label>Telefone</Label>
+                            <Input
+                              value={newContact.phone}
+                              onChange={(e) =>
+                                setNewContact({ ...newContact, phone: e.target.value })
+                              }
+                              placeholder="(00) 00000-0000"
+                            />
+                          </div>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            {editingContactId && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={cancelEditContact}
+                                className="flex-1 sm:flex-none"
+                              >
+                                <X className="w-4 h-4 mr-2" /> Cancelar
+                              </Button>
+                            )}
+                            <Button
+                              type="button"
+                              onClick={handleAddContact}
+                              disabled={!newContact.name.trim()}
+                              className="flex-1 sm:flex-none"
+                            >
+                              {editingContactId ? (
+                                <>
+                                  <Edit2 className="w-4 h-4 mr-2" /> Salvar
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4 mr-2" /> Adicionar
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="grid gap-2 flex-1 w-full">
-                          <Label>Telefone</Label>
-                          <Input
-                            value={newContact.phone}
-                            onChange={(e) =>
-                              setNewContact({ ...newContact, phone: e.target.value })
-                            }
-                            placeholder="(00) 00000-0000"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleAddContact}
-                          disabled={!newContact.name.trim()}
-                          className="w-full sm:w-auto"
-                        >
-                          <Plus className="w-4 h-4 mr-2" /> Adicionar
-                        </Button>
                       </div>
 
                       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -347,34 +410,47 @@ export function ClientFormModal({
                           <TableHeader>
                             <TableRow className="bg-muted/50">
                               <TableHead>Nome</TableHead>
+                              <TableHead>Setor</TableHead>
                               <TableHead>E-mail</TableHead>
                               <TableHead>Telefone</TableHead>
-                              <TableHead className="w-[60px]"></TableHead>
+                              <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {(formData.contacts || []).map((contact) => (
                               <TableRow key={contact.id}>
                                 <TableCell className="font-medium">{contact.name}</TableCell>
+                                <TableCell>{contact.department || '-'}</TableCell>
                                 <TableCell>{contact.email}</TableCell>
                                 <TableCell>{contact.phone}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive h-8 w-8 hover:bg-destructive/10"
-                                    onClick={() => handleRemoveContact(contact.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      onClick={() => handleEditContact(contact)}
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive h-8 w-8 hover:bg-destructive/10"
+                                      onClick={() => handleRemoveContact(contact.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             ))}
                             {(!formData.contacts || formData.contacts.length === 0) && (
                               <TableRow>
                                 <TableCell
-                                  colSpan={4}
+                                  colSpan={5}
                                   className="text-center py-8 text-muted-foreground"
                                 >
                                   Nenhum contato cadastrado.
