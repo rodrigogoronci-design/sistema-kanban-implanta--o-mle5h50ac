@@ -16,6 +16,7 @@ import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { supabase } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 export default function Projects() {
   const {
