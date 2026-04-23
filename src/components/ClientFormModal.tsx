@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import useMainStore from '@/stores/main'
-import { getTaskHours } from '@/lib/time'
+import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -396,17 +396,16 @@ export function ClientFormModal({
                           </h3>
                           <Badge variant="secondary" className="font-mono">
                             Total:{' '}
-                            {clientProjects
-                              .reduce(
+                            {formatHoursAndMinutes(
+                              clientProjects.reduce(
                                 (acc, p) =>
                                   acc +
                                   tasks
                                     .filter((t) => t.projectId === p.id)
                                     .reduce((sum, t) => sum + getTaskHours(t), 0),
                                 0,
-                              )
-                              .toFixed(1)}
-                            h
+                              ),
+                            )}
                           </Badge>
                         </div>
                         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -440,7 +439,7 @@ export function ClientFormModal({
                                       )}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-muted-foreground">
-                                      {hrs.toFixed(1)}h
+                                      {formatHoursAndMinutes(hrs)}
                                     </TableCell>
                                   </TableRow>
                                 )
@@ -467,7 +466,9 @@ export function ClientFormModal({
                           </h3>
                           <Badge variant="secondary" className="font-mono">
                             Total:{' '}
-                            {clientTasks.reduce((acc, t) => acc + getTaskHours(t), 0).toFixed(1)}h
+                            {formatHoursAndMinutes(
+                              clientTasks.reduce((acc, t) => acc + getTaskHours(t), 0),
+                            )}
                           </Badge>
                         </div>
                         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -497,7 +498,7 @@ export function ClientFormModal({
                                         : '-'}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-muted-foreground">
-                                      {getTaskHours(t).toFixed(1)}h
+                                      {formatHoursAndMinutes(getTaskHours(t))}
                                     </TableCell>
                                   </TableRow>
                                 )

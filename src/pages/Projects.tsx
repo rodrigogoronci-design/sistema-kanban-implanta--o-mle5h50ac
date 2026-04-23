@@ -14,7 +14,7 @@ import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
-import { getTaskHours } from '@/lib/time'
+import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { supabase } from '@/lib/supabase/client'
 
 export default function Projects() {
@@ -263,7 +263,7 @@ export default function Projects() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary" className="font-mono">
-                        {hours.toFixed(1)}h
+                        {formatHoursAndMinutes(hours)}
                       </Badge>
                     </TableCell>
                     <TableCell>
