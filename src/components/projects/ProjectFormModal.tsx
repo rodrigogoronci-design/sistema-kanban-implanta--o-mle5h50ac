@@ -36,8 +36,9 @@ interface Props {
 
 export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Props) {
   const { clients, analysts, projectStatuses } = useMainStore()
-  const [formData, setFormData] = useState<Partial<Project> & any>({})
+  const [formData, setFormData] = useState<Partial<Project>>({})
   const [clientOpen, setClientOpen] = useState(false)
+  const [analystsOpen, setAnalystsOpen] = useState(false)
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
         setFormData({
           name: '',
           clientId: '',
-          analystId: '',
+          analystIds: [],
           statusId: '',
         })
       }
@@ -119,23 +120,56 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
         </Popover>
       </div>
 
-      <div className="space-y-2">
-        <Label>Responsável</Label>
-        <Select
-          value={formData.analystId || ''}
-          onValueChange={(v) => setFormData({ ...formData, analystId: v })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            {(analysts || []).map((a: any) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.nome || a.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="space-y-2 flex flex-col">
+        <Label>Responsáveis</Label>
+        <Popover open={analystsOpen} onOpenChange={setAnalystsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={analystsOpen}
+              className="w-full justify-between font-normal"
+            >
+              {formData.analystIds?.length
+                ? `${formData.analystIds.length} selecionado(s)`
+                : 'Selecione responsáveis...'}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-full p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Pesquisar analista..." />
+              <CommandList>
+                <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
+                <CommandGroup>
+                  {(analysts || []).map((a: any) => {
+                    const isSelected = formData.analystIds?.includes(a.id)
+                    return (
+                      <CommandItem
+                        key={a.id}
+                        value={a.nome || a.name}
+                        onSelect={() => {
+                          const current = formData.analystIds || []
+                          setFormData({
+                            ...formData,
+                            analystIds: isSelected
+                              ? current.filter((id: string) => id !== a.id)
+                              : [...current, a.id],
+                          })
+                        }}
+                      >
+                        <Check
+                          className={cn('mr-2 h-4 w-4', isSelected ? 'opacity-100' : 'opacity-0')}
+                        />
+                        {a.nome || a.name}
+                      </CommandItem>
+                    )
+                  })}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-2">
@@ -174,11 +208,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
         <Input
           type="number"
           min="0"
-          value={formData.contracted_hours ?? formData.contractedHours ?? ''}
+          value={formData.contractedHours ?? ''}
           onChange={(e) =>
             setFormData({
               ...formData,
-              contracted_hours: e.target.value ? parseInt(e.target.value) : null,
+              contractedHours: e.target.value ? parseInt(e.target.value) : null,
             })
           }
           placeholder="Ex: 100"
@@ -192,15 +226,13 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Início Previsto</Label>
             <Input
               type="date"
-              value={
-                formData.forecast_start?.split('T')[0] ||
-                formData.forecastStart?.split('T')[0] ||
-                ''
-              }
+              value={formData.forecastStart?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  forecast_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  forecastStart: e.target.value
+                    ? new Date(e.target.value).toISOString()
+                    : undefined,
                 })
               }
             />
@@ -209,13 +241,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Término Previsto</Label>
             <Input
               type="date"
-              value={
-                formData.forecast_end?.split('T')[0] || formData.forecastEnd?.split('T')[0] || ''
-              }
+              value={formData.forecastEnd?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  forecast_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  forecastEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -225,11 +255,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Início Implantação</Label>
             <Input
               type="date"
-              value={formData.impl_start?.split('T')[0] || formData.implStart?.split('T')[0] || ''}
+              value={formData.implStart?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  impl_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  implStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -238,11 +268,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Término Implantação</Label>
             <Input
               type="date"
-              value={formData.impl_end?.split('T')[0] || formData.implEnd?.split('T')[0] || ''}
+              value={formData.implEnd?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  impl_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  implEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -252,13 +282,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Início Treinamento</Label>
             <Input
               type="date"
-              value={
-                formData.train_start?.split('T')[0] || formData.trainStart?.split('T')[0] || ''
-              }
+              value={formData.trainStart?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  train_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  trainStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -267,11 +295,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Término Treinamento</Label>
             <Input
               type="date"
-              value={formData.train_end?.split('T')[0] || formData.trainEnd?.split('T')[0] || ''}
+              value={formData.trainEnd?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  train_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  trainEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -281,11 +309,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Início Operação</Label>
             <Input
               type="date"
-              value={formData.op_start?.split('T')[0] || formData.opStart?.split('T')[0] || ''}
+              value={formData.opStart?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  op_start: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  opStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />
@@ -294,11 +322,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             <Label>Término Operação</Label>
             <Input
               type="date"
-              value={formData.op_end?.split('T')[0] || formData.opEnd?.split('T')[0] || ''}
+              value={formData.opEnd?.split('T')[0] || ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  op_end: e.target.value ? new Date(e.target.value).toISOString() : null,
+                  opEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
                 })
               }
             />

@@ -43,6 +43,7 @@ export interface Project {
   name: string
   clientId: string
   analystId: string
+  analystIds?: string[]
   statusId: string
   implStart?: string
   implEnd?: string
@@ -50,6 +51,9 @@ export interface Project {
   trainEnd?: string
   opStart?: string
   opEnd?: string
+  forecastStart?: string
+  forecastEnd?: string
+  contractedHours?: number | null
 }
 export interface Subtask {
   id: string
@@ -179,6 +183,7 @@ async function loadInitialData() {
       { data: attachmentTags },
       { data: taskTags },
       { data: timeEntries },
+      { data: projAnalysts },
     ] = await Promise.all([
       supabase.from('colaboradores').select('*'),
       supabase.from('analistas').select('*'),
@@ -194,6 +199,7 @@ async function loadInitialData() {
       supabase.from('attachment_tags').select('*'),
       supabase.from('task_attachment_tags').select('*'),
       supabase.from('time_entries').select('*'),
+      (supabase as any).from('project_analysts').select('*'),
     ])
 
     store.setState((s) => ({
@@ -236,6 +242,11 @@ async function loadInitialData() {
         name: p.name,
         clientId: p.client_id || '',
         analystId: p.analyst_id || '',
+        analystIds: (projAnalysts || [])
+          .filter((pa: any) => pa.project_id === p.id)
+          .map((pa: any) => pa.analyst_id)
+          .concat(p.analyst_id ? [p.analyst_id] : [])
+          .filter((v: any, i: any, a: any) => a.indexOf(v) === i),
         statusId: p.status_id || '',
         implStart: p.impl_start || undefined,
         implEnd: p.impl_end || undefined,
@@ -243,6 +254,9 @@ async function loadInitialData() {
         trainEnd: p.train_end || undefined,
         opStart: p.op_start || undefined,
         opEnd: p.op_end || undefined,
+        forecastStart: p.forecast_start || undefined,
+        forecastEnd: p.forecast_end || undefined,
+        contractedHours: p.contracted_hours || null,
       })),
       projectStatuses: (statuses || []).map((s: any) => ({
         id: s.id,
@@ -619,8 +633,20 @@ export default function useMainStore() {
           train_end: project.trainEnd,
           op_start: project.opStart,
           op_end: project.opEnd,
+          forecast_start: project.forecastStart,
+          forecast_end: project.forecastEnd,
+          contracted_hours: project.contractedHours,
         })
-        .then()
+        .then(() => {
+          if (project.analystIds && project.analystIds.length > 0) {
+            ;(supabase as any)
+              .from('project_analysts')
+              .insert(
+                project.analystIds.map((aId: string) => ({ project_id: id, analyst_id: aId })),
+              )
+              .then()
+          }
+        })
     },
     updateProject: (id: string, payload: Partial<Project>) => {
       store.setState((s) => ({
@@ -638,9 +664,29 @@ export default function useMainStore() {
       if ('trainEnd' in payload) dbPayload.train_end = payload.trainEnd
       if ('opStart' in payload) dbPayload.op_start = payload.opStart
       if ('opEnd' in payload) dbPayload.op_end = payload.opEnd
+      if ('forecastStart' in payload) dbPayload.forecast_start = payload.forecastStart
+      if ('forecastEnd' in payload) dbPayload.forecast_end = payload.forecastEnd
+      if ('contractedHours' in payload) dbPayload.contracted_hours = payload.contractedHours
 
       if (Object.keys(dbPayload).length > 0) {
         supabase.from('projects').update(dbPayload).eq('id', id).then()
+      }
+
+      if (payload.analystIds) {
+        ;(supabase as any)
+          .from('project_analysts')
+          .delete()
+          .eq('project_id', id)
+          .then(() => {
+            if (payload.analystIds && payload.analystIds.length > 0) {
+              ;(supabase as any)
+                .from('project_analysts')
+                .insert(
+                  payload.analystIds.map((aId: string) => ({ project_id: id, analyst_id: aId })),
+                )
+                .then()
+            }
+          })
       }
     },
     deleteProject: (id: string) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import useMainStore, { Project } from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +15,6 @@ import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
-import { supabase } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 
 export default function Projects() {
@@ -23,6 +22,7 @@ export default function Projects() {
     projects,
     clients,
     users,
+    analysts,
     projectStatuses,
     tasks,
     addProject,
@@ -31,73 +31,6 @@ export default function Projects() {
   } = useMainStore()
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
-  const [analysts, setAnalysts] = useState<any[]>([])
-  const [projectDates, setProjectDates] = useState<Record<string, any>>({})
-  const [pendingDatesUpdate, setPendingDatesUpdate] = useState<{
-    name: string
-    clientId: string
-    payload: any
-  } | null>(null)
-
-  useEffect(() => {
-    const fetchDates = async () => {
-      const { data } = await supabase
-        .from('projects')
-        .select(
-          'id, forecast_start, forecast_end, impl_start, impl_end, train_start, train_end, op_start, op_end, contracted_hours',
-        )
-
-      if (data) {
-        const datesMap: Record<string, any> = {}
-        data.forEach((p) => {
-          datesMap[p.id] = p
-        })
-        setProjectDates((prev) => ({ ...prev, ...datesMap }))
-      }
-    }
-    fetchDates()
-  }, [projects.length])
-
-  useEffect(() => {
-    if (pendingDatesUpdate && projects.length > 0) {
-      const match = projects.find(
-        (p) => p.name === pendingDatesUpdate.name && p.clientId === pendingDatesUpdate.clientId,
-      )
-      if (match) {
-        const payload = pendingDatesUpdate.payload
-        setPendingDatesUpdate(null)
-
-        const updateDates = async () => {
-          for (let i = 0; i < 5; i++) {
-            const { data } = await supabase
-              .from('projects')
-              .select('id')
-              .eq('id', match.id)
-              .single()
-            if (data) {
-              await supabase.from('projects').update(payload).eq('id', match.id)
-              setProjectDates((prev) => ({
-                ...prev,
-                [match.id]: payload,
-              }))
-              break
-            }
-            await new Promise((r) => setTimeout(r, 1000))
-          }
-        }
-        updateDates()
-      }
-    }
-  }, [projects, pendingDatesUpdate])
-
-  useEffect(() => {
-    supabase
-      .from('analistas')
-      .select('id, nome')
-      .then(({ data }) => {
-        if (data) setAnalysts(data)
-      })
-  }, [])
 
   const handleCreate = () => {
     setEditingProject(undefined)
@@ -105,44 +38,15 @@ export default function Projects() {
   }
 
   const handleEdit = (project: Project) => {
-    const extendedProject = {
-      ...project,
-      ...(projectDates[project.id] || {}),
-    }
-    setEditingProject(extendedProject as Project)
+    setEditingProject(project)
     setModalOpen(true)
   }
 
-  const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
-    const dbPayload = {
-      forecast_start: data.forecast_start || null,
-      forecast_end: data.forecast_end || null,
-      impl_start: data.impl_start || null,
-      impl_end: data.impl_end || null,
-      train_start: data.train_start || null,
-      train_end: data.train_end || null,
-      op_start: data.op_start || null,
-      op_end: data.op_end || null,
-      contracted_hours: data.contracted_hours ?? null,
-    }
-
+  const handleSubmit = async (data: Omit<Project, 'id'>) => {
     if (editingProject) {
       updateProject(editingProject.id, data)
-      setProjectDates((prev) => ({
-        ...prev,
-        [editingProject.id]: {
-          ...prev[editingProject.id],
-          ...dbPayload,
-        },
-      }))
-      try {
-        await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
-      } catch (e) {
-        console.error('Error updating dates:', e)
-      }
     } else {
       addProject(data as Project)
-      setPendingDatesUpdate({ name: data.name, clientId: data.clientId, payload: dbPayload })
     }
     setModalOpen(false)
   }
@@ -173,7 +77,7 @@ export default function Projects() {
             <TableRow className="bg-muted/50">
               <TableHead>Projeto</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Responsável</TableHead>
+              <TableHead>Responsáveis</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Início Previsto</TableHead>
               <TableHead>Término Previsto</TableHead>
@@ -191,9 +95,6 @@ export default function Projects() {
             ) : (
               projects.map((project) => {
                 const client = clients.find((c) => c.id === project.clientId)
-                const analyst =
-                  analysts.find((a) => a.id === project.analystId) ||
-                  users.find((u) => u.id === project.analystId)
                 const status = projectStatuses.find((s) => s.id === project.statusId)
                 const pTasks = tasks.filter((t) => t.projectId === project.id)
                 const hours = pTasks.reduce((acc, t) => acc + getTaskHours(t), 0)
@@ -207,7 +108,24 @@ export default function Projects() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{client?.name || '-'}</TableCell>
-                    <TableCell>{analyst?.nome || analyst?.name || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {project.analystIds?.length ? (
+                          project.analystIds.map((aId) => {
+                            const a =
+                              analysts.find((an) => an.id === aId) ||
+                              users.find((u) => u.id === aId)
+                            return a ? (
+                              <Badge key={aId} variant="secondary" className="text-xs font-normal">
+                                {a.nome || a.name}
+                              </Badge>
+                            ) : null
+                          })
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {status ? (
                         <div className="flex items-center gap-2">
@@ -222,19 +140,10 @@ export default function Projects() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {projectDates[project.id]?.forecast_start ||
-                      (project as any).forecastStart ||
-                      (project as any).forecast_start
+                      {project.forecastStart
                         ? (() => {
                             try {
-                              return format(
-                                parseISO(
-                                  projectDates[project.id]?.forecast_start ||
-                                    (project as any).forecastStart ||
-                                    (project as any).forecast_start,
-                                ),
-                                'dd/MM/yyyy',
-                              )
+                              return format(parseISO(project.forecastStart), 'dd/MM/yyyy')
                             } catch {
                               return '-'
                             }
@@ -242,19 +151,10 @@ export default function Projects() {
                         : '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {projectDates[project.id]?.forecast_end ||
-                      (project as any).forecastEnd ||
-                      (project as any).forecast_end
+                      {project.forecastEnd
                         ? (() => {
                             try {
-                              return format(
-                                parseISO(
-                                  projectDates[project.id]?.forecast_end ||
-                                    (project as any).forecastEnd ||
-                                    (project as any).forecast_end,
-                                ),
-                                'dd/MM/yyyy',
-                              )
+                              return format(parseISO(project.forecastEnd), 'dd/MM/yyyy')
                             } catch {
                               return '-'
                             }
@@ -266,10 +166,7 @@ export default function Projects() {
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-medium">{formatHoursAndMinutes(hours)}</span>
                           {(() => {
-                            const contracted =
-                              projectDates[project.id]?.contracted_hours ??
-                              (project as any).contracted_hours ??
-                              (project as any).contractedHours
+                            const contracted = project.contractedHours
                             return (
                               <span className="text-muted-foreground">
                                 {contracted ? `${contracted}h` : '-'}
@@ -278,10 +175,7 @@ export default function Projects() {
                           })()}
                         </div>
                         {(() => {
-                          const contracted =
-                            projectDates[project.id]?.contracted_hours ??
-                            (project as any).contracted_hours ??
-                            (project as any).contractedHours
+                          const contracted = project.contractedHours
                           if (!contracted) return null
                           const ratio = hours / contracted
                           const percent = Math.min(ratio * 100, 100)
