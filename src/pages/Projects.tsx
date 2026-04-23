@@ -52,11 +52,11 @@ export default function Projects() {
         data.forEach((p) => {
           datesMap[p.id] = p
         })
-        setProjectDates(datesMap)
+        setProjectDates((prev) => ({ ...prev, ...datesMap }))
       }
     }
     fetchDates()
-  }, [projects])
+  }, [projects.length])
 
   useEffect(() => {
     if (pendingDatesUpdate && projects.length > 0) {
@@ -135,13 +135,11 @@ export default function Projects() {
           ...dbPayload,
         },
       }))
-      setTimeout(async () => {
-        try {
-          await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
-        } catch (e) {
-          console.error('Error updating dates:', e)
-        }
-      }, 500)
+      try {
+        await supabase.from('projects').update(dbPayload).eq('id', editingProject.id)
+      } catch (e) {
+        console.error('Error updating dates:', e)
+      }
     } else {
       addProject(data as Project)
       setPendingDatesUpdate({ name: data.name, clientId: data.clientId, payload: dbPayload })
