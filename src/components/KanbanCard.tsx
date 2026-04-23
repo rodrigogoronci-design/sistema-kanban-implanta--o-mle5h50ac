@@ -15,7 +15,6 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
   const { clients, analysts, categories, timeEntries } = useMainStore()
 
   const client = clients?.find((c) => c.id === task.clientId)
-  const analyst = analysts?.find((a) => a.id === task.responsibleId)
   const category = categories?.find((c) => c.id === task.categoryId)
 
   let totalHours = 0
@@ -111,17 +110,23 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
       </div>
 
       <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">
-        <div className="flex items-center gap-2 text-xs">
-          {analyst ? (
-            <div
-              className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
-              title={`Responsável: ${analyst.nome}`}
-            >
-              <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                {analyst.nome.charAt(0).toUpperCase()}
-              </div>
-              <span className="truncate max-w-[60px]">{analyst.nome.split(' ')[0]}</span>
-            </div>
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          {task.responsibleIds && task.responsibleIds.length > 0 ? (
+            task.responsibleIds.map((aId: string) => {
+              const a = analysts?.find((an) => an.id === aId)
+              return a ? (
+                <div
+                  key={aId}
+                  className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
+                  title={`Responsável: ${a.nome}`}
+                >
+                  <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                    {a.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="truncate max-w-[60px]">{a.nome.split(' ')[0]}</span>
+                </div>
+              ) : null
+            })
           ) : (
             <span className="text-[10px] italic text-muted-foreground/70">Não atribuído</span>
           )}

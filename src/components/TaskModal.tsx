@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { CalendarIcon, Check, ChevronsUpDown, Settings, Edit2, Trash2, X, Plus } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
@@ -52,6 +53,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const [editingClientId, setEditingClientId] = useState<string | null>(null)
   const [editingClientName, setEditingClientName] = useState('')
   const [clientFormOpen, setClientFormOpen] = useState(false)
+  const [analystsOpen, setAnalystsOpen] = useState(false)
 
   const task = tasks.find((t) => t.id === taskId)
 
@@ -507,23 +509,60 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Responsável</Label>
-                  <Select
-                    value={task.responsibleId}
-                    onValueChange={(val: any) => updateTask(task.id, { responsibleId: val })}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {analysts.map((a) => (
-                        <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
-                          {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2 flex flex-col">
+                  <Label className="text-muted-foreground">Responsáveis</Label>
+                  <Popover open={analystsOpen} onOpenChange={setAnalystsOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={analystsOpen}
+                        className="w-full justify-between bg-background font-normal"
+                      >
+                        {task.responsibleIds?.length
+                          ? `${task.responsibleIds.length} selecionado(s)`
+                          : 'Nenhum responsável'}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                      align="start"
+                    >
+                      <Command>
+                        <CommandInput placeholder="Pesquisar analista..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {analysts.map((a) => {
+                              const isSelected = task.responsibleIds?.includes(a.id)
+                              return (
+                                <CommandItem
+                                  key={a.id}
+                                  value={a.nome}
+                                  onSelect={() => {
+                                    const current = task.responsibleIds || []
+                                    updateTask(task.id, {
+                                      responsibleIds: isSelected
+                                        ? current.filter((id) => id !== a.id)
+                                        : [...current, a.id],
+                                    })
+                                  }}
+                                  disabled={a.status !== 'Ativo'}
+                                >
+                                  <Checkbox
+                                    checked={isSelected}
+                                    className="mr-2 pointer-events-none"
+                                  />
+                                  {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
+                                </CommandItem>
+                              )
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div className="space-y-2">

@@ -91,6 +91,7 @@ export interface Task {
   clientId: string
   projectId: string
   responsibleId: string
+  responsibleIds?: string[]
   priority: 'Baixa' | 'Média' | 'Alta'
   categoryId?: string
   columnId: string
@@ -184,6 +185,7 @@ async function loadInitialData() {
       { data: taskTags },
       { data: timeEntries },
       { data: projAnalysts },
+      { data: taskAnalysts },
     ] = await Promise.all([
       supabase.from('colaboradores').select('*'),
       supabase.from('analistas').select('*'),
@@ -200,6 +202,7 @@ async function loadInitialData() {
       supabase.from('task_attachment_tags').select('*'),
       supabase.from('time_entries').select('*'),
       (supabase as any).from('project_analysts').select('*'),
+      (supabase as any).from('task_analysts').select('*'),
     ])
 
     store.setState((s) => ({
@@ -284,6 +287,11 @@ async function loadInitialData() {
         clientId: t.client_id || '',
         projectId: t.project_id || '',
         responsibleId: t.responsible_id || '',
+        responsibleIds: (taskAnalysts || [])
+          .filter((ta: any) => ta.task_id === t.id)
+          .map((ta: any) => ta.analyst_id)
+          .concat(t.responsible_id ? [t.responsible_id] : [])
+          .filter((v: any, i: any, a: any) => a.indexOf(v) === i),
         priority: t.priority as any,
         categoryId: t.category_id || undefined,
         columnId: t.column_id || '',
@@ -381,6 +389,23 @@ export default function useMainStore() {
           .eq('id', id)
           .then(({ error }) => {
             if (error) console.error('Error updating task:', error)
+          })
+      }
+
+      if (payload.responsibleIds) {
+        ;(supabase as any)
+          .from('task_analysts')
+          .delete()
+          .eq('task_id', id)
+          .then(() => {
+            if (payload.responsibleIds && payload.responsibleIds.length > 0) {
+              ;(supabase as any)
+                .from('task_analysts')
+                .insert(
+                  payload.responsibleIds.map((aId: string) => ({ task_id: id, analyst_id: aId })),
+                )
+                .then()
+            }
           })
       }
 
@@ -496,6 +521,14 @@ export default function useMainStore() {
         })
         .then(({ error }) => {
           if (error) console.error('Error adding task:', error)
+          if (!error && task.responsibleIds && task.responsibleIds.length > 0) {
+            ;(supabase as any)
+              .from('task_analysts')
+              .insert(
+                task.responsibleIds.map((aId: string) => ({ task_id: task.id, analyst_id: aId })),
+              )
+              .then()
+          }
         })
     },
     addCategory: (category: Omit<Category, 'id'>) => {

@@ -88,7 +88,9 @@ import {
   Maximize,
   Eye,
   EyeOff,
+  ChevronsUpDown,
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export default function Index() {
   const {
@@ -159,6 +161,7 @@ export default function Index() {
   const [openArchiveManager, setOpenArchiveManager] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showNewClientModal, setShowNewClientModal] = useState(false)
+  const [taskAnalystsOpen, setTaskAnalystsOpen] = useState(false)
 
   const handleCreateClient = (data: any) => {
     const newClient = {
@@ -177,7 +180,7 @@ export default function Index() {
     title: '',
     clientId: '',
     projectId: '',
-    responsibleId: '',
+    responsibleIds: [] as string[],
     priority: 'Média' as any,
     categoryId: '',
     scheduledDate: undefined as Date | undefined,
@@ -235,7 +238,8 @@ export default function Index() {
       title: newTaskForm.title,
       clientId: newTaskForm.clientId,
       projectId: newTaskForm.projectId || undefined,
-      responsibleId: newTaskForm.responsibleId,
+      responsibleId: newTaskForm.responsibleIds[0] || '',
+      responsibleIds: newTaskForm.responsibleIds,
       priority: newTaskForm.priority,
       categoryId: newTaskForm.categoryId || undefined,
       scheduledDate: newTaskForm.scheduledDate
@@ -253,7 +257,7 @@ export default function Index() {
       title: '',
       clientId: '',
       projectId: '',
-      responsibleId: '',
+      responsibleIds: [],
       priority: 'Média' as any,
       categoryId: '',
       scheduledDate: undefined,
@@ -280,7 +284,8 @@ export default function Index() {
       if (!matchesTask && !matchesAttachment) return false
     }
     if (!showCompleted && t.columnId && completedColumnIds.includes(t.columnId)) return false
-    if (filterUser !== 'all' && t.responsibleId !== filterUser) return false
+    if (filterUser !== 'all' && (!t.responsibleIds || !t.responsibleIds.includes(filterUser)))
+      return false
     if (filterClient !== 'all' && t.clientId !== filterClient) return false
     if (filterProject !== 'all' && t.projectId !== filterProject) return false
     if (filterCategory !== 'all') {
@@ -553,24 +558,60 @@ export default function Index() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Responsável</Label>
-                    <Select
-                      required
-                      value={newTaskForm.responsibleId}
-                      onValueChange={(v) => setNewTaskForm((s) => ({ ...s, responsibleId: v }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {analysts.map((a) => (
-                          <SelectItem key={a.id} value={a.id} disabled={a.status !== 'Ativo'}>
-                            {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2 flex flex-col">
+                    <Label>Responsáveis</Label>
+                    <Popover open={taskAnalystsOpen} onOpenChange={setTaskAnalystsOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={taskAnalystsOpen}
+                          className="w-full justify-between font-normal bg-background"
+                        >
+                          {newTaskForm.responsibleIds.length
+                            ? `${newTaskForm.responsibleIds.length} selecionado(s)`
+                            : 'Selecione...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Pesquisar analista..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              {analysts.map((a) => {
+                                const isSelected = newTaskForm.responsibleIds.includes(a.id)
+                                return (
+                                  <CommandItem
+                                    key={a.id}
+                                    value={a.nome}
+                                    onSelect={() => {
+                                      setNewTaskForm((s) => ({
+                                        ...s,
+                                        responsibleIds: isSelected
+                                          ? s.responsibleIds.filter((id) => id !== a.id)
+                                          : [...s.responsibleIds, a.id],
+                                      }))
+                                    }}
+                                    disabled={a.status !== 'Ativo'}
+                                  >
+                                    <Checkbox
+                                      checked={isSelected}
+                                      className="mr-2 pointer-events-none"
+                                    />
+                                    {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
+                                  </CommandItem>
+                                )
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
