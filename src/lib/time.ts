@@ -1,3 +1,14 @@
+export const formatHoursAndMinutes = (totalHours: number): string => {
+  if (!totalHours || isNaN(totalHours)) return '0m'
+  const hours = Math.floor(totalHours)
+  const minutes = Math.round((totalHours - hours) * 60)
+
+  if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`
+  if (hours > 0) return `${hours}h`
+  if (minutes > 0) return `${minutes}m`
+  return '0m'
+}
+
 export const getTaskHours = (task: any): number => {
   if (!task) return 0
 

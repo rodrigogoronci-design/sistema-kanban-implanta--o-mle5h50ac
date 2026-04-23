@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Clock, Paperclip, MessageSquare, CalendarClock } from 'lucide-react'
 import useMainStore from '@/stores/main'
-import { getTaskHours } from '@/lib/time'
+import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 
@@ -77,7 +77,7 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
             title="Total de horas na tarefa"
           >
             <Clock className="w-2.5 h-2.5" />
-            {totalHours.toFixed(1)}h
+            {formatHoursAndMinutes(totalHours)}
           </Badge>
         )}
       </div>
