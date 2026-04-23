@@ -11,13 +11,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, ExternalLink, Pencil, Trash2, Building2, Settings2 } from 'lucide-react'
+import { Plus, ExternalLink, Pencil, Trash2, Building2, Settings2, Search } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [contacts, setContacts] = useState<any[]>([])
   const [tasks, setTasks] = useState<any[]>([])
   const [columns, setColumns] = useState<any[]>([])
@@ -146,17 +148,37 @@ export default function Clients() {
     }
   }
 
+  const filteredClients = clients.filter((client) =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  )
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 animate-fade-in-up">
-      <div className="flex items-center justify-between space-y-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-3xl font-bold tracking-tight">Clientes</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => setStatusModalOpen(true)}>
-            <Settings2 className="mr-2 h-4 w-4" /> Gerenciar Status
-          </Button>
-          <Button onClick={handleAdd}>
-            <Plus className="mr-2 h-4 w-4" /> Novo Cliente
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-[300px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar cliente..."
+              className="pl-8 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={() => setStatusModalOpen(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Settings2 className="mr-2 h-4 w-4" /> Status
+            </Button>
+            <Button onClick={handleAdd} className="flex-1 sm:flex-none">
+              <Plus className="mr-2 h-4 w-4" /> Novo
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -179,14 +201,14 @@ export default function Clients() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : clients.length === 0 ? (
+            ) : filteredClients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
-                  Nenhum cliente cadastrado.
+                  Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              clients.map((client) => (
+              filteredClients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
