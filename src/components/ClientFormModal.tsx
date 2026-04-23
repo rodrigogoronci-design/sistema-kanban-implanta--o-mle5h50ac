@@ -528,10 +528,4 @@ export function ClientFormModal({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit">Salvar Cliente</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
+            <Button type="submit">Sa
