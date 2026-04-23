@@ -43,7 +43,7 @@ export default function Projects() {
       const { data } = await supabase
         .from('projects')
         .select(
-          'id, forecast_start, forecast_end, impl_start, impl_end, train_start, train_end, op_start, op_end',
+          'id, forecast_start, forecast_end, impl_start, impl_end, train_start, train_end, op_start, op_end, contracted_hours',
         )
 
       if (data) {
@@ -122,6 +122,7 @@ export default function Projects() {
       train_end: data.train_end || null,
       op_start: data.op_start || null,
       op_end: data.op_end || null,
+      contracted_hours: data.contracted_hours ?? null,
     }
 
     if (editingProject) {
@@ -177,7 +178,7 @@ export default function Projects() {
               <TableHead>Status</TableHead>
               <TableHead>Início Previsto</TableHead>
               <TableHead>Término Previsto</TableHead>
-              <TableHead className="text-right">Horas</TableHead>
+              <TableHead>Horas (Trab. / Contrat.)</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -261,10 +262,44 @@ export default function Projects() {
                           })()
                         : '-'}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="secondary" className="font-mono">
-                        {formatHoursAndMinutes(hours)}
-                      </Badge>
+                    <TableCell>
+                      <div className="flex flex-col gap-1.5 min-w-[120px] max-w-[150px]">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-medium">{formatHoursAndMinutes(hours)}</span>
+                          {(() => {
+                            const contracted =
+                              projectDates[project.id]?.contracted_hours ??
+                              (project as any).contracted_hours ??
+                              (project as any).contractedHours
+                            return (
+                              <span className="text-muted-foreground">
+                                {contracted ? `${contracted}h` : '-'}
+                              </span>
+                            )
+                          })()}
+                        </div>
+                        {(() => {
+                          const contracted =
+                            projectDates[project.id]?.contracted_hours ??
+                            (project as any).contracted_hours ??
+                            (project as any).contractedHours
+                          if (!contracted) return null
+                          const ratio = hours / contracted
+                          const percent = Math.min(ratio * 100, 100)
+                          let colorClass = 'bg-emerald-500'
+                          if (ratio >= 1) colorClass = 'bg-red-500'
+                          else if (ratio >= 0.75) colorClass = 'bg-yellow-500'
+
+                          return (
+                            <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className={cn('h-full transition-all duration-500', colorClass)}
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          )
+                        })()}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">

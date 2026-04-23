@@ -169,6 +169,22 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
         </Select>
       </div>
 
+      <div className="space-y-2">
+        <Label>Horas Contratadas</Label>
+        <Input
+          type="number"
+          min="0"
+          value={formData.contracted_hours ?? formData.contractedHours ?? ''}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              contracted_hours: e.target.value ? parseInt(e.target.value) : null,
+            })
+          }
+          placeholder="Ex: 100"
+        />
+      </div>
+
       <div className="col-span-1 md:col-span-2 pt-4 border-t mt-2">
         <h4 className="text-sm font-semibold mb-4">Prazos e Datas</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
