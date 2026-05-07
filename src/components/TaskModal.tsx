@@ -167,7 +167,10 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                             value={clientSearch}
                             onValueChange={setClientSearch}
                           />
-                          <CommandList>
+                          <CommandList
+                            className="max-h-[300px] overflow-y-auto overscroll-contain pointer-events-auto"
+                            onWheel={(e) => e.stopPropagation()}
+                          >
                             <CommandEmpty className="py-4 px-2 text-center text-sm">
                               <p className="text-muted-foreground mb-2">
                                 Nenhum cliente encontrado.
@@ -201,117 +204,121 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                               </CommandItem>
                             </CommandGroup>
                             <CommandGroup>
-                              {clients.map((c) => (
-                                <CommandItem
-                                  key={c.id}
-                                  value={c.name}
-                                  onSelect={() => {
-                                    if (editingClientId) return
-                                    handleClientChange(c.id)
-                                    setClientOpen(false)
-                                  }}
-                                  className="group flex items-center justify-between"
-                                >
-                                  <div className="flex items-center gap-2 overflow-hidden flex-1">
-                                    <Check
-                                      className={cn(
-                                        'h-4 w-4 shrink-0',
-                                        task.clientId === c.id ? 'opacity-100' : 'opacity-0',
+                              {[...clients]
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map((c) => (
+                                  <CommandItem
+                                    key={c.id}
+                                    value={c.name}
+                                    onSelect={() => {
+                                      if (editingClientId) return
+                                      handleClientChange(c.id)
+                                      setClientOpen(false)
+                                    }}
+                                    className="group flex items-center justify-between"
+                                  >
+                                    <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                      <Check
+                                        className={cn(
+                                          'h-4 w-4 shrink-0',
+                                          task.clientId === c.id ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                      {editingClientId === c.id ? (
+                                        <Input
+                                          value={editingClientName}
+                                          onChange={(e) => setEditingClientName(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              if (editingClientName.trim()) {
+                                                updateClient(c.id, {
+                                                  name: editingClientName.trim(),
+                                                })
+                                              }
+                                              setEditingClientId(null)
+                                              e.stopPropagation()
+                                            }
+                                            if (e.key === 'Escape') {
+                                              setEditingClientId(null)
+                                              e.stopPropagation()
+                                            }
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="h-7 py-1 px-2 text-sm"
+                                          autoFocus
+                                        />
+                                      ) : (
+                                        <span className="truncate">{c.name}</span>
                                       )}
-                                    />
-                                    {editingClientId === c.id ? (
-                                      <Input
-                                        value={editingClientName}
-                                        onChange={(e) => setEditingClientName(e.target.value)}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
+                                    </div>
+
+                                    {!editingClientId && (
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setEditingClientId(c.id)
+                                            setEditingClientName(c.name)
+                                          }}
+                                        >
+                                          <Edit2 className="h-3 w-3" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            if (
+                                              confirm(
+                                                `Tem certeza que deseja excluir o cliente ${c.name}? Isso pode afetar tarefas e projetos associados.`,
+                                              )
+                                            ) {
+                                              deleteClient(c.id)
+                                              if (task.clientId === c.id) {
+                                                updateTask(task.id, { clientId: '', projectId: '' })
+                                              }
+                                            }
+                                          }}
+                                        >
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    {editingClientId === c.id && (
+                                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100/50"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
                                             if (editingClientName.trim()) {
                                               updateClient(c.id, { name: editingClientName.trim() })
                                             }
                                             setEditingClientId(null)
+                                          }}
+                                        >
+                                          <Check className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-muted-foreground"
+                                          onClick={(e) => {
                                             e.stopPropagation()
-                                          }
-                                          if (e.key === 'Escape') {
                                             setEditingClientId(null)
-                                            e.stopPropagation()
-                                          }
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="h-7 py-1 px-2 text-sm"
-                                        autoFocus
-                                      />
-                                    ) : (
-                                      <span className="truncate">{c.name}</span>
+                                          }}
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </div>
                                     )}
-                                  </div>
-
-                                  {!editingClientId && (
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          setEditingClientId(c.id)
-                                          setEditingClientName(c.name)
-                                        }}
-                                      >
-                                        <Edit2 className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (
-                                            confirm(
-                                              `Tem certeza que deseja excluir o cliente ${c.name}? Isso pode afetar tarefas e projetos associados.`,
-                                            )
-                                          ) {
-                                            deleteClient(c.id)
-                                            if (task.clientId === c.id) {
-                                              updateTask(task.id, { clientId: '', projectId: '' })
-                                            }
-                                          }
-                                        }}
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                  {editingClientId === c.id && (
-                                    <div className="flex items-center gap-1 shrink-0 ml-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100/50"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          if (editingClientName.trim()) {
-                                            updateClient(c.id, { name: editingClientName.trim() })
-                                          }
-                                          setEditingClientId(null)
-                                        }}
-                                      >
-                                        <Check className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-muted-foreground"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          setEditingClientId(null)
-                                        }}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </CommandItem>
-                              ))}
+                                  </CommandItem>
+                                ))}
                             </CommandGroup>
                             {clients.length > 0 &&
                               clientSearch &&
@@ -406,33 +413,38 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       >
                         <Command>
                           <CommandInput placeholder="Buscar categoria..." />
-                          <CommandList>
+                          <CommandList
+                            className="max-h-[300px] overflow-y-auto overscroll-contain pointer-events-auto"
+                            onWheel={(e) => e.stopPropagation()}
+                          >
                             <CommandEmpty>Nenhuma categoria encontrada.</CommandEmpty>
                             <CommandGroup>
-                              {categories.map((cat) => (
-                                <CommandItem
-                                  key={cat.id}
-                                  value={cat.name}
-                                  onSelect={() => {
-                                    updateTask(task.id, { categoryId: cat.id })
-                                    setCategoryOpen(false)
-                                  }}
-                                >
-                                  <div className="flex items-center gap-2 w-full">
-                                    <div
-                                      className="w-3 h-3 rounded-full shrink-0"
-                                      style={{ backgroundColor: cat.color }}
-                                    />
-                                    <span className="flex-1 truncate">{cat.name}</span>
-                                    <Check
-                                      className={cn(
-                                        'h-4 w-4 shrink-0',
-                                        task.categoryId === cat.id ? 'opacity-100' : 'opacity-0',
-                                      )}
-                                    />
-                                  </div>
-                                </CommandItem>
-                              ))}
+                              {[...categories]
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map((cat) => (
+                                  <CommandItem
+                                    key={cat.id}
+                                    value={cat.name}
+                                    onSelect={() => {
+                                      updateTask(task.id, { categoryId: cat.id })
+                                      setCategoryOpen(false)
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <div
+                                        className="w-3 h-3 rounded-full shrink-0"
+                                        style={{ backgroundColor: cat.color }}
+                                      />
+                                      <span className="flex-1 truncate">{cat.name}</span>
+                                      <Check
+                                        className={cn(
+                                          'h-4 w-4 shrink-0',
+                                          task.categoryId === cat.id ? 'opacity-100' : 'opacity-0',
+                                        )}
+                                      />
+                                    </div>
+                                  </CommandItem>
+                                ))}
                             </CommandGroup>
                             <Separator />
                             <CommandGroup>
@@ -576,33 +588,38 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     >
                       <Command>
                         <CommandInput placeholder="Pesquisar analista..." />
-                        <CommandList>
+                        <CommandList
+                          className="max-h-[300px] overflow-y-auto overscroll-contain pointer-events-auto"
+                          onWheel={(e) => e.stopPropagation()}
+                        >
                           <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
                           <CommandGroup>
-                            {analysts.map((a) => {
-                              const isSelected = task.responsibleIds?.includes(a.id)
-                              return (
-                                <CommandItem
-                                  key={a.id}
-                                  value={a.nome}
-                                  onSelect={() => {
-                                    const current = task.responsibleIds || []
-                                    updateTask(task.id, {
-                                      responsibleIds: isSelected
-                                        ? current.filter((id) => id !== a.id)
-                                        : [...current, a.id],
-                                    })
-                                  }}
-                                  disabled={a.status !== 'Ativo'}
-                                >
-                                  <Checkbox
-                                    checked={isSelected}
-                                    className="mr-2 pointer-events-none"
-                                  />
-                                  {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
-                                </CommandItem>
-                              )
-                            })}
+                            {[...analysts]
+                              .sort((a, b) => a.nome.localeCompare(b.nome))
+                              .map((a) => {
+                                const isSelected = task.responsibleIds?.includes(a.id)
+                                return (
+                                  <CommandItem
+                                    key={a.id}
+                                    value={a.nome}
+                                    onSelect={() => {
+                                      const current = task.responsibleIds || []
+                                      updateTask(task.id, {
+                                        responsibleIds: isSelected
+                                          ? current.filter((id) => id !== a.id)
+                                          : [...current, a.id],
+                                      })
+                                    }}
+                                    disabled={a.status !== 'Ativo'}
+                                  >
+                                    <Checkbox
+                                      checked={isSelected}
+                                      className="mr-2 pointer-events-none"
+                                    />
+                                    {a.nome} {a.status !== 'Ativo' && '(Inativo)'}
+                                  </CommandItem>
+                                )
+                              })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
