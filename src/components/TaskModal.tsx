@@ -111,7 +111,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                 />
               </DialogTitle>
             </DialogHeader>
-            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 mt-2 md:mt-0 w-full md:w-auto md:mr-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 mt-2 md:mt-0 w-full md:w-auto md:mr-8">
               <Button
                 variant="outline"
                 size="sm"

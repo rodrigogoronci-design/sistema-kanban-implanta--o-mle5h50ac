@@ -167,6 +167,7 @@ export default function Index() {
   }
 
   const [openNewTask, setOpenNewTask] = useState(false)
+  const [newTaskColumnId, setNewTaskColumnId] = useState<string | null>(null)
   const [openArchiveManager, setOpenArchiveManager] = useState(false)
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showNewClientModal, setShowNewClientModal] = useState(false)
@@ -242,6 +243,7 @@ export default function Index() {
     }
 
     const backlogColumn = columns.find((c) => c.title.toLowerCase() === 'backlog') || columns[0]
+    const targetColumnId = newTaskColumnId || (backlogColumn ? backlogColumn.id : '')
 
     addTask({
       id: crypto.randomUUID(),
@@ -256,7 +258,7 @@ export default function Index() {
         ? format(newTaskForm.scheduledDate, 'yyyy-MM-dd')
         : undefined,
       scheduledTime: newTaskForm.scheduledTime || undefined,
-      columnId: backlogColumn ? backlogColumn.id : '',
+      columnId: targetColumnId,
       description: '',
       checklist: [],
       timeEntries: [],
@@ -488,11 +490,15 @@ export default function Index() {
             </TabsList>
           </Tabs>
           <Dialog open={openNewTask} onOpenChange={setOpenNewTask}>
-            <DialogTrigger asChild>
-              <Button className="shadow-sm">
-                <Plus className="w-4 h-4 mr-2" /> Novo Card
-              </Button>
-            </DialogTrigger>
+            <Button
+              className="shadow-sm"
+              onClick={() => {
+                setNewTaskColumnId(null)
+                setOpenNewTask(true)
+              }}
+            >
+              <Plus className="w-4 h-4 mr-2" /> Novo Card
+            </Button>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Criar Nova Tarefa</DialogTitle>
@@ -531,7 +537,10 @@ export default function Index() {
                       >
                         <Command>
                           <CommandInput placeholder="Pesquisar cliente..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
+                          <CommandList
+                            className="max-h-[250px] overflow-y-auto overscroll-contain pointer-events-auto"
+                            onWheel={(e) => e.stopPropagation()}
+                          >
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               <CommandItem
@@ -625,7 +634,10 @@ export default function Index() {
                       >
                         <Command>
                           <CommandInput placeholder="Pesquisar analista..." />
-                          <CommandList className="max-h-[250px] overflow-y-auto">
+                          <CommandList
+                            className="max-h-[250px] overflow-y-auto overscroll-contain pointer-events-auto"
+                            onWheel={(e) => e.stopPropagation()}
+                          >
                             <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
                             <CommandGroup>
                               {analysts.map((a) => {
@@ -956,6 +968,18 @@ export default function Index() {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setNewTaskColumnId(col.id)
+                        setOpenNewTask(true)
+                      }}
+                      title="Adicionar tarefa nesta coluna"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
                     <Badge variant="secondary" className="bg-background text-foreground shadow-sm">
                       {filteredTasks.filter((t) => t.columnId === col.id).length}
                     </Badge>
