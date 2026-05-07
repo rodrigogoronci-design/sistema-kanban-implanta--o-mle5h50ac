@@ -97,6 +97,7 @@ import {
   Eye,
   EyeOff,
   ChevronsUpDown,
+  Check,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -170,6 +171,7 @@ export default function Index() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [showNewClientModal, setShowNewClientModal] = useState(false)
   const [taskAnalystsOpen, setTaskAnalystsOpen] = useState(false)
+  const [clientComboboxOpen, setClientComboboxOpen] = useState(false)
 
   const handleCreateClient = (data: any) => {
     const newClient = {
@@ -505,39 +507,70 @@ export default function Index() {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 flex flex-col">
                     <Label>Cliente</Label>
-                    <Select
-                      required
-                      value={newTaskForm.clientId}
-                      onValueChange={(v) => {
-                        if (v === 'NEW_CLIENT') {
-                          setShowNewClientModal(true)
-                          return
-                        }
-                        setNewTaskForm((s) => ({
-                          ...s,
-                          clientId: v,
-                          projectId: '',
-                        }))
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NEW_CLIENT" className="font-semibold text-primary">
-                          <span className="flex items-center gap-2">
-                            <Plus className="w-4 h-4" /> Adicionar novo cliente
-                          </span>
-                        </SelectItem>
-                        {clients.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={clientComboboxOpen} onOpenChange={setClientComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={clientComboboxOpen}
+                          className="w-full justify-between font-normal bg-background"
+                        >
+                          {newTaskForm.clientId
+                            ? clients.find((c) => c.id === newTaskForm.clientId)?.name
+                            : 'Selecione ou pesquise...'}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[var(--radix-popover-trigger-width)] p-0"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput placeholder="Pesquisar cliente..." />
+                          <CommandList>
+                            <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="ADICIONAR_NOVO_CLIENTE"
+                                onSelect={() => {
+                                  setShowNewClientModal(true)
+                                  setClientComboboxOpen(false)
+                                }}
+                                className="font-semibold text-primary"
+                              >
+                                <Plus className="w-4 h-4 mr-2" /> Adicionar novo cliente
+                              </CommandItem>
+                              {[...clients]
+                                .sort((a, b) => a.name.localeCompare(b.name))
+                                .map((c) => (
+                                  <CommandItem
+                                    key={c.id}
+                                    value={c.name}
+                                    onSelect={() => {
+                                      setNewTaskForm((s) => ({
+                                        ...s,
+                                        clientId: c.id,
+                                        projectId: '',
+                                      }))
+                                      setClientComboboxOpen(false)
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        newTaskForm.clientId === c.id ? 'opacity-100' : 'opacity-0',
+                                      )}
+                                    />
+                                    {c.name}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className="space-y-2">
                     <Label>Projeto (Opcional)</Label>
@@ -772,11 +805,13 @@ export default function Index() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Cliente</SelectItem>
-              {clients.map((c) => (
-                <SelectItem key={c.id} value={c.id}>
-                  {c.name}
-                </SelectItem>
-              ))}
+              {[...clients]
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
 

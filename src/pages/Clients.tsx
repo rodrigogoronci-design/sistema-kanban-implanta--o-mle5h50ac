@@ -148,9 +148,9 @@ export default function Clients() {
     }
   }
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredClients = clients
+    .filter((client) => client.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 animate-fade-in-up">

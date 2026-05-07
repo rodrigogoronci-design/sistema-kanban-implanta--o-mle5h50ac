@@ -96,24 +96,26 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
               <CommandList>
                 <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                 <CommandGroup>
-                  {clients.map((client) => (
-                    <CommandItem
-                      key={client.id}
-                      value={client.name}
-                      onSelect={() => {
-                        setFormData({ ...formData, clientId: client.id })
-                        setClientOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          formData.clientId === client.id ? 'opacity-100' : 'opacity-0',
-                        )}
-                      />
-                      {client.name}
-                    </CommandItem>
-                  ))}
+                  {[...clients]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((client) => (
+                      <CommandItem
+                        key={client.id}
+                        value={client.name}
+                        onSelect={() => {
+                          setFormData({ ...formData, clientId: client.id })
+                          setClientOpen(false)
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            formData.clientId === client.id ? 'opacity-100' : 'opacity-0',
+                          )}
+                        />
+                        {client.name}
+                      </CommandItem>
+                    ))}
                 </CommandGroup>
               </CommandList>
             </Command>
