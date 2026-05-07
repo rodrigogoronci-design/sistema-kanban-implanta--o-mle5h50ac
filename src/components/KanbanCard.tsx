@@ -1,41 +1,10 @@
 import { Badge } from '@/components/ui/badge'
-import {
-  Clock,
-  Paperclip,
-  MessageSquare,
-  CalendarClock,
-  Check,
-  MoreVertical,
-  Trash2,
-  Flag,
-} from 'lucide-react'
+import { Clock, Paperclip, MessageSquare, CalendarClock, Check } from 'lucide-react'
 import useMainStore from '@/stores/main'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useState } from 'react'
 
 interface KanbanCardProps {
   task: any
@@ -44,9 +13,7 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardProps) {
-  const { clients, analysts, categories, timeEntries, updateTask, deleteTask, columns } =
-    useMainStore()
-  const [deleteOpen, setDeleteOpen] = useState(false)
+  const { clients, analysts, categories, timeEntries, updateTask, columns } = useMainStore()
 
   const client = clients?.find((c) => c.id === task.clientId)
   const category = categories?.find((c) => c.id === task.categoryId)
@@ -82,11 +49,6 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
       const lastCol = columns[columns.length - 1]
       if (lastCol) updateTask(task.id, { columnId: lastCol.id })
     }
-  }
-
-  const handleDelete = (e?: React.MouseEvent) => {
-    e?.stopPropagation()
-    setDeleteOpen(true)
   }
 
   let deadlineClass = ''
@@ -144,71 +106,6 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
               >
                 <Check className="h-3.5 w-3.5" />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-muted-foreground hover:bg-muted"
-                  >
-                    <MoreVertical className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={handleComplete}>
-                    <Check className="h-4 w-4 mr-2 text-green-600" /> Concluir
-                  </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <Flag className="h-4 w-4 mr-2" /> Prioridade
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            updateTask(task.id, { priority: 'Baixa' })
-                          }}
-                        >
-                          Baixa{' '}
-                          {task.priority === 'Baixa' && (
-                            <Check className="ml-auto h-4 w-4 opacity-50" />
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            updateTask(task.id, { priority: 'Média' })
-                          }}
-                        >
-                          Média{' '}
-                          {task.priority === 'Média' && (
-                            <Check className="ml-auto h-4 w-4 opacity-50" />
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            updateTask(task.id, { priority: 'Alta' })
-                          }}
-                        >
-                          Alta{' '}
-                          {task.priority === 'Alta' && (
-                            <Check className="ml-auto h-4 w-4 opacity-50" />
-                          )}
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                  </DropdownMenuSub>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -279,31 +176,6 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
           </div>
         </div>
       </div>
-
-      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Tarefa?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta tarefa permanentemente? Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={(e) => {
-                e.stopPropagation()
-                if (deleteTask) deleteTask(task.id)
-                setDeleteOpen(false)
-              }}
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
