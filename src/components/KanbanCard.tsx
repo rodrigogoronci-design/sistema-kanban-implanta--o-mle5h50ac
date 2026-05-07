@@ -1,9 +1,41 @@
 import { Badge } from '@/components/ui/badge'
-import { Clock, Paperclip, MessageSquare, CalendarClock } from 'lucide-react'
+import {
+  Clock,
+  Paperclip,
+  MessageSquare,
+  CalendarClock,
+  Check,
+  MoreVertical,
+  Trash2,
+  Flag,
+} from 'lucide-react'
 import useMainStore from '@/stores/main'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuPortal,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useState } from 'react'
 
 interface KanbanCardProps {
   task: any
@@ -12,7 +44,9 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardProps) {
-  const { clients, analysts, categories, timeEntries } = useMainStore()
+  const { clients, analysts, categories, timeEntries, updateTask, deleteTask, columns } =
+    useMainStore()
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const client = clients?.find((c) => c.id === task.clientId)
   const category = categories?.find((c) => c.id === task.categoryId)
@@ -36,6 +70,25 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
 
   if (isNaN(totalHours)) totalHours = 0
 
+  const handleComplete = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    const completedCol = columns?.find(
+      (c) =>
+        c.title.toLowerCase().includes('concluíd') || c.title.toLowerCase().includes('concluid'),
+    )
+    if (completedCol) {
+      updateTask(task.id, { columnId: completedCol.id })
+    } else if (columns && columns.length > 0) {
+      const lastCol = columns[columns.length - 1]
+      if (lastCol) updateTask(task.id, { columnId: lastCol.id })
+    }
+  }
+
+  const handleDelete = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setDeleteOpen(true)
+  }
+
   let deadlineClass = ''
   if (task.dueDate) {
     const today = new Date()
@@ -56,96 +109,201 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
   }
 
   return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, task.id)}
-      onClick={onClick}
-      className={cn(
-        'bg-background p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors flex flex-col gap-2 group relative',
-        deadlineClass,
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm leading-tight group-hover:text-primary transition-colors pr-10">
-          {task.title}
-        </h4>
-        {totalHours > 0 && (
-          <Badge
-            variant="secondary"
-            className="absolute top-3 right-3 text-[10px] px-1.5 py-0 h-4 font-mono flex items-center gap-1"
-            title="Total de horas na tarefa"
-          >
-            <Clock className="w-2.5 h-2.5" />
-            {formatHoursAndMinutes(totalHours)}
-          </Badge>
+    <>
+      <div
+        draggable
+        onDragStart={(e) => onDragStart(e, task.id)}
+        onClick={onClick}
+        className={cn(
+          'bg-background p-3 rounded-lg border shadow-sm cursor-pointer hover:border-primary/50 transition-colors flex flex-col gap-2 group relative',
+          deadlineClass,
         )}
-      </div>
-
-      {client && <div className="text-xs text-muted-foreground truncate">{client.name}</div>}
-
-      {(task.scheduledDate || task.scheduledTime) && (
-        <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50/80 w-fit px-1.5 py-0.5 rounded border border-blue-200 mt-0.5 font-medium">
-          <CalendarClock className="w-3 h-3" />
-          <span>
-            {task.scheduledDate && format(parseISO(task.scheduledDate), 'dd/MM/yyyy')}
-            {task.scheduledDate && task.scheduledTime && ' às '}
-            {task.scheduledTime && task.scheduledTime.slice(0, 5)}
-          </span>
+      >
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-medium text-sm leading-tight group-hover:text-primary transition-colors pr-16">
+            {task.title}
+          </h4>
+          <div className="absolute top-2 right-2 flex items-center gap-1">
+            {totalHours > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 h-4 font-mono flex items-center gap-1 group-hover:hidden"
+                title="Total de horas na tarefa"
+              >
+                <Clock className="w-2.5 h-2.5" />
+                {formatHoursAndMinutes(totalHours)}
+              </Badge>
+            )}
+            <div className="hidden group-hover:flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md p-0.5 shadow-sm border">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-green-600 hover:text-green-700 hover:bg-green-100"
+                onClick={handleComplete}
+                title="Concluir"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:bg-muted"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={handleComplete}>
+                    <Check className="h-4 w-4 mr-2 text-green-600" /> Concluir
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <Flag className="h-4 w-4 mr-2" /> Prioridade
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            updateTask(task.id, { priority: 'Baixa' })
+                          }}
+                        >
+                          Baixa{' '}
+                          {task.priority === 'Baixa' && (
+                            <Check className="ml-auto h-4 w-4 opacity-50" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            updateTask(task.id, { priority: 'Média' })
+                          }}
+                        >
+                          Média{' '}
+                          {task.priority === 'Média' && (
+                            <Check className="ml-auto h-4 w-4 opacity-50" />
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            updateTask(task.id, { priority: 'Alta' })
+                          }}
+                        >
+                          Alta{' '}
+                          {task.priority === 'Alta' && (
+                            <Check className="ml-auto h-4 w-4 opacity-50" />
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
-      )}
 
-      <div className="flex flex-wrap items-center gap-1.5 mt-1">
-        {category && (
-          <Badge
-            variant="secondary"
-            className="text-[10px] px-1.5 py-0 h-4"
-            style={{ backgroundColor: category.color + '20', color: category.color }}
-          >
-            {category.name}
-          </Badge>
+        {client && <div className="text-xs text-muted-foreground truncate">{client.name}</div>}
+
+        {(task.scheduledDate || task.scheduledTime) && (
+          <div className="flex items-center gap-1.5 text-[11px] text-blue-700 bg-blue-50/80 w-fit px-1.5 py-0.5 rounded border border-blue-200 mt-0.5 font-medium">
+            <CalendarClock className="w-3 h-3" />
+            <span>
+              {task.scheduledDate && format(parseISO(task.scheduledDate), 'dd/MM/yyyy')}
+              {task.scheduledDate && task.scheduledTime && ' às '}
+              {task.scheduledTime && task.scheduledTime.slice(0, 5)}
+            </span>
+          </div>
         )}
-        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-          {task.priority || 'Média'}
-        </Badge>
-      </div>
 
-      <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-1 text-xs">
-          {task.responsibleIds && task.responsibleIds.length > 0 ? (
-            task.responsibleIds.map((aId: string) => {
-              const a = analysts?.find((an) => an.id === aId)
-              return a ? (
-                <div
-                  key={aId}
-                  className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
-                  title={`Responsável: ${a.nome}`}
-                >
-                  <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                    {a.nome.charAt(0).toUpperCase()}
+        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+          {category && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0 h-4"
+              style={{ backgroundColor: category.color + '20', color: category.color }}
+            >
+              {category.name}
+            </Badge>
+          )}
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+            {task.priority || 'Média'}
+          </Badge>
+        </div>
+
+        <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-1 text-xs">
+            {task.responsibleIds && task.responsibleIds.length > 0 ? (
+              task.responsibleIds.map((aId: string) => {
+                const a = analysts?.find((an) => an.id === aId)
+                return a ? (
+                  <div
+                    key={aId}
+                    className="flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px]"
+                    title={`Responsável: ${a.nome}`}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                      {a.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate max-w-[60px]">{a.nome.split(' ')[0]}</span>
                   </div>
-                  <span className="truncate max-w-[60px]">{a.nome.split(' ')[0]}</span>
-                </div>
-              ) : null
-            })
-          ) : (
-            <span className="text-[10px] italic text-muted-foreground/70">Não atribuído</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 text-xs">
-          {task.attachments && task.attachments.length > 0 && (
-            <div className="flex items-center gap-1">
-              <Paperclip className="w-3 h-3" />
-              <span>{task.attachments.length}</span>
-            </div>
-          )}
-          {task.comments && task.comments.length > 0 && (
-            <div className="flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" />
-              <span>{task.comments.length}</span>
-            </div>
-          )}
+                ) : null
+              })
+            ) : (
+              <span className="text-[10px] italic text-muted-foreground/70">Não atribuído</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            {task.attachments && task.attachments.length > 0 && (
+              <div className="flex items-center gap-1">
+                <Paperclip className="w-3 h-3" />
+                <span>{task.attachments.length}</span>
+              </div>
+            )}
+            {task.comments && task.comments.length > 0 && (
+              <div className="flex items-center gap-1">
+                <MessageSquare className="w-3 h-3" />
+                <span>{task.comments.length}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Tarefa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta tarefa permanentemente? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (deleteTask) deleteTask(task.id)
+                setDeleteOpen(false)
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

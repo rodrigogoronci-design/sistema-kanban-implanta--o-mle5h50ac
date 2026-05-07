@@ -498,6 +498,16 @@ export default function useMainStore() {
           })
       }
     },
+    deleteTask: (id: string) => {
+      store.setState((s) => ({ ...s, tasks: s.tasks.filter((t) => t.id !== id) }))
+      supabase
+        .from('tasks')
+        .delete()
+        .eq('id', id)
+        .then(({ error }) => {
+          if (error) console.error('Error deleting task:', error)
+        })
+    },
     addTask: (task: Task) => {
       store.setState((s) => ({ ...s, tasks: [...s.tasks, task] }))
       supabase

@@ -11,6 +11,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { TaskChecklist } from './TaskChecklist'
 import { TaskActivities } from './TaskActivities'
 import { TaskAttachments } from './TaskAttachments'
@@ -37,7 +47,9 @@ import { ClientFormModal } from './ClientFormModal'
 export default function TaskModal({ taskId, onClose }: { taskId: string; onClose: () => void }) {
   const {
     tasks,
+    columns,
     updateTask,
+    deleteTask,
     clients,
     projects,
     categories,
@@ -54,6 +66,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const [editingClientName, setEditingClientName] = useState('')
   const [clientFormOpen, setClientFormOpen] = useState(false)
   const [analystsOpen, setAnalystsOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const task = tasks.find((t) => t.id === taskId)
 
@@ -69,12 +82,26 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
   const onUpdate = (payload: Partial<typeof task>) => updateTask(task.id, payload)
 
+  const handleComplete = () => {
+    const completedCol = columns.find(
+      (c) =>
+        c.title.toLowerCase().includes('concluíd') || c.title.toLowerCase().includes('concluid'),
+    )
+    if (completedCol) {
+      updateTask(task.id, { columnId: completedCol.id })
+    } else {
+      const lastCol = columns[columns.length - 1]
+      if (lastCol) updateTask(task.id, { columnId: lastCol.id })
+    }
+    onClose()
+  }
+
   return (
     <>
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-2xl w-full p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="p-6 pb-4 bg-muted/20 border-b shrink-0">
-            <DialogHeader>
+          <div className="p-6 pb-4 bg-muted/20 border-b shrink-0 flex items-start justify-between gap-4">
+            <DialogHeader className="flex-1">
               <DialogTitle className="text-xl text-primary">
                 <Input
                   value={task.title}
@@ -84,6 +111,24 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                 />
               </DialogTitle>
             </DialogHeader>
+            <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0 mt-2 sm:mt-0">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200 w-full sm:w-auto"
+                onClick={handleComplete}
+              >
+                <Check className="w-4 h-4 mr-2" /> Concluir
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/20 w-full sm:w-auto"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-6">
@@ -604,6 +649,32 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
           setClientSearch('')
         }}
       />
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Tarefa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta tarefa permanentemente? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTask) {
+                  deleteTask(task.id)
+                }
+                setDeleteOpen(false)
+                onClose()
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
