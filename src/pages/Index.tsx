@@ -526,10 +526,12 @@ export default function Index() {
                       <PopoverContent
                         className="w-[var(--radix-popover-trigger-width)] p-0"
                         align="start"
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                       >
                         <Command>
                           <CommandInput placeholder="Pesquisar cliente..." />
-                          <CommandList>
+                          <CommandList className="max-h-[250px] overflow-y-auto">
                             <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                             <CommandGroup>
                               <CommandItem
@@ -618,10 +620,12 @@ export default function Index() {
                       <PopoverContent
                         className="w-[var(--radix-popover-trigger-width)] p-0"
                         align="start"
+                        onWheel={(e) => e.stopPropagation()}
+                        onTouchMove={(e) => e.stopPropagation()}
                       >
                         <Command>
                           <CommandInput placeholder="Pesquisar analista..." />
-                          <CommandList>
+                          <CommandList className="max-h-[250px] overflow-y-auto">
                             <CommandEmpty>Nenhum analista encontrado.</CommandEmpty>
                             <CommandGroup>
                               {analysts.map((a) => {
