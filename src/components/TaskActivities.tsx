@@ -20,7 +20,16 @@ export function TaskActivities({ task, onUpdate }: Props) {
       setError('Preencha os campos de início e fim')
       return
     }
-    if (new Date(newActivity.end_time) < new Date(newActivity.start_time)) {
+
+    const startDate = new Date(newActivity.start_time)
+    const endDate = new Date(newActivity.end_time)
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      setError('Datas inválidas')
+      return
+    }
+
+    if (endDate < startDate) {
       setError('A data final não pode ser anterior à inicial')
       return
     }
@@ -39,8 +48,8 @@ export function TaskActivities({ task, onUpdate }: Props) {
         ...(task.timeEntries || []),
         {
           id: uuid,
-          start: newActivity.start_time,
-          end: newActivity.end_time,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
           observation: newActivity.observation,
         },
       ],
@@ -56,7 +65,15 @@ export function TaskActivities({ task, onUpdate }: Props) {
 
   const formatDate = (dateStr: string) => {
     try {
-      return new Date(dateStr).toLocaleString()
+      const date = new Date(dateStr)
+      if (isNaN(date.getTime())) return dateStr
+      return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
     } catch {
       return dateStr
     }
