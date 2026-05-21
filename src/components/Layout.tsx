@@ -25,6 +25,7 @@ import {
   Settings,
   PieChart,
   UserCheck,
+  BookOpen,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ export default function Layout() {
     { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
+    { title: 'Módulos', url: '/modules', icon: BookOpen },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
@@ -65,11 +67,19 @@ export default function Layout() {
   }, [])
 
   const defaultPermissions: Record<string, string[]> = {
-    Administrador: ['/', '/clients', '/projects', '/analysts', '/users', '/reports', '/settings'],
-    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports'],
+    Administrador: [
+      '/',
+      '/clients',
+      '/projects',
+      '/analysts',
+      '/users',
+      '/reports',
+      '/modules',
+      '/settings',
+    ],
+    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports', '/modules'],
     Colaborador: ['/', '/projects'],
   }
-
   const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
   const allowedRoutes = activePermissions[userRole] || activePermissions['Administrador'] || ['/']

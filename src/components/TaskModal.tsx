@@ -772,14 +772,14 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <div className="p-4 border rounded-md bg-background text-sm text-muted-foreground">
                         Nenhum módulo cadastrado. Gerencie os módulos na página de{' '}
                         <a
-                          href="/settings"
+                          href="/modules"
                           target="_blank"
                           rel="noreferrer"
                           className="text-primary hover:underline"
                         >
-                          Configurações
+                          Módulos
                         </a>
-                        .
+                        .{' '}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 border rounded-md bg-background">
