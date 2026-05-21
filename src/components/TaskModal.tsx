@@ -27,7 +27,17 @@ import { TaskAttachments } from './TaskAttachments'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon, Check, ChevronsUpDown, Settings, Edit2, Trash2, X, Plus } from 'lucide-react'
+import {
+  CalendarIcon,
+  Check,
+  ChevronsUpDown,
+  Settings,
+  Edit2,
+  Trash2,
+  X,
+  Plus,
+  Printer,
+} from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -112,6 +122,14 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
               </DialogTitle>
             </DialogHeader>
             <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 mt-2 md:mt-0 w-full md:w-auto md:mr-8">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => window.open(`/rat/${task.id}`, '_blank')}
+              >
+                <Printer className="w-4 h-4 mr-2" /> Gerar RAT
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
