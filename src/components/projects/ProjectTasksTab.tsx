@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import useMainStore, { Project } from '@/stores/main'
+import TaskModal from '@/components/TaskModal'
 import {
   Table,
   TableBody,
@@ -21,6 +22,7 @@ interface Props {
 
 export function ProjectTasksTab({ project }: Props) {
   const { tasks, columns, analysts } = useMainStore()
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const projectTasks = useMemo(() => {
     return tasks?.filter((t) => t.projectId === project.id) || []
@@ -110,7 +112,11 @@ export function ProjectTasksTab({ project }: Props) {
                 const isMediumPriority = task.priority === 'Média'
 
                 return (
-                  <TableRow key={task.id} className="group hover:bg-muted/30 transition-colors">
+                  <TableRow
+                    key={task.id}
+                    className="group hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() => setSelectedTaskId(task.id)}
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         {isHighPriority && (
@@ -181,6 +187,10 @@ export function ProjectTasksTab({ project }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {selectedTaskId && (
+        <TaskModal taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+      )}
     </div>
   )
 }
