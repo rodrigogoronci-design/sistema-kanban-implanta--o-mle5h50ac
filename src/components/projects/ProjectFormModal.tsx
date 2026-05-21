@@ -35,9 +35,10 @@ interface Props {
   onOpenChange: (open: boolean) => void
   project?: Project
   onSubmit: (data: Omit<Project, 'id'> & any) => void
+  isSaving?: boolean
 }
 
-export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Props) {
+export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSaving }: Props) {
   const { clients, analysts, projectStatuses } = useMainStore()
   const [formData, setFormData] = useState<
     Partial<Project> & { priority?: string; notes?: string }
@@ -432,11 +433,16 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
           )}
 
           <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSaving}
+            >
               Cancelar
             </Button>
-            <Button type="submit" form="project-form">
-              Salvar
+            <Button type="submit" form="project-form" disabled={isSaving}>
+              {isSaving ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </DialogContent>

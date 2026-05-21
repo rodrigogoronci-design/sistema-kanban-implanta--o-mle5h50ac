@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/select'
 import { useProjectChecklists } from '@/hooks/use-project-checklists'
 import { Progress } from '@/components/ui/progress'
+import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 export default function Projects() {
   const {
@@ -67,18 +69,94 @@ export default function Projects() {
     setModalOpen(true)
   }
 
-  const handleSubmit = async (data: Omit<Project, 'id'>) => {
-    if (editingProject) {
-      updateProject(editingProject.id, data)
-    } else {
-      addProject(data as Project)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
+    setIsSaving(true)
+    try {
+      const dbData = {
+        name: data.name,
+        client_id: data.clientId || null,
+        analyst_id: data.analystIds?.[0] || data.analystId || null,
+        status_id: data.statusId || null,
+        priority: data.priority || 'Média',
+        notes: data.notes || null,
+        contracted_hours: data.contractedHours || null,
+        impl_start: data.implStart || null,
+        impl_end: data.implEnd || null,
+        train_start: data.trainStart || null,
+        train_end: data.trainEnd || null,
+        op_start: data.opStart || null,
+        op_end: data.opEnd || null,
+        forecast_start: data.forecastStart || null,
+        forecast_end: data.forecastEnd || null,
+      }
+
+      if (editingProject) {
+        const { error } = await supabase.from('projects').update(dbData).eq('id', editingProject.id)
+        if (error) throw error
+
+        if (data.analystIds && data.analystIds.length > 0) {
+          await supabase.from('project_analysts').delete().eq('project_id', editingProject.id)
+          const paData = data.analystIds.map((aId: string) => ({
+            project_id: editingProject.id,
+            analyst_id: aId,
+          }))
+          await supabase.from('project_analysts').insert(paData)
+        } else {
+          await supabase.from('project_analysts').delete().eq('project_id', editingProject.id)
+        }
+
+        updateProject(editingProject.id, {
+          ...data,
+          clientId: dbData.client_id,
+          statusId: dbData.status_id,
+        } as Project)
+        toast.success('Projeto atualizado com sucesso!')
+      } else {
+        const { data: newProject, error } = await supabase
+          .from('projects')
+          .insert([dbData])
+          .select()
+          .single()
+        if (error) throw error
+
+        if (data.analystIds && data.analystIds.length > 0) {
+          const paData = data.analystIds.map((aId: string) => ({
+            project_id: newProject.id,
+            analyst_id: aId,
+          }))
+          await supabase.from('project_analysts').insert(paData)
+        }
+
+        addProject({
+          ...data,
+          id: newProject.id,
+          clientId: dbData.client_id,
+          statusId: dbData.status_id,
+        } as Project)
+        toast.success('Projeto criado com sucesso!')
+      }
+      setModalOpen(false)
+    } catch (error: any) {
+      console.error(error)
+      toast.error('Erro ao salvar o projeto: ' + error.message)
+    } finally {
+      setIsSaving(false)
     }
-    setModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Deseja realmente excluir este projeto?')) {
-      deleteProject(id)
+      try {
+        const { error } = await supabase.from('projects').delete().eq('id', id)
+        if (error) throw error
+        deleteProject(id)
+        toast.success('Projeto excluído com sucesso!')
+      } catch (error: any) {
+        console.error(error)
+        toast.error('Erro ao excluir o projeto: ' + error.message)
+      }
     }
   }
 
@@ -313,6 +391,7 @@ export default function Projects() {
         onOpenChange={setModalOpen}
         project={editingProject}
         onSubmit={handleSubmit}
+        isSaving={isSaving}
       />
     </div>
   )
