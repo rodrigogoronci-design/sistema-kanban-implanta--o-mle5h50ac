@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 type Module = {
   id: string
@@ -142,13 +144,14 @@ export default function Modules() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Data de Criação</TableHead>
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
@@ -156,7 +159,7 @@ export default function Modules() {
               </TableRow>
             ) : modules.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                   Nenhum módulo encontrado.
                 </TableCell>
               </TableRow>
@@ -164,6 +167,11 @@ export default function Modules() {
               modules.map((mod) => (
                 <TableRow key={mod.id}>
                   <TableCell className="font-medium">{mod.name}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {mod.created_at
+                      ? format(new Date(mod.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                      : '-'}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button variant="ghost" size="icon" onClick={() => openEdit(mod)}>
