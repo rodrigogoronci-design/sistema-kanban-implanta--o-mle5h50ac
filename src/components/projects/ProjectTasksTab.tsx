@@ -79,16 +79,15 @@ export function ProjectTasksTab({ project }: Props) {
             <TableRow>
               <TableHead className="w-[30%]">Título</TableHead>
               <TableHead>Situação</TableHead>
-              <TableHead>Prioridade</TableHead>
               <TableHead>Responsável</TableHead>
-              <TableHead>Vencimento</TableHead>
+              <TableHead>Data de Realização</TableHead>
               <TableHead className="text-right">Horas</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {projectTasks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-3">
                     <div className="p-4 rounded-full bg-muted/50">
                       <Calendar className="h-8 w-8 opacity-40" />
@@ -135,25 +134,6 @@ export function ProjectTasksTab({ project }: Props) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          isHighPriority
-                            ? 'destructive'
-                            : isMediumPriority
-                              ? 'default'
-                              : 'secondary'
-                        }
-                        className={cn(
-                          'font-normal shadow-none whitespace-nowrap',
-                          isMediumPriority &&
-                            'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20',
-                          !isHighPriority && !isMediumPriority && 'bg-muted text-muted-foreground',
-                        )}
-                      >
-                        {task.priority || 'Normal'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       {analyst ? (
                         <div className="flex items-center gap-2">
                           <Avatar className="h-7 w-7 border">
@@ -174,10 +154,13 @@ export function ProjectTasksTab({ project }: Props) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {task.dueDate ? (
+                      {task.completionDate || task.completion_date ? (
                         <div className="flex items-center gap-1.5 text-sm whitespace-nowrap text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5" />
-                          {format(parseISO(task.dueDate), 'dd/MM/yyyy')}
+                          {format(
+                            parseISO(task.completionDate || task.completion_date),
+                            'dd/MM/yyyy',
+                          )}
                         </div>
                       ) : (
                         <span className="text-muted-foreground">-</span>
