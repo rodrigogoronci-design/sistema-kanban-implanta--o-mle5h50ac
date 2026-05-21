@@ -102,6 +102,7 @@ export interface Task {
   endDate?: string
   scheduledDate?: string
   scheduledTime?: string
+  completionDate?: string
   timeEntries: TimeEntry[]
   createdAt: string
   dueDate?: string
@@ -300,6 +301,7 @@ async function loadInitialData() {
         endDate: t.end_date || undefined,
         scheduledDate: t.scheduled_date || undefined,
         scheduledTime: t.scheduled_time || undefined,
+        completionDate: t.completion_date || undefined,
         dueDate: t.due_date || undefined,
         createdAt: t.created_at || new Date().toISOString(),
         checklist: (subtasks || [])
@@ -381,6 +383,7 @@ export default function useMainStore() {
       if ('endDate' in payload) dbPayload.end_date = payload.endDate || null
       if ('scheduledDate' in payload) dbPayload.scheduled_date = payload.scheduledDate || null
       if ('scheduledTime' in payload) dbPayload.scheduled_time = payload.scheduledTime || null
+      if ('completionDate' in payload) dbPayload.completion_date = payload.completionDate || null
 
       if (Object.keys(dbPayload).length > 0) {
         supabase
@@ -527,6 +530,7 @@ export default function useMainStore() {
           end_date: task.endDate || null,
           scheduled_date: task.scheduledDate || null,
           scheduled_time: task.scheduledTime || null,
+          completion_date: task.completionDate || null,
           created_at: task.createdAt || new Date().toISOString(),
         })
         .then(({ error }) => {

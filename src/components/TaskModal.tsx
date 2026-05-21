@@ -566,7 +566,42 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 flex flex-col justify-end">
+                    <Label className="text-muted-foreground">Data de Realização</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full justify-start text-left font-normal bg-background',
+                            !task.completionDate && 'text-muted-foreground',
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {task.completionDate ? (
+                            format(parseISO(task.completionDate), 'dd/MM/yyyy')
+                          ) : (
+                            <span>Selecione...</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={task.completionDate ? parseISO(task.completionDate) : undefined}
+                          onSelect={(date) =>
+                            updateTask(task.id, { completionDate: date?.toISOString() })
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
                 <div className="space-y-2 flex flex-col">
+                  {' '}
                   <Label className="text-muted-foreground">Responsáveis</Label>
                   <Popover open={analystsOpen} onOpenChange={setAnalystsOpen}>
                     <PopoverTrigger asChild>
