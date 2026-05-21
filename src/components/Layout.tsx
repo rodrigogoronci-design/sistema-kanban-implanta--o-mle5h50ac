@@ -48,6 +48,7 @@ export default function Layout() {
     { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
+    { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export default function Layout() {
   }, [])
 
   const defaultPermissions: Record<string, string[]> = {
-    Administrador: ['/', '/clients', '/projects', '/analysts', '/users', '/reports'],
+    Administrador: ['/', '/clients', '/projects', '/analysts', '/users', '/reports', '/settings'],
     Gerente: ['/', '/clients', '/projects', '/analysts', '/reports'],
     Colaborador: ['/', '/projects'],
   }

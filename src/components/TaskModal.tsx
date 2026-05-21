@@ -102,21 +102,21 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
   }
 
+  const [modules, setModules] = useState<{ id: string; name: string }[]>([])
   const category = categories.find((c) => c.id === task.categoryId)
   const isTraining = category?.name?.toLowerCase().includes('treinamento')
 
-  const FIXED_MODULES = [
-    'Financeiro',
-    'Comercial',
-    'Faturamento',
-    'Compras',
-    'Estoque',
-    'Fiscal',
-    'Contábil',
-    'RH',
-    'Produção',
-    'Gerencial',
-  ]
+  useEffect(() => {
+    if (isTraining) {
+      supabase
+        .from('modules')
+        .select('*')
+        .order('name')
+        .then(({ data }) => {
+          if (data) setModules(data)
+        })
+    }
+  }, [isTraining])
 
   const handleModuleChange = async (mod: string, checked: boolean) => {
     const current = (task as any).trained_modules || (task as any).trainedModules || []
@@ -431,7 +431,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Select>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Categoria</Label>
@@ -541,7 +540,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Select>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Data de Criação</Label>
@@ -581,7 +579,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Popover>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 flex flex-col justify-end">
                     <Label className="text-muted-foreground">Data Agendada</Label>
@@ -626,7 +623,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 flex flex-col justify-end">
                     <Label className="text-muted-foreground">Data de Realização</Label>
@@ -660,7 +656,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Popover>
                   </div>
                 </div>
-
                 <div className="space-y-2 flex flex-col">
                   {' '}
                   <Label className="text-muted-foreground">Responsáveis</Label>
@@ -722,7 +717,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </PopoverContent>
                   </Popover>
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Descrição</Label>
                   <Textarea
@@ -733,7 +727,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     placeholder="Adicione detalhes sobre a tarefa..."
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Participantes</Label>
                   <div className="flex gap-2">
@@ -770,32 +763,51 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     )}
                   </div>
                 </div>
-
                 {isTraining && (
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Módulos Ministrados</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 border rounded-md bg-background">
-                      {FIXED_MODULES.map((mod) => {
-                        const isChecked = (
-                          (task as any).trained_modules ||
-                          (task as any).trainedModules ||
-                          []
-                        ).includes(mod)
-                        return (
-                          <label key={mod} className="flex items-center gap-2 cursor-pointer">
-                            <Checkbox
-                              checked={isChecked}
-                              onCheckedChange={(checked) =>
-                                handleModuleChange(mod, checked as boolean)
-                              }
-                            />
-                            <span className="text-sm select-none">{mod}</span>
-                          </label>
-                        )
-                      })}
+                    <div className="flex items-center justify-between">
+                      <Label className="text-muted-foreground">Módulos Ministrados</Label>
                     </div>
+                    {modules.length === 0 ? (
+                      <div className="p-4 border rounded-md bg-background text-sm text-muted-foreground">
+                        Nenhum módulo cadastrado. Gerencie os módulos na página de{' '}
+                        <a
+                          href="/settings"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          Configurações
+                        </a>
+                        .
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 border rounded-md bg-background">
+                        {modules.map((module) => {
+                          const isChecked = (
+                            (task as any).trained_modules ||
+                            (task as any).trainedModules ||
+                            []
+                          ).includes(module.name)
+                          return (
+                            <label
+                              key={module.id}
+                              className="flex items-center gap-2 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={isChecked}
+                                onCheckedChange={(checked) =>
+                                  handleModuleChange(module.name, checked as boolean)
+                                }
+                              />
+                              <span className="text-sm select-none">{module.name}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
+                )}{' '}
               </div>
 
               <Separator />

@@ -12,6 +12,7 @@ import Reports from './pages/Reports'
 import Login from './pages/Login'
 import Analysts from './pages/Analysts'
 import RAT from './pages/RAT'
+import Settings from './pages/Settings'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
@@ -38,6 +39,7 @@ const AppRoutes = () => {
         <Route path="/projects" element={<Projects />} />
         <Route path="/analysts" element={<Analysts />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/rat/:taskId" element={<RAT />} />
       <Route path="*" element={<NotFound />} />
