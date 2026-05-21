@@ -27,6 +27,8 @@ import useMainStore, { Project } from '@/stores/main'
 import { StatusManagementModal } from './StatusManagementModal'
 import { ProjectTasksTab } from './ProjectTasksTab'
 import { ProjectGalleryTab } from './ProjectGalleryTab'
+import { ProjectChecklistTab } from './ProjectChecklistTab'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
   open: boolean
@@ -37,7 +39,9 @@ interface Props {
 
 export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Props) {
   const { clients, analysts, projectStatuses } = useMainStore()
-  const [formData, setFormData] = useState<Partial<Project>>({})
+  const [formData, setFormData] = useState<
+    Partial<Project> & { priority?: string; notes?: string }
+  >({})
   const [clientOpen, setClientOpen] = useState(false)
   const [analystsOpen, setAnalystsOpen] = useState(false)
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
@@ -45,13 +49,19 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
   useEffect(() => {
     if (open) {
       if (project) {
-        setFormData({ ...project })
+        setFormData({
+          ...project,
+          priority: (project as any).priority || 'Média',
+          notes: (project as any).notes || '',
+        })
       } else {
         setFormData({
           name: '',
           clientId: '',
           analystIds: [],
           statusId: '',
+          priority: 'Média',
+          notes: '',
         })
       }
     }
@@ -75,7 +85,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
       </div>
 
       <div className="space-y-2 flex flex-col">
-        <Label>Cliente Vinculado</Label>
+        <Label>Empresa Vinculada</Label>
         <Popover open={clientOpen} onOpenChange={setClientOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -86,15 +96,15 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             >
               {formData.clientId
                 ? clients.find((c) => c.id === formData.clientId)?.name
-                : 'Selecione ou pesquise um cliente...'}
+                : 'Selecione ou pesquise uma empresa...'}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-full p-0" align="start">
             <Command>
-              <CommandInput placeholder="Pesquisar cliente..." />
+              <CommandInput placeholder="Pesquisar empresa..." />
               <CommandList>
-                <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                <CommandEmpty>Nenhuma empresa encontrada.</CommandEmpty>
                 <CommandGroup>
                   {[...clients]
                     .sort((a, b) => a.name.localeCompare(b.name))
@@ -205,6 +215,23 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
       </div>
 
       <div className="space-y-2">
+        <Label>Prioridade</Label>
+        <Select
+          value={formData.priority || 'Média'}
+          onValueChange={(v) => setFormData({ ...formData, priority: v })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione a prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Baixa">Baixa</SelectItem>
+            <SelectItem value="Média">Média</SelectItem>
+            <SelectItem value="Alta">Alta</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label>Horas Contratadas</Label>
         <Input
           type="number"
@@ -217,6 +244,16 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
             })
           }
           placeholder="Ex: 100"
+        />
+      </div>
+
+      <div className="col-span-1 md:col-span-2 space-y-2">
+        <Label>Observações</Label>
+        <Textarea
+          value={formData.notes || ''}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          placeholder="Anotações internas do projeto..."
+          className="min-h-[80px] resize-none"
         />
       </div>
 
@@ -348,9 +385,10 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
           {project ? (
             <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
               <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="details">Detalhes</TabsTrigger>
                   <TabsTrigger value="tasks">Atividades</TabsTrigger>
+                  <TabsTrigger value="checklist">Checklist</TabsTrigger>
                   <TabsTrigger value="gallery">Galeria</TabsTrigger>
                 </TabsList>
               </div>
@@ -369,6 +407,13 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit }: Prop
                 className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
               >
                 <ProjectTasksTab project={project as Project} />
+              </TabsContent>
+
+              <TabsContent
+                value="checklist"
+                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+              >
+                <ProjectChecklistTab project={project as Project} />
               </TabsContent>
 
               <TabsContent
