@@ -4,9 +4,10 @@ import { useProjectChecklists } from '@/hooks/use-project-checklists'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Trash2, Plus, CheckCircle2 } from 'lucide-react'
+import { Trash2, Plus, CheckCircle2, Loader2 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 interface Props {
   project: Project
@@ -17,12 +18,23 @@ export function ProjectChecklistTab({ project }: Props) {
     project.id,
   )
   const [newItem, setNewItem] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleAdd = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!newItem.trim()) return
-    await addChecklist(project.id, newItem.trim())
-    setNewItem('')
+    if (!newItem.trim() || isSubmitting) return
+
+    setIsSubmitting(true)
+    const { error } = await addChecklist(project.id, newItem.trim())
+    setIsSubmitting(false)
+
+    if (error) {
+      toast.error('Erro ao adicionar item', {
+        description: 'Não foi possível salvar o item no momento. Tente novamente.',
+      })
+    } else {
+      setNewItem('')
+    }
   }
 
   const completedCount = checklists.filter((c) => c.is_completed).length
@@ -47,9 +59,15 @@ export function ProjectChecklistTab({ project }: Props) {
           placeholder="Adicionar novo item ao checklist..."
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
+          disabled={isSubmitting}
         />
-        <Button type="submit" disabled={!newItem.trim()}>
-          <Plus className="w-4 h-4 mr-2" /> Adicionar
+        <Button type="submit" disabled={!newItem.trim() || isSubmitting}>
+          {isSubmitting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-2" />
+          )}
+          Adicionar
         </Button>
       </form>
 

@@ -42,7 +42,20 @@ export function useProjectChecklists(projectId?: string) {
   }, [projectId])
 
   const addChecklist = async (projId: string, title: string) => {
-    await supabase.from('project_checklists').insert({ project_id: projId, title })
+    const { data, error } = await supabase
+      .from('project_checklists')
+      .insert({ project_id: projId, title })
+      .select()
+      .single()
+
+    if (data && !error) {
+      setChecklists((prev) => {
+        if (prev.find((c) => c.id === data.id)) return prev
+        return [...prev, data as ProjectChecklist]
+      })
+    }
+
+    return { data, error }
   }
 
   const toggleChecklist = async (id: string, is_completed: boolean) => {
