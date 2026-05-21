@@ -3,9 +3,17 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Plus, Edit2, Trash2, Check, X, BookOpen } from 'lucide-react'
+import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,19 +24,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { format, parseISO } from 'date-fns'
 
 interface Module {
   id: string
   name: string
+  created_at: string
 }
 
 export default function Settings() {
   const [modules, setModules] = useState<Module[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Modals state
+  const [createOpen, setCreateOpen] = useState(false)
   const [newModule, setNewModule] = useState('')
+
+  const [editOpen, setEditOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadModules()
@@ -56,6 +72,7 @@ export default function Settings() {
     } else if (data) {
       setModules([...modules, data[0]].sort((a, b) => a.name.localeCompare(b.name)))
       setNewModule('')
+      setCreateOpen(false)
       toast.success('Módulo adicionado.')
     }
   }
@@ -77,6 +94,7 @@ export default function Settings() {
           .sort((a, b) => a.name.localeCompare(b.name)),
       )
       setEditingId(null)
+      setEditOpen(false)
       toast.success('Módulo atualizado.')
     }
   }
@@ -93,6 +111,12 @@ export default function Settings() {
     setDeletingId(null)
   }
 
+  const openEdit = (mod: Module) => {
+    setEditingId(mod.id)
+    setEditValue(mod.name)
+    setEditOpen(true)
+  }
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
       <div>
@@ -103,107 +127,147 @@ export default function Settings() {
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-primary" />
-            <CardTitle>Módulos de Treinamento</CardTitle>
-          </div>
-          <CardDescription>
-            Gerencie a lista de módulos que podem ser selecionados nas tarefas de treinamento.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex flex-col sm:flex-row items-end gap-4 max-w-md">
-            <div className="space-y-2 flex-1 w-full">
-              <Label>Novo Módulo</Label>
-              <Input
-                placeholder="Nome do módulo..."
-                value={newModule}
-                onChange={(e) => setNewModule(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-              />
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              <CardTitle>Módulos de Treinamento</CardTitle>
             </div>
-            <Button onClick={handleAdd} className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" /> Adicionar
-            </Button>
+            <CardDescription className="mt-1">
+              Gerencie a lista de módulos que podem ser selecionados nas tarefas de treinamento.
+            </CardDescription>
           </div>
-
-          <div className="border rounded-md divide-y bg-card">
+          <Button onClick={() => setCreateOpen(true)} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" /> Novo Módulo
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-md bg-card overflow-hidden">
             {loading ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
+              <div className="p-8 text-center text-muted-foreground text-sm">
                 Carregando módulos...
               </div>
             ) : modules.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground text-sm">
+              <div className="p-8 text-center text-muted-foreground text-sm">
                 Nenhum módulo cadastrado.
               </div>
             ) : (
-              modules.map((mod) => (
-                <div
-                  key={mod.id}
-                  className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-muted/50 transition-colors"
-                >
-                  {editingId === mod.id ? (
-                    <div className="flex items-center gap-2 flex-1 w-full max-w-md">
-                      <Input
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleUpdate()
-                          if (e.key === 'Escape') setEditingId(null)
-                        }}
-                        autoFocus
-                        className="h-9"
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 shrink-0 text-green-600 hover:text-green-700 hover:bg-green-100"
-                        onClick={handleUpdate}
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-9 w-9 shrink-0"
-                        onClick={() => setEditingId(null)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="font-medium truncate">{mod.name}</span>
-                      <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-muted-foreground"
-                          onClick={() => {
-                            setEditingId(mod.id)
-                            setEditValue(mod.name)
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeletingId(mod.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
+              <div className="w-full overflow-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/50 border-b text-muted-foreground">
+                    <tr>
+                      <th className="font-medium p-4">Nome do Módulo</th>
+                      <th className="font-medium p-4 w-40">Data de Criação</th>
+                      <th className="font-medium p-4 w-24 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {modules.map((mod) => (
+                      <tr key={mod.id} className="hover:bg-muted/50 transition-colors">
+                        <td className="p-4 font-medium text-foreground">{mod.name}</td>
+                        <td className="p-4 text-muted-foreground">
+                          {mod.created_at ? format(parseISO(mod.created_at), 'dd/MM/yyyy') : '-'}
+                        </td>
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-muted-foreground hover:text-primary"
+                              onClick={() => openEdit(mod)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeletingId(mod.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Novo Módulo</DialogTitle>
+            <DialogDescription>
+              Adicione um novo módulo de treinamento para ficar disponível nas tarefas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="module-name">
+                Nome <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="module-name"
+                placeholder="Ex: Financeiro"
+                value={newModule}
+                onChange={(e) => setNewModule(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAdd} disabled={!newModule.trim()}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Módulo</DialogTitle>
+            <DialogDescription>Altere o nome do módulo de treinamento.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-module-name">
+                Nome <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-module-name"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleUpdate}
+              disabled={
+                !editValue.trim() ||
+                editValue.trim() === modules.find((m) => m.id === editingId)?.name
+              }
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
