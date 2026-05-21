@@ -24,9 +24,10 @@ export function ProjectTasksTab({ project }: Props) {
   const { tasks, columns, analysts } = useMainStore()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
-  const isTaskCompleted = (columnId: string | undefined | null) => {
-    if (!columnId) return false
-    const column = columns?.find((c) => c.id === columnId)
+  const isTaskCompleted = (task: any) => {
+    if (task.completionDate || task.completion_date) return true
+    if (!task.columnId) return false
+    const column = columns?.find((c) => c.id === task.columnId)
     if (!column) return false
     const title = column.title.toLowerCase()
     return title.includes('concluíd') || title.includes('concluid') || title.includes('finalizad')
@@ -35,8 +36,8 @@ export function ProjectTasksTab({ project }: Props) {
   const projectTasks = useMemo(() => {
     const pTasks = tasks?.filter((t) => t.projectId === project.id) || []
     return pTasks.sort((a, b) => {
-      const aCompleted = isTaskCompleted(a.columnId)
-      const bCompleted = isTaskCompleted(b.columnId)
+      const aCompleted = isTaskCompleted(a)
+      const bCompleted = isTaskCompleted(b)
 
       if (aCompleted !== bCompleted) {
         return aCompleted ? 1 : -1 // Pending (false) first
@@ -53,7 +54,7 @@ export function ProjectTasksTab({ project }: Props) {
     let pending = 0
     let completed = 0
     projectTasks.forEach((t) => {
-      if (isTaskCompleted(t.columnId)) {
+      if (isTaskCompleted(t)) {
         completed++
       } else {
         pending++
@@ -196,15 +197,17 @@ export function ProjectTasksTab({ project }: Props) {
                 const analyst = analysts?.find((a) => a.id === task.responsibleId)
                 const hours = getSafeHours(task)
 
-                const isCompleted = isTaskCompleted(task.columnId)
+                const isCompleted = isTaskCompleted(task)
                 const isHighPriority = task.priority === 'Alta' || task.priority === 'Urgente'
 
                 return (
                   <TableRow
                     key={task.id}
                     className={cn(
-                      'group hover:bg-muted transition-colors cursor-pointer',
-                      isCompleted && 'opacity-60',
+                      'group transition-colors cursor-pointer',
+                      isCompleted
+                        ? 'bg-emerald-50/50 hover:bg-emerald-50 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/30'
+                        : 'hover:bg-muted',
                     )}
                     onClick={() => setSelectedTaskId(task.id)}
                   >
@@ -213,13 +216,7 @@ export function ProjectTasksTab({ project }: Props) {
                         {isHighPriority && !isCompleted && (
                           <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                         )}
-                        <span
-                          className={cn(
-                            'line-clamp-2',
-                            isCompleted && 'line-through text-muted-foreground',
-                          )}
-                          title={task.title}
-                        >
+                        <span className="line-clamp-2" title={task.title}>
                           {task.title}
                         </span>
                       </div>
@@ -249,10 +246,7 @@ export function ProjectTasksTab({ project }: Props) {
                             </AvatarFallback>
                           </Avatar>
                           <span
-                            className={cn(
-                              'text-sm truncate max-w-[120px]',
-                              isCompleted && 'text-muted-foreground',
-                            )}
+                            className="text-sm truncate max-w-[120px]"
                             title={analyst.nome || analyst.name}
                           >
                             {analyst.nome || analyst.name}
@@ -278,7 +272,12 @@ export function ProjectTasksTab({ project }: Props) {
                     <TableCell className="text-right">
                       <Badge
                         variant="secondary"
-                        className="font-mono bg-muted group-hover:bg-background transition-colors"
+                        className={cn(
+                          'font-mono transition-colors',
+                          isCompleted
+                            ? 'bg-emerald-100/50 group-hover:bg-emerald-100 dark:bg-emerald-900/30 dark:group-hover:bg-emerald-900/50 text-emerald-800 dark:text-emerald-300 border-transparent'
+                            : 'bg-muted group-hover:bg-background',
+                        )}
                       >
                         {formatHoursAndMinutes(hours)}
                       </Badge>
