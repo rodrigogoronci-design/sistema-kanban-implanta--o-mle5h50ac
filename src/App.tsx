@@ -14,7 +14,6 @@ import Analysts from './pages/Analysts'
 import RAT from './pages/RAT'
 import Settings from './pages/Settings'
 import Modules from './pages/Modules'
-import Modules from './pages/Modules'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
