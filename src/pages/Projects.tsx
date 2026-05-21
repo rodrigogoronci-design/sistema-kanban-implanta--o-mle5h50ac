@@ -9,13 +9,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Edit2, Briefcase, ArrowUp, ArrowDown, Minus } from 'lucide-react'
+import { Plus, Trash2, Edit2, Briefcase, ArrowUp, ArrowDown, Minus, Search } from 'lucide-react'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -45,17 +46,32 @@ export default function Projects() {
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
+  const [searchTerm, setSearchTerm] = useState('')
   const [analystFilter, setAnalystFilter] = useState<string>('all')
   const [clientFilter, setClientFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   const filteredProjects = projects.filter((project) => {
     let match = true
+
+    if (statusFilter !== 'all') {
+      match = match && project.statusId === statusFilter
+    }
     if (analystFilter !== 'all') {
       match = match && !!project.analystIds?.includes(analystFilter)
     }
     if (clientFilter !== 'all') {
       match = match && project.clientId === clientFilter
     }
+    if (searchTerm.trim() !== '') {
+      const searchLower = searchTerm.toLowerCase()
+      const projectNameMatch = project.name.toLowerCase().includes(searchLower)
+      const client = clients.find((c) => c.id === project.clientId)
+      const clientNameMatch = client ? client.name.toLowerCase().includes(searchLower) : false
+
+      match = match && (projectNameMatch || clientNameMatch)
+    }
+
     return match
   })
 
@@ -173,14 +189,28 @@ export default function Projects() {
 
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
-          <p className="text-sm text-muted-foreground">Gerencie os projetos de implantação.</p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
+            <p className="text-sm text-muted-foreground">Gerencie os projetos de implantação.</p>
+          </div>
+          <Button onClick={handleCreate} className="shrink-0">
+            <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+          </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2">
+          <div className="relative flex-1 w-full sm:w-auto sm:min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar projeto ou empresa..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 w-full"
+            />
+          </div>
           <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por empresa" />
             </SelectTrigger>
             <SelectContent>
@@ -194,8 +224,21 @@ export default function Projects() {
                 ))}
             </SelectContent>
           </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Filtrar por status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {projectStatuses.map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={analystFilter} onValueChange={setAnalystFilter}>
-            <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por responsável" />
             </SelectTrigger>
             <SelectContent>
@@ -207,9 +250,6 @@ export default function Projects() {
               ))}
             </SelectContent>
           </Select>
-          <Button onClick={handleCreate} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" /> Novo Projeto
-          </Button>
         </div>
       </div>
 
