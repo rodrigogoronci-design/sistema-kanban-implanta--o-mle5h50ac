@@ -24,11 +24,19 @@ export function ProjectTasksTab({ project }: Props) {
   const { tasks, columns, analysts } = useMainStore()
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
+  const isTaskCompleted = (columnId: string | undefined | null) => {
+    if (!columnId) return false
+    const column = columns?.find((c) => c.id === columnId)
+    if (!column) return false
+    const title = column.title.toLowerCase()
+    return title.includes('concluíd') || title.includes('concluid') || title.includes('finalizad')
+  }
+
   const projectTasks = useMemo(() => {
     const pTasks = tasks?.filter((t) => t.projectId === project.id) || []
     return pTasks.sort((a, b) => {
-      const aCompleted = !!(a.completionDate || a.completion_date)
-      const bCompleted = !!(b.completionDate || b.completion_date)
+      const aCompleted = isTaskCompleted(a.columnId)
+      const bCompleted = isTaskCompleted(b.columnId)
 
       if (aCompleted !== bCompleted) {
         return aCompleted ? 1 : -1 // Pending (false) first
@@ -39,20 +47,20 @@ export function ProjectTasksTab({ project }: Props) {
 
       return bDate - aDate // Newest first
     })
-  }, [tasks, project.id])
+  }, [tasks, project.id, columns])
 
   const { pendingCount, completedCount } = useMemo(() => {
     let pending = 0
     let completed = 0
     projectTasks.forEach((t) => {
-      if (t.completionDate || t.completion_date) {
+      if (isTaskCompleted(t.columnId)) {
         completed++
       } else {
         pending++
       }
     })
     return { pendingCount: pending, completedCount: completed }
-  }, [projectTasks])
+  }, [projectTasks, columns])
 
   const getSafeHours = (task: any) => {
     let hours = 0
@@ -188,7 +196,7 @@ export function ProjectTasksTab({ project }: Props) {
                 const analyst = analysts?.find((a) => a.id === task.responsibleId)
                 const hours = getSafeHours(task)
 
-                const isCompleted = !!(task.completionDate || task.completion_date)
+                const isCompleted = isTaskCompleted(task.columnId)
                 const isHighPriority = task.priority === 'Alta' || task.priority === 'Urgente'
 
                 return (
