@@ -89,7 +89,14 @@ export function ProjectChecklistTab({ project }: Props) {
               <div className="flex items-center gap-3">
                 <Checkbox
                   checked={item.is_completed}
-                  onCheckedChange={(checked) => toggleChecklist(item.id, !!checked)}
+                  onCheckedChange={async (checked) => {
+                    const { error } = await toggleChecklist(item.id, !!checked)
+                    if (error) {
+                      toast.error('Erro ao atualizar item', {
+                        description: 'Não foi possível atualizar o status do item.',
+                      })
+                    }
+                  }}
                   id={`check-${item.id}`}
                 />
                 <label
@@ -105,7 +112,16 @@ export function ProjectChecklistTab({ project }: Props) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => deleteChecklist(item.id)}
+                onClick={async () => {
+                  const { error } = await deleteChecklist(item.id)
+                  if (error) {
+                    toast.error('Erro ao excluir item', {
+                      description: 'Não foi possível remover o item.',
+                    })
+                  } else {
+                    toast.success('Item removido com sucesso.')
+                  }
+                }}
                 className="hover:bg-destructive/10 hover:text-destructive h-8 w-8"
               >
                 <Trash2 className="w-4 h-4" />

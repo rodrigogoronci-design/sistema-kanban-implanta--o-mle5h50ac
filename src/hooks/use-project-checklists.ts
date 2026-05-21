@@ -59,11 +59,42 @@ export function useProjectChecklists(projectId?: string) {
   }
 
   const toggleChecklist = async (id: string, is_completed: boolean) => {
-    await supabase.from('project_checklists').update({ is_completed }).eq('id', id)
+    // Optimistic update
+    setChecklists((prev) => prev.map((c) => (c.id === id ? { ...c, is_completed } : c)))
+
+    const { error } = await supabase
+      .from('project_checklists')
+      .update({ is_completed })
+      .eq('id', id)
+
+    if (error) {
+      // Revert on error
+      setChecklists((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, is_completed: !is_completed } : c)),
+      )
+    }
+
+    return { error }
   }
 
   const deleteChecklist = async (id: string) => {
-    await supabase.from('project_checklists').delete().eq('id', id)
+    const itemToDelete = checklists.find((c) => c.id === id)
+
+    // Optimistic update
+    setChecklists((prev) => prev.filter((c) => c.id !== id))
+
+    const { error } = await supabase.from('project_checklists').delete().eq('id', id)
+
+    if (error && itemToDelete) {
+      // Revert on error
+      setChecklists((prev) =>
+        [...prev, itemToDelete].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        ),
+      )
+    }
+
+    return { error }
   }
 
   return { checklists, loading, addChecklist, toggleChecklist, deleteChecklist }
