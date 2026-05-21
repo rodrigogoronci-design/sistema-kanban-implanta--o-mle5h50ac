@@ -91,7 +91,8 @@ export default function RAT() {
   const { task, analysts } = data
   const isTraining = task.category?.name?.toLowerCase().includes('treinamento')
   const totalHours = getTaskHours({ time_entries: task.time_entries })
-  const modules = Array.isArray(task.client?.modules) ? task.client.modules : []
+  const participants = Array.isArray(task.participants) ? task.participants : []
+  const trainedModules = Array.isArray(task.trained_modules) ? task.trained_modules : []
 
   return (
     <div className="bg-white min-h-screen">
@@ -195,28 +196,47 @@ export default function RAT() {
             </div>
           </section>
 
+          <section>
+            <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+              Participantes Presentes
+            </h2>
+            {participants.length > 0 ? (
+              <div className="border border-slate-200 rounded p-4">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {participants.map((p: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 bg-slate-400 rounded-full shrink-0" />
+                      <span className="text-slate-700">{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
+                Nenhum participante registrado.
+              </p>
+            )}
+          </section>
+
           {isTraining && (
             <section>
               <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
-                Módulos Ministrados
+                Conteúdo Programático / Módulos
               </h2>
-              {modules.length > 0 ? (
+              {trainedModules.length > 0 ? (
                 <div className="border border-slate-200 rounded p-4">
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                    {modules.map((m: any, i: number) => {
-                      const moduleName = typeof m === 'string' ? m : m.name || JSON.stringify(m)
-                      return (
-                        <li key={i} className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-slate-400 rounded-full shrink-0" />
-                          <span className="text-slate-700">{moduleName}</span>
-                        </li>
-                      )
-                    })}
+                    {trainedModules.map((m: string, i: number) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full shrink-0" />
+                        <span className="text-slate-700">{m}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               ) : (
                 <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
-                  Nenhum módulo listado no cadastro deste cliente.
+                  Nenhum módulo registrado.
                 </p>
               )}
             </section>

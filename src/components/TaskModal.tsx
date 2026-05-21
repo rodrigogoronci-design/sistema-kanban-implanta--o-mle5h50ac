@@ -39,6 +39,7 @@ import {
   Printer,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
@@ -77,10 +78,52 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const [clientFormOpen, setClientFormOpen] = useState(false)
   const [analystsOpen, setAnalystsOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [newParticipant, setNewParticipant] = useState('')
 
   const task = tasks.find((t) => t.id === taskId)
 
+  const [participantName, setParticipantName] = useState('')
+
   if (!task) return null
+
+  const handleAddParticipant = async () => {
+    if (!participantName.trim()) return
+    const current = (task as any).participants || []
+    const newParticipants = [...current, participantName.trim()]
+    updateTask(task.id, { participants: newParticipants } as any)
+    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
+    setParticipantName('')
+  }
+
+  const handleRemoveParticipant = async (name: string) => {
+    const current = (task as any).participants || []
+    const newParticipants = current.filter((p: string) => p !== name)
+    updateTask(task.id, { participants: newParticipants } as any)
+    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
+  }
+
+  const category = categories.find((c) => c.id === task.categoryId)
+  const isTraining = category?.name?.toLowerCase().includes('treinamento')
+
+  const FIXED_MODULES = [
+    'Financeiro',
+    'Comercial',
+    'Faturamento',
+    'Compras',
+    'Estoque',
+    'Fiscal',
+    'Contábil',
+    'RH',
+    'Produção',
+    'Gerencial',
+  ]
+
+  const handleModuleChange = async (mod: string, checked: boolean) => {
+    const current = (task as any).trained_modules || (task as any).trainedModules || []
+    const newModules = checked ? [...current, mod] : current.filter((m: string) => m !== mod)
+    updateTask(task.id, { trained_modules: newModules, trainedModules: newModules } as any)
+    await supabase.from('tasks').update({ trained_modules: newModules }).eq('id', task.id)
+  }
 
   const handleClientChange = (val: string) => {
     const clientProjects = projects.filter((p) => p.clientId === val)
@@ -690,6 +733,69 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     placeholder="Adicione detalhes sobre a tarefa..."
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground">Participantes</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleAddParticipant()
+                        }
+                      }}
+                      placeholder="Nome do participante..."
+                      className="bg-background"
+                    />
+                    <Button variant="outline" onClick={handleAddParticipant}>
+                      Adicionar
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {((task as any).participants || []).map((p: string, i: number) => (
+                      <Badge key={i} variant="secondary" className="flex items-center gap-1">
+                        {p}
+                        <X
+                          className="w-3 h-3 cursor-pointer hover:text-destructive"
+                          onClick={() => handleRemoveParticipant(p)}
+                        />
+                      </Badge>
+                    ))}
+                    {((task as any).participants || []).length === 0 && (
+                      <span className="text-sm text-muted-foreground italic">
+                        Nenhum participante registrado.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {isTraining && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Módulos Ministrados</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 border rounded-md bg-background">
+                      {FIXED_MODULES.map((mod) => {
+                        const isChecked = (
+                          (task as any).trained_modules ||
+                          (task as any).trainedModules ||
+                          []
+                        ).includes(mod)
+                        return (
+                          <label key={mod} className="flex items-center gap-2 cursor-pointer">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={(checked) =>
+                                handleModuleChange(mod, checked as boolean)
+                              }
+                            />
+                            <span className="text-sm select-none">{mod}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator />
