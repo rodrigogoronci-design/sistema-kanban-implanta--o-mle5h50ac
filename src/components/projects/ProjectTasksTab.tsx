@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { format, parseISO } from 'date-fns'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
-import { Calendar, Clock, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, AlertCircle, CheckCircle, ListTodo } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 
@@ -25,8 +25,34 @@ export function ProjectTasksTab({ project }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
 
   const projectTasks = useMemo(() => {
-    return tasks?.filter((t) => t.projectId === project.id) || []
+    const pTasks = tasks?.filter((t) => t.projectId === project.id) || []
+    return pTasks.sort((a, b) => {
+      const aCompleted = !!(a.completionDate || a.completion_date)
+      const bCompleted = !!(b.completionDate || b.completion_date)
+
+      if (aCompleted !== bCompleted) {
+        return aCompleted ? 1 : -1 // Pending (false) first
+      }
+
+      const aDate = new Date(a.createdAt || a.created_at || 0).getTime()
+      const bDate = new Date(b.createdAt || b.created_at || 0).getTime()
+
+      return bDate - aDate // Newest first
+    })
   }, [tasks, project.id])
+
+  const { pendingCount, completedCount } = useMemo(() => {
+    let pending = 0
+    let completed = 0
+    projectTasks.forEach((t) => {
+      if (t.completionDate || t.completion_date) {
+        completed++
+      } else {
+        pending++
+      }
+    })
+    return { pendingCount: pending, completedCount: completed }
+  }, [projectTasks])
 
   const getSafeHours = (task: any) => {
     let hours = 0
@@ -53,26 +79,80 @@ export function ProjectTasksTab({ project }: Props) {
     return projectTasks.reduce((acc, t) => acc + getSafeHours(t), 0)
   }, [projectTasks])
 
+  const getStatusBadgeStyle = (title: string, isCompleted: boolean) => {
+    const lowerTitle = title.toLowerCase()
+    if (isCompleted || lowerTitle.includes('concluíd') || lowerTitle.includes('finalizad')) {
+      return 'bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-emerald-500/20'
+    }
+    if (lowerTitle.includes('andamento') || lowerTitle.includes('fazendo')) {
+      return 'bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 border-amber-500/20'
+    }
+    if (
+      lowerTitle.includes('pendente') ||
+      lowerTitle.includes('fazer') ||
+      lowerTitle.includes('backlog')
+    ) {
+      return 'bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-500/20'
+    }
+    return 'bg-background shadow-sm'
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-primary/10 rounded-md">
-            <Clock className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold">Horas Lançadas</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              Total de horas em atividades deste projeto
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/10 rounded-md">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Horas Lançadas</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Total em atividades</div>
             </div>
           </div>
+          <Badge
+            variant="secondary"
+            className="text-lg px-3 py-1 font-mono bg-background border shadow-sm"
+          >
+            {formatHoursAndMinutes(totalHours)}
+          </Badge>
         </div>
-        <Badge
-          variant="secondary"
-          className="text-lg px-4 py-1.5 font-mono bg-background border shadow-sm"
-        >
-          {formatHoursAndMinutes(totalHours)}
-        </Badge>
+
+        <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-500/10 rounded-md">
+              <ListTodo className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Tarefas Pendentes</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Atividades em aberto</div>
+            </div>
+          </div>
+          <Badge
+            variant="secondary"
+            className="text-lg px-3 py-1 font-mono bg-background border shadow-sm"
+          >
+            {pendingCount}
+          </Badge>
+        </div>
+
+        <div className="flex items-center justify-between bg-muted/30 p-4 rounded-lg border">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-emerald-500/10 rounded-md">
+              <CheckCircle className="h-5 w-5 text-emerald-500" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold">Tarefas Concluídas</div>
+              <div className="text-xs text-muted-foreground mt-0.5">Atividades finalizadas</div>
+            </div>
+          </div>
+          <Badge
+            variant="secondary"
+            className="text-lg px-3 py-1 font-mono bg-background border shadow-sm"
+          >
+            {completedCount}
+          </Badge>
+        </div>
       </div>
 
       <div className="border rounded-md bg-background overflow-hidden">
@@ -108,21 +188,30 @@ export function ProjectTasksTab({ project }: Props) {
                 const analyst = analysts?.find((a) => a.id === task.responsibleId)
                 const hours = getSafeHours(task)
 
+                const isCompleted = !!(task.completionDate || task.completion_date)
                 const isHighPriority = task.priority === 'Alta' || task.priority === 'Urgente'
-                const isMediumPriority = task.priority === 'Média'
 
                 return (
                   <TableRow
                     key={task.id}
-                    className="group hover:bg-muted transition-colors cursor-pointer"
+                    className={cn(
+                      'group hover:bg-muted transition-colors cursor-pointer',
+                      isCompleted && 'opacity-60',
+                    )}
                     onClick={() => setSelectedTaskId(task.id)}
                   >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
-                        {isHighPriority && (
+                        {isHighPriority && !isCompleted && (
                           <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
                         )}
-                        <span className="line-clamp-2" title={task.title}>
+                        <span
+                          className={cn(
+                            'line-clamp-2',
+                            isCompleted && 'line-through text-muted-foreground',
+                          )}
+                          title={task.title}
+                        >
                           {task.title}
                         </span>
                       </div>
@@ -131,7 +220,10 @@ export function ProjectTasksTab({ project }: Props) {
                       {column ? (
                         <Badge
                           variant="outline"
-                          className="font-normal bg-background shadow-sm whitespace-nowrap"
+                          className={cn(
+                            'font-normal whitespace-nowrap',
+                            getStatusBadgeStyle(column.title, isCompleted),
+                          )}
                         >
                           {column.title}
                         </Badge>
@@ -149,7 +241,10 @@ export function ProjectTasksTab({ project }: Props) {
                             </AvatarFallback>
                           </Avatar>
                           <span
-                            className="text-sm truncate max-w-[120px]"
+                            className={cn(
+                              'text-sm truncate max-w-[120px]',
+                              isCompleted && 'text-muted-foreground',
+                            )}
                             title={analyst.nome || analyst.name}
                           >
                             {analyst.nome || analyst.name}
