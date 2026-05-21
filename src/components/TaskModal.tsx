@@ -83,6 +83,22 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const task = tasks.find((t) => t.id === taskId)
 
   const [participantName, setParticipantName] = useState('')
+  const [modules, setModules] = useState<{ id: string; name: string }[]>([])
+
+  const category = task ? categories.find((c) => c.id === task.categoryId) : undefined
+  const isTraining = category?.name?.toLowerCase().includes('treinamento')
+
+  useEffect(() => {
+    if (isTraining) {
+      supabase
+        .from('modules')
+        .select('*')
+        .order('name')
+        .then(({ data }) => {
+          if (data) setModules(data)
+        })
+    }
+  }, [isTraining])
 
   if (!task) return null
 
@@ -101,22 +117,6 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     updateTask(task.id, { participants: newParticipants } as any)
     await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
   }
-
-  const [modules, setModules] = useState<{ id: string; name: string }[]>([])
-  const category = categories.find((c) => c.id === task.categoryId)
-  const isTraining = category?.name?.toLowerCase().includes('treinamento')
-
-  useEffect(() => {
-    if (isTraining) {
-      supabase
-        .from('modules')
-        .select('*')
-        .order('name')
-        .then(({ data }) => {
-          if (data) setModules(data)
-        })
-    }
-  }, [isTraining])
 
   const handleModuleChange = async (mod: string, checked: boolean) => {
     const current = (task as any).trained_modules || (task as any).trainedModules || []
