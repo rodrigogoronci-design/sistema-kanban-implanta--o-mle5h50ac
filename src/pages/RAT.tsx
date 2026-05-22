@@ -130,31 +130,40 @@ export default function RAT() {
         </body>
         </html>
       `
-      const blob = new Blob([htmlString], { type: 'text/html' })
-      const fileName = `RAT_${task.id}_${Date.now()}.html`
-      const filePath = `${task.id}/${fileName}`
+      const blob = new Blob([htmlString], { type: 'application/pdf' })
+      const clientName = task.client?.name || 'Cliente'
+      const dateStr = format(new Date(), 'dd-MM-yyyy')
+      const fileName = `RAT - ${clientName} - ${dateStr}.pdf`
+      const filePath = `${task.id}/${Date.now()}_${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('attachments')
-        .upload(filePath, blob, { contentType: 'text/html' })
+        .upload(filePath, blob, { contentType: 'application/pdf' })
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        toast.error('Falha ao fazer upload do RAT no Storage.')
+        setIsSending(false)
+        return
+      }
 
       const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
-
       const publicUrl = publicUrlData.publicUrl
 
       const attachmentId = crypto.randomUUID()
       const { error: dbError } = await supabase.from('attachments').insert({
         id: attachmentId,
         task_id: task.id,
-        name: `RAT - ${task.title}.html`,
+        name: fileName,
         size: blob.size,
-        type: 'text/html',
+        type: 'application/pdf',
         url: publicUrl,
       })
 
-      if (dbError) throw dbError
+      if (dbError) {
+        toast.error('Falha ao salvar o registro do anexo.')
+        setIsSending(false)
+        return
+      }
 
       const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
         body: {
@@ -162,17 +171,20 @@ export default function RAT() {
           subject: emailSubject,
           body: emailBody,
           attachmentUrl: publicUrl,
-          attachmentName: `RAT - ${task.title}.html`,
+          attachmentName: fileName,
         },
       })
 
-      if (fnError) throw fnError
+      if (fnError) {
+        toast.error('RAT salvo nos anexos, mas falha ao enviar o email.')
+      } else {
+        toast.success('RAT enviado e salvo nos anexos com sucesso.')
+      }
 
-      toast.success('RAT enviado e salvo nos anexos com sucesso.')
       setEmailModalOpen(false)
     } catch (error: any) {
       console.error(error)
-      toast.error(error.message || 'Falha ao enviar o RAT.')
+      toast.error(error.message || 'Erro inesperado ao processar o RAT.')
     } finally {
       setIsSending(false)
     }
