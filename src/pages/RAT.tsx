@@ -134,13 +134,14 @@ export default function RAT() {
       const clientName = task.client?.name || 'Cliente'
       const dateStr = format(new Date(), 'dd-MM-yyyy')
       const fileName = `RAT - ${clientName} - ${dateStr}.pdf`
-      const filePath = `${task.id}/${Date.now()}_${fileName}`
+      const filePath = `tasks/${task.id}/${Date.now()}_${fileName}`
 
       const { error: uploadError } = await supabase.storage
         .from('attachments')
         .upload(filePath, blob, { contentType: 'application/pdf' })
 
       if (uploadError) {
+        console.error('Storage Upload Error:', uploadError)
         toast.error('Falha ao fazer upload do RAT no Storage.')
         setIsSending(false)
         return
@@ -160,7 +161,8 @@ export default function RAT() {
       })
 
       if (dbError) {
-        toast.error('Falha ao salvar o registro do anexo.')
+        console.error('Database Insert Error:', dbError)
+        toast.error('Erro ao salvar anexo no banco de dados')
         setIsSending(false)
         return
       }
@@ -176,9 +178,10 @@ export default function RAT() {
       })
 
       if (fnError) {
-        toast.error('RAT salvo nos anexos, mas falha ao enviar o email.')
+        console.error('Edge Function Error:', fnError)
+        toast.error('Falha no envio do e-mail')
       } else {
-        toast.success('RAT enviado e salvo nos anexos com sucesso.')
+        toast.success('RAT salva e enviada com sucesso!')
       }
 
       setEmailModalOpen(false)
