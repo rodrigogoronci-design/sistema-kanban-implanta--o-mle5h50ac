@@ -100,8 +100,12 @@ import {
   Check,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Link } from 'react-router-dom'
+import { Blocks } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
+  const { profile } = useAuth() as any
   const {
     tasks,
     columns,
@@ -463,9 +467,16 @@ export default function Index() {
           border-top-color: #22c55e !important;
         }
       `}</style>
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between shrink-0 gap-3 xl:gap-0">
         <h1 className="text-3xl font-bold tracking-tight">Área de Trabalho</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          {(!profile || profile?.role === 'Administrador' || profile?.role === 'Colaborador') && (
+            <Button variant="outline" className="shadow-sm" asChild>
+              <Link to="/modules">
+                <Blocks className="w-4 h-4 mr-2" /> Gerenciar Módulos
+              </Link>
+            </Button>
+          )}
           <Button
             variant="outline"
             className="shadow-sm"
