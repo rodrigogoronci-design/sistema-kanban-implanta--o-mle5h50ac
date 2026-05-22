@@ -135,7 +135,7 @@ export default function Modules() {
           </p>
         </div>
         <Button onClick={openCreate} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Novo Módulo
+          <Plus className="mr-2 h-4 w-4" /> Adicionar Módulo
         </Button>
       </div>
 
@@ -197,7 +197,7 @@ export default function Modules() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar Módulo' : 'Novo Módulo'}</DialogTitle>
+            <DialogTitle>{editingId ? 'Editar Módulo' : 'Adicionar Módulo'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
