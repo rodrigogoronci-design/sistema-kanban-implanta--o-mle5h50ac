@@ -184,12 +184,12 @@ export default function RAT() {
                 <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Gravação do Treinamento
                 </p>
-                <div className="bg-blue-50 p-3 rounded border border-blue-100 text-sm">
+                <div className="bg-white p-4 rounded border border-slate-200 text-sm">
                   <a
                     href={task.recording_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-700 underline font-medium break-all"
+                    className="text-blue-600 hover:underline font-medium break-all"
                   >
                     {task.recording_url}
                   </a>
