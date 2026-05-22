@@ -275,7 +275,7 @@ export default function RAT() {
             </h2>
             {(task.recording_url && task.recording_url.trim() !== '') ||
             (task.recordingUrl && task.recordingUrl.trim() !== '') ? (
-              <div className="bg-white p-4 rounded border border-slate-200 text-sm">
+              <div className="bg-white p-4 rounded border border-slate-200 text-sm flex flex-col gap-2">
                 <a
                   href={task.recording_url || task.recordingUrl}
                   target="_blank"
@@ -284,6 +284,9 @@ export default function RAT() {
                 >
                   {task.recording_url || task.recordingUrl}
                 </a>
+                <p className="text-xs font-bold text-red-600 mt-1">
+                  Aviso: Por favor, realize o download do vídeo, pois o link expirará em 30 dias.
+                </p>
               </div>
             ) : (
               <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
