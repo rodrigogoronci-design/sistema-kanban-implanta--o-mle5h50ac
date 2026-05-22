@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { Clock, Paperclip, MessageSquare, CalendarClock, Check } from 'lucide-react'
+import { Clock, Paperclip, MessageSquare, CalendarClock, Check, Video } from 'lucide-react'
 import useMainStore from '@/stores/main'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
@@ -136,6 +136,18 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
             {task.priority || 'Média'}
           </Badge>
+          {(task.recordingUrl || task.recording_url) && (
+            <a
+              href={task.recordingUrl || task.recording_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="ml-auto text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1 rounded-md transition-colors"
+              title="Ver Gravação"
+            >
+              <Video className="w-3.5 h-3.5" />
+            </a>
+          )}
         </div>
 
         <div className="flex items-center justify-between mt-2 pt-2 border-t text-muted-foreground">

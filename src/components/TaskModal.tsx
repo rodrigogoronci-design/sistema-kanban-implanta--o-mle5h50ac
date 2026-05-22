@@ -728,6 +728,20 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label className="text-muted-foreground">Link da Gravação</Label>
+                  <Input
+                    value={task.recordingUrl || task.recording_url || ''}
+                    onChange={(e) =>
+                      updateTask(task.id, {
+                        recordingUrl: e.target.value,
+                        recording_url: e.target.value,
+                      } as any)
+                    }
+                    placeholder="https://..."
+                    className="bg-background"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label className="text-muted-foreground">Participantes</Label>
                   <div className="flex gap-2">
                     <Input

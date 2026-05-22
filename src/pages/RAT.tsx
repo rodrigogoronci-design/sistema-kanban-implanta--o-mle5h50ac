@@ -177,21 +177,92 @@ export default function RAT() {
                     : '-'}
                 </p>
               </div>
-              <div className="col-span-2 sm:col-span-4 border-t border-slate-200 pt-3 mt-1">
-                <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
-                  Duração Total (Apontamentos)
-                </p>
-                <p className="font-medium text-lg text-slate-800">
-                  {formatHoursAndMinutes(totalHours)}
-                </p>
-              </div>
             </div>
-            <div>
+
+            {task.recording_url && (
+              <div className="mb-6">
+                <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
+                  Link da Gravação
+                </p>
+                <div className="bg-blue-50 p-3 rounded border border-blue-100 text-sm">
+                  <a
+                    href={task.recording_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 underline font-medium break-all"
+                  >
+                    {task.recording_url}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-6">
               <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                 Descrição da Atividade
               </p>
               <div className="bg-white p-4 rounded border border-slate-200 whitespace-pre-wrap text-sm min-h-[100px] text-slate-700">
                 {task.description || 'Nenhuma descrição fornecida para esta atividade.'}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
+                Apontamentos de Horas
+              </p>
+              <div className="bg-white rounded border border-slate-200 overflow-hidden text-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Data</th>
+                      <th className="px-4 py-2 font-medium">Início</th>
+                      <th className="px-4 py-2 font-medium">Término</th>
+                      <th className="px-4 py-2 font-medium">Observação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {task.time_entries && task.time_entries.length > 0 ? (
+                      [...task.time_entries]
+                        .sort(
+                          (a, b) =>
+                            new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+                        )
+                        .map((entry: any) => (
+                          <tr key={entry.id}>
+                            <td className="px-4 py-2">
+                              {format(parseISO(entry.start_time), 'dd/MM/yyyy')}
+                            </td>
+                            <td className="px-4 py-2">
+                              {format(parseISO(entry.start_time), 'HH:mm')}
+                            </td>
+                            <td className="px-4 py-2">
+                              {entry.end_time ? format(parseISO(entry.end_time), 'HH:mm') : '-'}
+                            </td>
+                            <td className="px-4 py-2 text-slate-600">{entry.observation || '-'}</td>
+                          </tr>
+                        ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-4 text-center text-slate-500 italic">
+                          Nenhum apontamento de horas registrado.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="bg-slate-50 border-t border-slate-200">
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="px-4 py-2 text-right font-bold text-slate-700 uppercase text-xs"
+                      >
+                        Duração Total:
+                      </td>
+                      <td className="px-4 py-2 font-bold text-slate-800">
+                        {formatHoursAndMinutes(totalHours)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
           </section>
