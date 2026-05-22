@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -29,7 +30,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react'
+import { Plus, Edit2, Trash2, Package } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -126,73 +127,87 @@ export default function Modules() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-primary flex items-center gap-2">
-            <BookOpen className="w-6 h-6" />
-            Módulos
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Package className="w-8 h-8 text-primary" />
+            Gestão de Módulos
           </h2>
           <p className="text-muted-foreground mt-1">
             Gerencie os módulos de treinamento disponíveis no sistema.
           </p>
         </div>
-        <Button onClick={openCreate} className="w-full sm:w-auto">
+        <Button onClick={openCreate} className="w-full sm:w-auto shadow-sm">
           <Plus className="mr-2 h-4 w-4" /> Adicionar Módulo
         </Button>
       </div>
 
-      <div className="border rounded-md bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Data de Criação</TableHead>
-              <TableHead className="w-[100px] text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : modules.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                  Nenhum módulo encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              modules.map((mod) => (
-                <TableRow key={mod.id}>
-                  <TableCell className="font-medium">{mod.name}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {mod.created_at
-                      ? format(new Date(mod.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(mod)}>
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteId(mod.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle>Módulos Cadastrados</CardTitle>
+          <CardDescription>Lista de todos os módulos de treinamento do sistema.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Data de Criação</TableHead>
+                  <TableHead className="w-[100px] text-right">Ações</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : modules.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                      Nenhum módulo encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  modules.map((mod) => (
+                    <TableRow key={mod.id}>
+                      <TableCell className="font-medium">{mod.name}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {mod.created_at
+                          ? format(new Date(mod.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Editar"
+                            onClick={() => openEdit(mod)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Excluir"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteId(mod.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>

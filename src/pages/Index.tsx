@@ -101,7 +101,7 @@ import {
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Link } from 'react-router-dom'
-import { Blocks } from 'lucide-react'
+import { Blocks, Package } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 
 export default function Index() {
@@ -473,7 +473,7 @@ export default function Index() {
           {(!profile || profile?.role === 'Administrador' || profile?.role === 'Colaborador') && (
             <Button variant="outline" className="shadow-sm" asChild>
               <Link to="/modules">
-                <Blocks className="w-4 h-4 mr-2" /> Gerenciar Módulos
+                <Package className="w-4 h-4 mr-2" /> Gestão de Módulos
               </Link>
             </Button>
           )}
