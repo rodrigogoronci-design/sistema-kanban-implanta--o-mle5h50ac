@@ -3,14 +3,32 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import { formatHoursAndMinutes, getTaskHours } from '@/lib/time'
-import { Printer } from 'lucide-react'
+import { Printer, Mail, Send, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 import logoImg from '@/assets/logo-sl-143a4.png'
 
 export default function RAT() {
   const { taskId } = useParams()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
+  const [emailTo, setEmailTo] = useState('')
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -50,12 +68,17 @@ export default function RAT() {
         if (a) analysts.push(a)
       }
 
-      setData({ task: taskData, analysts })
-      setLoading(false)
+      let contacts = []
+      if (taskData.client_id) {
+        const { data: c } = await supabase
+          .from('client_contacts')
+          .select('*')
+          .eq('client_id', taskData.client_id)
+        if (c) contacts = c
+      }
 
-      setTimeout(() => {
-        window.print()
-      }, 500)
+      setData({ task: taskData, analysts, contacts })
+      setLoading(false)
     }
     loadData()
   }, [taskId])
@@ -76,19 +99,185 @@ export default function RAT() {
     )
   }
 
-  const { task, analysts } = data
+  const { task, analysts, contacts } = data
   const totalHours = getTaskHours({ time_entries: task.time_entries })
   const participants = Array.isArray(task.participants) ? task.participants : []
   const trainedModules = Array.isArray(task.trained_modules) ? task.trained_modules : []
+
+  const handleSendEmail = async () => {
+    setIsSending(true)
+    try {
+      const content = document.getElementById('rat-content')
+      if (!content) throw new Error('Conteúdo não encontrado')
+
+      const htmlString = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>RAT - ${task.title}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @media print {
+              .print\\:hidden { display: none !important; }
+            }
+          </style>
+        </head>
+        <body class="bg-white">
+          <div class="max-w-4xl mx-auto p-8 text-black">
+            ${content.outerHTML}
+          </div>
+        </body>
+        </html>
+      `
+      const blob = new Blob([htmlString], { type: 'text/html' })
+      const fileName = `RAT_${task.id}_${Date.now()}.html`
+      const filePath = `${task.id}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, blob, { contentType: 'text/html' })
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
+
+      const publicUrl = publicUrlData.publicUrl
+
+      const attachmentId = crypto.randomUUID()
+      const { error: dbError } = await supabase.from('attachments').insert({
+        id: attachmentId,
+        task_id: task.id,
+        name: `RAT - ${task.title}.html`,
+        size: blob.size,
+        type: 'text/html',
+        url: publicUrl,
+      })
+
+      if (dbError) throw dbError
+
+      const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
+        body: {
+          to: emailTo,
+          subject: emailSubject,
+          body: emailBody,
+          attachmentUrl: publicUrl,
+          attachmentName: `RAT - ${task.title}.html`,
+        },
+      })
+
+      if (fnError) throw fnError
+
+      toast.success('RAT enviado e salvo nos anexos com sucesso.')
+      setEmailModalOpen(false)
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || 'Falha ao enviar o RAT.')
+    } finally {
+      setIsSending(false)
+    }
+  }
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
       <div className="print:hidden p-4 bg-muted border-b flex justify-between items-center">
         <p className="text-sm text-muted-foreground">Visualização de Impressão</p>
-        <Button onClick={() => window.print()}>
-          <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEmailSubject(`Relatório de Atendimento Técnico - ${task.title}`)
+              setEmailBody(
+                `Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe`,
+              )
+              if (contacts && contacts.length > 0) {
+                setEmailTo(
+                  contacts
+                    .filter((c: any) => c.email)
+                    .map((c: any) => c.email)
+                    .join(', '),
+                )
+              }
+              setEmailModalOpen(true)
+            }}
+          >
+            <Mail className="w-4 h-4 mr-2" /> Enviar por Email
+          </Button>
+          <Button onClick={() => window.print()}>
+            <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
+          </Button>
+        </div>
       </div>
+
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Enviar RAT por Email</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Destinatário(s)</Label>
+              <div className="flex flex-col gap-2">
+                {contacts && contacts.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {contacts.map((c: any) =>
+                      c.email ? (
+                        <Badge
+                          key={c.id}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-secondary/80"
+                          onClick={() => {
+                            const currentEmails = emailTo
+                              .split(',')
+                              .map((e) => e.trim())
+                              .filter(Boolean)
+                            if (!currentEmails.includes(c.email)) {
+                              setEmailTo(
+                                currentEmails.length > 0 ? `${emailTo}, ${c.email}` : c.email,
+                              )
+                            }
+                          }}
+                        >
+                          {c.name}
+                        </Badge>
+                      ) : null,
+                    )}
+                  </div>
+                )}
+                <Input
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  placeholder="email@cliente.com.br"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Assunto</Label>
+              <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea rows={5} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailModalOpen(false)} disabled={isSending}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendEmail} disabled={isSending}>
+              {isSending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" /> Enviar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="max-w-4xl mx-auto p-8 text-black flex-1 w-full" id="rat-content">
         <table className="w-full">
