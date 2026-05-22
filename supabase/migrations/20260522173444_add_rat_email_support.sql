@@ -6,8 +6,7 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET public = true;
 END $$;
 
--- Ensure RLS is enabled on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS is managed by Supabase for storage.objects
 
 -- Allow public access to read from 'attachments' bucket
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
