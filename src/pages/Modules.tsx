@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +33,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, Edit2, Trash2, Package, Users, RefreshCw, AlertCircle } from 'lucide-react'
+import { Plus, Edit2, Trash2, Package, Users, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -49,54 +49,11 @@ type Client = {
   modules: string[] | null
 }
 
-class ModulesErrorBoundary extends Component<
-  { children: ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: ReactNode }) {
-    super(props)
-    this.state = { hasError: false, error: null }
-  }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error }
-  }
-
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('ModulesErrorBoundary caught an error:', error, errorInfo)
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-6 flex flex-col items-center justify-center text-center space-y-4 bg-background min-h-[400px] rounded-lg border">
-          <AlertCircle className="w-12 h-12 text-destructive" />
-          <h2 className="text-2xl font-bold">Erro ao exibir página</h2>
-          <p className="text-muted-foreground max-w-md">
-            Erro ao carregar o gerenciamento de módulos. Por favor, tente novamente.
-            {this.state.error?.message && (
-              <span className="block mt-2 text-sm text-destructive font-mono bg-destructive/10 p-2 rounded">
-                {this.state.error.message}
-              </span>
-            )}
-          </p>
-          <Button variant="outline" onClick={() => this.setState({ hasError: false, error: null })}>
-            <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
-          </Button>
-        </div>
-      )
-    }
-
-    return this.props.children
-  }
-}
-
-function ModulesContent() {
+export default function Modules() {
   const { toast } = useToast()
   const [modules, setModules] = useState<Module[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
-  const [errorState, setErrorState] = useState<string | null>(null)
 
   const [activeTab, setActiveTab] = useState('modules')
 
@@ -113,7 +70,6 @@ function ModulesContent() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      setErrorState(null)
 
       const [modulesRes, clientsRes] = await Promise.all([
         supabase.from('modules').select('*').order('name'),
@@ -146,22 +102,9 @@ function ModulesContent() {
       setClients(parsedClients)
     } catch (error: any) {
       console.error('Fetch error:', error)
-      let errorMessage = error.message || 'Erro ao carregar dados do servidor.'
-
-      // Prevent network/JSON parsing errors from crashing or causing misleading UI
-      if (
-        errorMessage.includes('Unexpected token') ||
-        errorMessage.includes('Unexpected end of JSON input') ||
-        errorMessage.includes('JSON') ||
-        errorMessage.includes('fetch')
-      ) {
-        errorMessage = 'Erro de comunicação com o servidor. Resposta inválida da rede.'
-      }
-
-      setErrorState(errorMessage)
       toast({
-        title: 'Erro de Conexão',
-        description: errorMessage,
+        title: 'Erro ao carregar dados',
+        description: error.message || 'Ocorreu um erro ao buscar os módulos.',
         variant: 'destructive',
       })
     } finally {
@@ -268,24 +211,6 @@ function ModulesContent() {
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     }
-  }
-
-  if (errorState && !modules.length && !clients.length) {
-    return (
-      <div className="p-6 flex flex-col items-center justify-center text-center space-y-4 bg-background min-h-[400px] rounded-lg border">
-        <AlertCircle className="w-12 h-12 text-destructive" />
-        <h2 className="text-2xl font-bold">Erro ao carregar dados</h2>
-        <p className="text-muted-foreground max-w-md">
-          Não foi possível sincronizar com o banco de dados.
-        </p>
-        <span className="block mt-2 text-sm text-destructive font-mono bg-destructive/10 p-2 rounded">
-          {errorState}
-        </span>
-        <Button variant="outline" onClick={fetchData}>
-          <RefreshCw className="w-4 h-4 mr-2" /> Tentar novamente
-        </Button>
-      </div>
-    )
   }
 
   return (
@@ -559,13 +484,5 @@ function ModulesContent() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
-}
-
-export default function Modules() {
-  return (
-    <ModulesErrorBoundary>
-      <ModulesContent />
-    </ModulesErrorBoundary>
   )
 }
