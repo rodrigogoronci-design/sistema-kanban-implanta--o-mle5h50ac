@@ -153,18 +153,18 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     <>
       <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-2xl w-full p-0 gap-0 overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="p-6 pb-4 pr-14 bg-muted/20 border-b shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative">
-            <DialogHeader className="flex-1 w-full">
+          <div className="p-6 pb-4 bg-muted/20 border-b shrink-0 flex flex-col gap-4 relative">
+            <DialogHeader className="w-full pr-8">
               <DialogTitle className="text-xl text-primary w-full">
                 <Input
                   value={task.title}
                   onChange={(e) => updateTask(task.id, { title: e.target.value })}
-                  className="text-lg font-bold h-auto py-1 px-2 -ml-2 bg-transparent border-transparent hover:border-input focus-visible:bg-background w-full"
+                  className="text-xl font-bold h-auto py-1 px-2 -ml-2 bg-transparent border-transparent hover:border-input focus-visible:bg-background w-full"
                   placeholder="Título da tarefa"
                 />
               </DialogTitle>
             </DialogHeader>
-            <div className="flex flex-col sm:flex-row items-center gap-4 shrink-0 mt-2 md:mt-0 w-full md:w-auto md:mr-8">
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
               <Button
                 variant="outline"
                 size="sm"
