@@ -179,19 +179,24 @@ export default function RAT() {
               </div>
             </div>
 
-            {task.recording_url && task.recording_url.trim() !== '' && (
+            {((task.recording_url &&
+              typeof task.recording_url === 'string' &&
+              task.recording_url.trim() !== '') ||
+              (task.recordingUrl &&
+                typeof task.recordingUrl === 'string' &&
+                task.recordingUrl.trim() !== '')) && (
               <div className="mb-6">
                 <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
                   Gravação do Treinamento
                 </p>
                 <div className="bg-white p-4 rounded border border-slate-200 text-sm">
                   <a
-                    href={task.recording_url}
+                    href={task.recording_url || task.recordingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline font-medium break-all"
                   >
-                    {task.recording_url}
+                    {task.recording_url || task.recordingUrl}
                   </a>
                 </div>
               </div>
@@ -312,34 +317,6 @@ export default function RAT() {
               )}
             </section>
           )}
-
-          <section className="mt-24 pt-8 break-inside-avoid">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-16 sm:gap-8 text-center px-8">
-              <div>
-                <div className="border-t-2 border-slate-800 pt-3">
-                  <p className="font-bold text-sm text-slate-800 uppercase tracking-wider">
-                    Assinatura do Consultor
-                  </p>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {analysts.length > 0 ? analysts[0].nome : 'Consultor Responsável'}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <div className="border-t-2 border-slate-800 pt-3">
-                  <p className="font-bold text-sm text-slate-800 uppercase tracking-wider">
-                    Assinatura do Cliente
-                  </p>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {task.client?.name || 'Representante do Cliente'}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="text-center text-xs text-slate-400 mt-12">
-              Este documento atesta a realização das atividades descritas acima.
-            </p>
-          </section>
         </div>
         <style>{`
           @media print {

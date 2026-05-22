@@ -737,10 +737,18 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                         recording_url: e.target.value,
                       } as any)
                     }
+                    onBlur={async (e) => {
+                      if (task.id) {
+                        await supabase
+                          .from('tasks')
+                          .update({ recording_url: e.target.value })
+                          .eq('id', task.id)
+                      }
+                    }}
                     placeholder="https://..."
                     className="bg-background"
                   />
-                </div>
+                </div>{' '}
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Participantes</Label>
                   <div className="flex gap-2">
