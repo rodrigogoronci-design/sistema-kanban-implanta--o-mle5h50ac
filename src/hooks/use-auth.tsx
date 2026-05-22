@@ -35,8 +35,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase.from('colaboradores').select('*').eq('id', userId).single()
-    if (data) setProfile(data)
+    try {
+      const { data } = await supabase.from('colaboradores').select('*').eq('id', userId).single()
+      if (data) setProfile(data)
+    } catch (e) {
+      console.error('Error fetching profile:', e)
+    }
   }
 
   useEffect(() => {
@@ -45,24 +49,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setProfile(null)
-        setLoading(false)
-      }
+      setLoading(false)
     })
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false))
-      } else {
-        setLoading(false)
-      }
+      setLoading(false)
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile(user.id)
+    } else {
+      setProfile(null)
+    }
+  }, [user])
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({

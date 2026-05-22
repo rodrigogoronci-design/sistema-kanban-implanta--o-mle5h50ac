@@ -164,7 +164,7 @@ export default function Modules() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : modules.length === 0 ? (
+                ) : !modules || modules.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                       Nenhum módulo encontrado.
@@ -172,10 +172,10 @@ export default function Modules() {
                   </TableRow>
                 ) : (
                   modules.map((mod) => (
-                    <TableRow key={mod.id}>
-                      <TableCell className="font-medium">{mod.name}</TableCell>
+                    <TableRow key={mod?.id}>
+                      <TableCell className="font-medium">{mod?.name}</TableCell>
                       <TableCell className="text-muted-foreground">
-                        {mod.created_at
+                        {mod?.created_at
                           ? format(new Date(mod.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
                           : '-'}
                       </TableCell>
@@ -185,7 +185,7 @@ export default function Modules() {
                             variant="ghost"
                             size="icon"
                             title="Editar"
-                            onClick={() => openEdit(mod)}
+                            onClick={() => mod && openEdit(mod)}
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -194,7 +194,7 @@ export default function Modules() {
                             size="icon"
                             title="Excluir"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(mod.id)}
+                            onClick={() => mod && setDeleteId(mod.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

@@ -17,7 +17,7 @@ import Modules from './pages/Modules'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
-  const { loading, session, profile } = useAuth()
+  const { loading, session } = useAuth()
 
   if (loading) {
     return (
