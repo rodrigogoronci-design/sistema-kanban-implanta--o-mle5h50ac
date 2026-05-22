@@ -41,6 +41,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const { user, profile, signOut } = useAuth()
   const [permissions, setPermissions] = useState<Record<string, string[]>>({})
+  const [loadingPermissions, setLoadingPermissions] = useState(true)
 
   const navItems = [
     { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
@@ -64,6 +65,9 @@ export default function Layout() {
           setPermissions(data.valor as Record<string, string[]>)
         }
       })
+      .finally(() => {
+        setLoadingPermissions(false)
+      })
   }, [])
 
   const defaultPermissions: Record<string, string[]> = {
@@ -78,7 +82,7 @@ export default function Layout() {
       '/settings',
     ],
     Gerente: ['/', '/clients', '/projects', '/analysts', '/reports', '/modules'],
-    Colaborador: ['/', '/projects'],
+    Colaborador: ['/', '/projects', '/modules'],
   }
   const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
@@ -86,6 +90,7 @@ export default function Layout() {
   const allowedRoutesStr = JSON.stringify(allowedRoutes)
 
   useEffect(() => {
+    if (loadingPermissions) return
     const routes = JSON.parse(allowedRoutesStr)
     const isAllowed =
       location.pathname === '/'
@@ -95,13 +100,21 @@ export default function Layout() {
     if (!isAllowed && location.pathname !== '/') {
       navigate('/')
     }
-  }, [location.pathname, allowedRoutesStr, navigate])
+  }, [location.pathname, allowedRoutesStr, navigate, loadingPermissions])
 
   const filteredNavItems = navItems.filter((item) => allowedRoutes.includes(item.url))
 
   const handleLogout = async () => {
     await signOut()
     navigate('/')
+  }
+
+  if (loadingPermissions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -40,7 +40,44 @@ type Module = {
   created_at: string
 }
 
-export default function Modules() {
+class ModulesErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('ModulesErrorBoundary caught an error:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 flex flex-col items-center justify-center text-center space-y-4">
+          <Package className="w-12 h-12 text-destructive" />
+          <h2 className="text-2xl font-bold">Algo deu errado</h2>
+          <p className="text-muted-foreground">
+            Ocorreu um erro ao exibir a página de Gestão de Módulos.
+          </p>
+          <Button variant="outline" onClick={() => this.setState({ hasError: false, error: null })}>
+            Tentar novamente
+          </Button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+function ModulesContent() {
   const { toast } = useToast()
   const [modules, setModules] = useState<Module[]>([])
   const [loading, setLoading] = useState(true)
@@ -256,5 +293,13 @@ export default function Modules() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  )
+}
+
+export default function Modules() {
+  return (
+    <ModulesErrorBoundary>
+      <ModulesContent />
+    </ModulesErrorBoundary>
   )
 }
