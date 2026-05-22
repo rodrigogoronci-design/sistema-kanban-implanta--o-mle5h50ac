@@ -94,15 +94,21 @@ export default function RAT() {
         <table className="w-full">
           <thead className="table-header-group">
             <tr>
-              <td className="pb-6">
-                <div className="border-b-2 border-slate-800 pb-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+              <td className="pb-4 print:pb-2">
+                <div className="border-b-2 border-slate-800 pb-4 mb-4 print:pb-2 print:mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
                   <div className="flex items-center gap-6">
-                    <img src={logoImg} alt="Logo Service Logic" className="h-14 object-contain" />
+                    <img
+                      src={logoImg}
+                      alt="Logo Service Logic"
+                      className="h-14 object-contain print:h-10"
+                    />
                     <div>
-                      <h1 className="text-xl font-bold uppercase tracking-wider text-slate-800">
+                      <h1 className="text-xl font-bold uppercase tracking-wider text-slate-800 print:text-lg">
                         Relatório de Atendimento Técnico
                       </h1>
-                      <p className="text-slate-500 mt-1">Ref: {task.title}</p>
+                      <p className="text-slate-500 mt-1 print:mt-0 print:text-sm">
+                        Ref: {task.title}
+                      </p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right">
@@ -112,13 +118,13 @@ export default function RAT() {
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-4 border border-slate-200 rounded-lg">
-                  <h2 className="text-sm font-bold text-slate-800 uppercase mb-3 border-b border-slate-200 pb-2">
+                <div className="bg-slate-50 p-4 print:p-3 border border-slate-200 rounded-lg">
+                  <h2 className="text-sm font-bold text-slate-800 uppercase mb-3 print:mb-2 border-b border-slate-200 pb-2 print:pb-1">
                     Dados do Cliente
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print:gap-2 text-sm">
                     <div>
-                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                         Razão Social / Nome
                       </p>
                       <p className="font-medium text-base">
@@ -126,13 +132,15 @@ export default function RAT() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">CNPJ</p>
+                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
+                        CNPJ
+                      </p>
                       <p className="font-medium text-base">
                         {task.client?.cnpj || 'Não informado'}
                       </p>
                     </div>
                     <div className="sm:col-span-2">
-                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                      <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                         Projeto
                       </p>
                       <p className="font-medium text-base">
@@ -147,14 +155,14 @@ export default function RAT() {
           <tbody>
             <tr>
               <td>
-                <div className="space-y-6">
+                <div className="space-y-6 print:space-y-4">
                   <section>
-                    <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                    <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Detalhamento das Atividades
                     </h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm bg-slate-50 p-4 rounded-lg border border-slate-100">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 print:gap-2 text-sm bg-slate-50 p-4 print:p-3 rounded-lg border border-slate-100">
                       <div className="col-span-2 sm:col-span-4">
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Profissional(is)
                         </p>
                         <p className="font-medium">
@@ -164,13 +172,13 @@ export default function RAT() {
                         </p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Categoria
                         </p>
                         <p className="font-medium">{task.category?.name || 'Não informada'}</p>
                       </div>
                       <div>
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Início
                         </p>
                         <p className="font-medium">
@@ -180,7 +188,7 @@ export default function RAT() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1">
+                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Conclusão
                         </p>
                         <p className="font-medium">
@@ -193,11 +201,11 @@ export default function RAT() {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                    <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Participantes Presentes
                     </h2>
                     {participants.length > 0 ? (
-                      <div className="border border-slate-200 rounded p-4">
+                      <div className="border border-slate-200 rounded p-4 print:p-3">
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                           {participants.map((p: string, i: number) => (
                             <li key={i} className="flex items-center gap-2">
@@ -208,18 +216,18 @@ export default function RAT() {
                         </ul>
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
+                      <p className="text-sm text-slate-500 italic p-4 print:p-3 border border-slate-200 border-dashed rounded">
                         Nenhum participante registrado.
                       </p>
                     )}
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                    <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Conteúdo / Módulos
                     </h2>
                     {trainedModules.length > 0 ? (
-                      <div className="border border-slate-200 rounded p-4">
+                      <div className="border border-slate-200 rounded p-4 print:p-3">
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                           {trainedModules.map((m: string, i: number) => (
                             <li key={i} className="flex items-center gap-2">
@@ -230,14 +238,14 @@ export default function RAT() {
                         </ul>
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
+                      <p className="text-sm text-slate-500 italic p-4 print:p-3 border border-slate-200 border-dashed rounded">
                         Nenhum módulo registrado.
                       </p>
                     )}
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                    <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Apontamento de Horas
                     </h2>
                     <div className="bg-white rounded border border-slate-200 overflow-hidden text-sm">
@@ -307,10 +315,10 @@ export default function RAT() {
                   {((task.recording_url && task.recording_url.trim() !== '') ||
                     (task.recordingUrl && task.recordingUrl.trim() !== '')) && (
                     <section>
-                      <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                      <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                         Gravação de Treinamento
                       </h2>
-                      <div className="bg-white p-4 rounded border border-slate-200 text-sm flex flex-col gap-2">
+                      <div className="bg-white p-4 print:p-3 rounded border border-slate-200 text-sm flex flex-col gap-2 print:gap-1">
                         <a
                           href={task.recording_url || task.recordingUrl}
                           target="_blank"
@@ -327,10 +335,10 @@ export default function RAT() {
                   )}
 
                   <section>
-                    <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                    <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Descrição da Atividade
                     </h2>
-                    <div className="bg-white p-4 rounded border border-slate-200 whitespace-pre-wrap text-sm min-h-[100px] text-slate-700">
+                    <div className="bg-white p-4 print:p-3 rounded border border-slate-200 whitespace-pre-wrap text-sm min-h-[100px] print:min-h-0 text-slate-700">
                       {task.description || 'Nenhuma descrição fornecida para esta atividade.'}
                     </div>
                   </section>
@@ -342,7 +350,7 @@ export default function RAT() {
         <style>{`
           @media print {
             @page { 
-              margin: 15mm;
+              margin: 20mm 15mm;
               size: A4;
             }
             body { 
@@ -355,9 +363,13 @@ export default function RAT() {
               padding: 0 !important; 
               max-width: 100% !important;
             }
-            section, tr {
+            tr {
               page-break-inside: avoid;
               break-inside: avoid;
+            }
+            h2 {
+              page-break-after: avoid;
+              break-after: avoid;
             }
             .bg-white.min-h-screen {
               min-height: auto;
