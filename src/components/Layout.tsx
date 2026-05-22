@@ -26,6 +26,7 @@ import {
   PieChart,
   UserCheck,
   BookOpen,
+  Mail,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -51,6 +52,7 @@ export default function Layout() {
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
     { title: 'Cadastros', url: '/cadastros', icon: BookOpen },
+    { title: 'Envios RAT', url: '/monitoramento', icon: Mail },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
@@ -80,9 +82,18 @@ export default function Layout() {
       '/reports',
       '/cadastros',
       '/settings',
+      '/monitoramento',
     ],
-    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports', '/cadastros'],
-    Colaborador: ['/', '/projects', '/cadastros'],
+    Gerente: [
+      '/',
+      '/clients',
+      '/projects',
+      '/analysts',
+      '/reports',
+      '/cadastros',
+      '/monitoramento',
+    ],
+    Colaborador: ['/', '/projects', '/cadastros', '/monitoramento'],
   }
   const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
