@@ -91,7 +91,12 @@ export default function RAT() {
 
       <div className="max-w-4xl mx-auto p-8 text-black" id="rat-content">
         <div className="border-b-2 border-slate-800 pb-4 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <img
+              src="https://img.usecurling.com/i?q=brand&shape=fill&color=black"
+              alt="Logo da Empresa"
+              className="w-16 h-16 object-contain"
+            />
             <div>
               <h1 className="text-2xl font-bold uppercase tracking-wider text-slate-800">
                 Relatório de Atendimento Técnico
@@ -269,12 +274,12 @@ export default function RAT() {
             </div>
           </section>
 
-          <section>
-            <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
-              Gravação de Treinamento
-            </h2>
-            {(task.recording_url && task.recording_url.trim() !== '') ||
-            (task.recordingUrl && task.recordingUrl.trim() !== '') ? (
+          {((task.recording_url && task.recording_url.trim() !== '') ||
+            (task.recordingUrl && task.recordingUrl.trim() !== '')) && (
+            <section>
+              <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
+                Gravação de Treinamento
+              </h2>
               <div className="bg-white p-4 rounded border border-slate-200 text-sm flex flex-col gap-2">
                 <a
                   href={task.recording_url || task.recordingUrl}
@@ -285,15 +290,11 @@ export default function RAT() {
                   {task.recording_url || task.recordingUrl}
                 </a>
                 <p className="text-xs font-bold text-red-600 mt-1">
-                  Aviso: Por favor, realize o download do vídeo, pois o link expirará em 30 dias.
+                  Atenção: Por favor, faça o download do vídeo, pois o link expira em 30 dias.
                 </p>
               </div>
-            ) : (
-              <p className="text-sm text-slate-500 italic p-4 border border-slate-200 border-dashed rounded">
-                Nenhuma gravação registrada.
-              </p>
-            )}
-          </section>
+            </section>
+          )}
 
           <section>
             <h2 className="text-lg font-bold bg-slate-100 p-2 mb-3 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
@@ -306,11 +307,12 @@ export default function RAT() {
         </div>
         <style>{`
           @media print {
-            @page { margin: 1.5cm; }
+            @page { margin: 0; }
             body { 
               -webkit-print-color-adjust: exact; 
               print-color-adjust: exact; 
               background-color: white; 
+              padding: 1.5cm;
             }
             .print\\:hidden { display: none !important; }
             #rat-content { 
