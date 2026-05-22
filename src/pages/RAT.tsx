@@ -179,10 +179,10 @@ export default function RAT() {
               </div>
             </div>
 
-            {task.recording_url && (
+            {task.recording_url && task.recording_url.trim() !== '' && (
               <div className="mb-6">
                 <p className="text-slate-500 text-xs uppercase tracking-wider mb-2">
-                  Link da Gravação
+                  Gravação do Treinamento
                 </p>
                 <div className="bg-blue-50 p-3 rounded border border-blue-100 text-sm">
                   <a
