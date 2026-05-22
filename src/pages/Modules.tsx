@@ -73,7 +73,7 @@ class ModulesErrorBoundary extends Component<
           <AlertCircle className="w-12 h-12 text-destructive" />
           <h2 className="text-2xl font-bold">Erro ao exibir página</h2>
           <p className="text-muted-foreground max-w-md">
-            Ocorreu um erro interno ao renderizar os dados.
+            Erro ao carregar o gerenciamento de módulos. Por favor, tente novamente.
             {this.state.error?.message && (
               <span className="block mt-2 text-sm text-destructive font-mono bg-destructive/10 p-2 rounded">
                 {this.state.error.message}
@@ -146,10 +146,22 @@ function ModulesContent() {
       setClients(parsedClients)
     } catch (error: any) {
       console.error('Fetch error:', error)
-      setErrorState(error.message || 'Erro ao carregar dados do servidor.')
+      let errorMessage = error.message || 'Erro ao carregar dados do servidor.'
+
+      // Prevent network/JSON parsing errors from crashing or causing misleading UI
+      if (
+        errorMessage.includes('Unexpected token') ||
+        errorMessage.includes('Unexpected end of JSON input') ||
+        errorMessage.includes('JSON') ||
+        errorMessage.includes('fetch')
+      ) {
+        errorMessage = 'Erro de comunicação com o servidor. Resposta inválida da rede.'
+      }
+
+      setErrorState(errorMessage)
       toast({
-        title: 'Erro',
-        description: error.message || 'Falha ao carregar dados',
+        title: 'Erro de Conexão',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
