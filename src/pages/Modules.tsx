@@ -33,7 +33,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/use-toast'
-import { Plus, Edit2, Trash2, Package, Users, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Plus, Edit2, Trash2, Package, Users, RefreshCw, ArrowLeft } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -87,8 +88,10 @@ export default function Modules() {
           clientModules = client.modules as string[]
         } else if (typeof client.modules === 'string') {
           try {
-            const parsed = JSON.parse(client.modules)
-            if (Array.isArray(parsed)) clientModules = parsed
+            if (client.modules.trim() !== '') {
+              const parsed = JSON.parse(client.modules)
+              if (Array.isArray(parsed)) clientModules = parsed
+            }
           } catch (e) {
             console.error('Failed to parse client modules:', e)
           }
@@ -215,6 +218,18 @@ export default function Modules() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          asChild
+          className="-ml-2 text-muted-foreground hover:text-foreground"
+        >
+          <Link to="/cadastros">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Voltar para Cadastros
+          </Link>
+        </Button>
+      </div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">

@@ -50,7 +50,7 @@ export default function Layout() {
     { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
-    { title: 'Módulos', url: '/modules', icon: BookOpen },
+    { title: 'Cadastros', url: '/cadastros', icon: BookOpen },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
@@ -78,11 +78,11 @@ export default function Layout() {
       '/analysts',
       '/users',
       '/reports',
-      '/modules',
+      '/cadastros',
       '/settings',
     ],
-    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports', '/modules'],
-    Colaborador: ['/', '/projects', '/modules'],
+    Gerente: ['/', '/clients', '/projects', '/analysts', '/reports', '/cadastros'],
+    Colaborador: ['/', '/projects', '/cadastros'],
   }
   const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
@@ -136,7 +136,10 @@ export default function Layout() {
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton
                       asChild
-                      isActive={location.pathname === item.url}
+                      isActive={
+                        location.pathname === item.url ||
+                        (item.url !== '/' && location.pathname.startsWith(item.url))
+                      }
                       tooltip={item.title}
                     >
                       <Link to={item.url} className="flex items-center gap-3">
@@ -188,7 +191,11 @@ export default function Layout() {
           <SidebarTrigger className="-ml-2 text-muted-foreground" />
           <div className="flex-1 flex items-center">
             <h1 className="text-lg font-semibold text-foreground tracking-tight">
-              {navItems.find((n) => n.url === location.pathname)?.title || 'Detalhes'}
+              {navItems.find(
+                (n) =>
+                  n.url === location.pathname ||
+                  (n.url !== '/' && location.pathname.startsWith(n.url)),
+              )?.title || 'Detalhes'}
             </h1>
           </div>
         </header>
