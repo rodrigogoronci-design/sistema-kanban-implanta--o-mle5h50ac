@@ -3,8 +3,7 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('attachments', 'attachments', true)
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on storage.objects if not already
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS on storage.objects is managed by Supabase, altering it requires superuser privileges
 
 -- Create policies for attachments bucket (idempotent)
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
