@@ -1,34 +1,19 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import { formatHoursAndMinutes, getTaskHours } from '@/lib/time'
-import { Printer, Mail, Send, Loader2 } from 'lucide-react'
+import { Printer, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { toast } from 'sonner'
 import logoImg from '@/assets/logo-sl-143a4.png'
 
 export default function RAT() {
   const { taskId } = useParams()
+  const [searchParams] = useSearchParams()
+  const hideHeader = searchParams.get('hideHeader') === 'true'
+
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-
-  const [emailModalOpen, setEmailModalOpen] = useState(false)
-  const [emailTo, setEmailTo] = useState('')
-  const [emailSubject, setEmailSubject] = useState('')
-  const [emailBody, setEmailBody] = useState('')
-  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -83,6 +68,25 @@ export default function RAT() {
     loadData()
   }, [taskId])
 
+  useEffect(() => {
+    if (!loading && data?.task) {
+      const timer = setTimeout(() => {
+        const content = document.getElementById('rat-content')
+        if (content && window.parent !== window) {
+          window.parent.postMessage(
+            {
+              type: 'RAT_READY',
+              html: content.outerHTML,
+              taskId: data.task.id,
+            },
+            '*',
+          )
+        }
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, data])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
@@ -104,195 +108,32 @@ export default function RAT() {
   const participants = Array.isArray(task.participants) ? task.participants : []
   const trainedModules = Array.isArray(task.trained_modules) ? task.trained_modules : []
 
-  const handleSendEmail = async () => {
-    setIsSending(true)
-    try {
-      const content = document.getElementById('rat-content')
-      if (!content) throw new Error('Conteúdo não encontrado')
-
-      const htmlString = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>RAT - ${task.title}</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @media print {
-              .print\\:hidden { display: none !important; }
-            }
-          </style>
-        </head>
-        <body class="bg-white">
-          <div class="max-w-4xl mx-auto p-8 text-black">
-            ${content.outerHTML}
-          </div>
-        </body>
-        </html>
-      `
-      const blob = new Blob([htmlString], { type: 'application/pdf' })
-      const clientName = task.client?.name || 'Cliente'
-      const dateStr = format(new Date(), 'dd-MM-yyyy')
-      const fileName = `RAT - ${clientName} - ${dateStr}.pdf`
-      const filePath = `tasks/${task.id}/${Date.now()}_${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('attachments')
-        .upload(filePath, blob, { contentType: 'application/pdf' })
-
-      if (uploadError) {
-        console.error('Storage Upload Error:', uploadError)
-        toast.error('Falha ao fazer upload do RAT no Storage.')
-        setIsSending(false)
-        return
-      }
-
-      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
-      const publicUrl = publicUrlData.publicUrl
-
-      const attachmentId = crypto.randomUUID()
-      const { error: dbError } = await supabase.from('attachments').insert({
-        id: attachmentId,
-        task_id: task.id,
-        name: fileName,
-        size: blob.size,
-        type: 'application/pdf',
-        url: publicUrl,
-      })
-
-      if (dbError) {
-        console.error('Database Insert Error:', dbError)
-        toast.error('Erro ao salvar anexo no banco de dados')
-        setIsSending(false)
-        return
-      }
-
-      const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
-        body: {
-          to: emailTo,
-          subject: emailSubject,
-          body: emailBody,
-          attachmentUrl: publicUrl,
-          attachmentName: fileName,
-        },
-      })
-
-      if (fnError) {
-        console.error('Edge Function Error:', fnError)
-        toast.error('Falha no envio do e-mail')
-      } else {
-        toast.success('RAT salva e enviada com sucesso!')
-      }
-
-      setEmailModalOpen(false)
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.message || 'Erro inesperado ao processar o RAT.')
-    } finally {
-      setIsSending(false)
-    }
-  }
+  const mailToLink = `mailto:${
+    contacts && contacts.length > 0
+      ? contacts
+          .filter((c: any) => c.email)
+          .map((c: any) => c.email)
+          .join(',')
+      : ''
+  }?subject=${encodeURIComponent(`Relatório de Atendimento Técnico - ${task.title}`)}&body=${encodeURIComponent(`Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe\n\n(Não se esqueça de anexar o arquivo PDF gerado)`)}`
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      <div className="print:hidden p-4 bg-muted border-b flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Visualização de Impressão</p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEmailSubject(`Relatório de Atendimento Técnico - ${task.title}`)
-              setEmailBody(
-                `Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe`,
-              )
-              if (contacts && contacts.length > 0) {
-                setEmailTo(
-                  contacts
-                    .filter((c: any) => c.email)
-                    .map((c: any) => c.email)
-                    .join(', '),
-                )
-              }
-              setEmailModalOpen(true)
-            }}
-          >
-            <Mail className="w-4 h-4 mr-2" /> Enviar por Email
-          </Button>
-          <Button onClick={() => window.print()}>
-            <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
-          </Button>
-        </div>
-      </div>
-
-      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Enviar RAT por Email</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Destinatário(s)</Label>
-              <div className="flex flex-col gap-2">
-                {contacts && contacts.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {contacts.map((c: any) =>
-                      c.email ? (
-                        <Badge
-                          key={c.id}
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-secondary/80"
-                          onClick={() => {
-                            const currentEmails = emailTo
-                              .split(',')
-                              .map((e) => e.trim())
-                              .filter(Boolean)
-                            if (!currentEmails.includes(c.email)) {
-                              setEmailTo(
-                                currentEmails.length > 0 ? `${emailTo}, ${c.email}` : c.email,
-                              )
-                            }
-                          }}
-                        >
-                          {c.name}
-                        </Badge>
-                      ) : null,
-                    )}
-                  </div>
-                )}
-                <Input
-                  value={emailTo}
-                  onChange={(e) => setEmailTo(e.target.value)}
-                  placeholder="email@cliente.com.br"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Assunto</Label>
-              <Input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Mensagem</Label>
-              <Textarea rows={5} value={emailBody} onChange={(e) => setEmailBody(e.target.value)} />
-            </div>
+      {!hideHeader && (
+        <div className="print:hidden p-4 bg-muted border-b flex justify-between items-center">
+          <p className="text-sm text-muted-foreground">Visualização de Impressão</p>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <a href={mailToLink}>
+                <Mail className="w-4 h-4 mr-2" /> Enviar por Email
+              </a>
+            </Button>
+            <Button onClick={() => window.print()}>
+              <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
+            </Button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailModalOpen(false)} disabled={isSending}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSendEmail} disabled={isSending}>
-              {isSending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" /> Enviar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
       <div className="max-w-4xl mx-auto p-8 text-black flex-1 w-full" id="rat-content">
         <table className="w-full">
@@ -360,7 +201,7 @@ export default function RAT() {
             <tr>
               <td>
                 <div className="space-y-6 print:space-y-4">
-                  <section>
+                  <section className="print:break-inside-avoid">
                     <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Detalhamento das Atividades
                     </h2>
@@ -375,7 +216,7 @@ export default function RAT() {
                             : 'Não informado'}
                         </p>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-2 sm:col-span-3">
                         <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Categoria
                         </p>
@@ -383,28 +224,18 @@ export default function RAT() {
                       </div>
                       <div>
                         <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
-                          Início
-                        </p>
-                        <p className="font-medium">
-                          {task.start_date
-                            ? format(parseISO(task.start_date), 'dd/MM/yyyy HH:mm')
-                            : '-'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Conclusão
                         </p>
                         <p className="font-medium">
                           {task.completion_date
-                            ? format(parseISO(task.completion_date), 'dd/MM/yyyy HH:mm')
+                            ? format(parseISO(task.completion_date), 'dd/MM/yyyy')
                             : '-'}
                         </p>
                       </div>
                     </div>
                   </section>
 
-                  <section>
+                  <section className="print:break-inside-avoid">
                     <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Participantes Presentes
                     </h2>
@@ -426,7 +257,7 @@ export default function RAT() {
                     )}
                   </section>
 
-                  <section>
+                  <section className="print:break-inside-avoid">
                     <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Conteúdo / Módulos
                     </h2>
@@ -448,7 +279,7 @@ export default function RAT() {
                     )}
                   </section>
 
-                  <section>
+                  <section className="print:break-inside-avoid">
                     <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Apontamento de Horas
                     </h2>
@@ -518,7 +349,7 @@ export default function RAT() {
 
                   {((task.recording_url && task.recording_url.trim() !== '') ||
                     (task.recordingUrl && task.recordingUrl.trim() !== '')) && (
-                    <section>
+                    <section className="print:break-inside-avoid">
                       <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                         Gravação de Treinamento
                       </h2>
@@ -538,7 +369,7 @@ export default function RAT() {
                     </section>
                   )}
 
-                  <section>
+                  <section className="print:break-inside-avoid">
                     <h2 className="text-lg font-bold bg-slate-100 p-2 print:py-1 print:px-2 mb-3 print:mb-2 border-l-4 border-slate-800 uppercase text-slate-800 text-sm">
                       Descrição da Atividade
                     </h2>
@@ -563,6 +394,7 @@ export default function RAT() {
               background-color: white; 
             }
             .print\\:hidden { display: none !important; }
+            .print\\:break-inside-avoid { break-inside: avoid !important; }
             #rat-content { 
               padding: 0 !important; 
               max-width: 100% !important;

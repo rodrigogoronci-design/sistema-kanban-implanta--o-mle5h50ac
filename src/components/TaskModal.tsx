@@ -37,6 +37,8 @@ import {
   X,
   Plus,
   Printer,
+  FileText,
+  Loader2,
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +46,7 @@ import { format, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import {
   Command,
   CommandInput,
@@ -79,6 +82,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const [analystsOpen, setAnalystsOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [newParticipant, setNewParticipant] = useState('')
+  const [isSavingRAT, setIsSavingRAT] = useState(false)
 
   const task = tasks.find((t) => t.id === taskId)
 
@@ -135,6 +139,106 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
   const onUpdate = (payload: Partial<typeof task>) => updateTask(task.id, payload)
 
+  const handleSaveRAT = async () => {
+    setIsSavingRAT(true)
+    try {
+      const htmlString = await new Promise<string>((resolve, reject) => {
+        const iframe = document.createElement('iframe')
+        iframe.style.display = 'none'
+
+        const timeout = setTimeout(() => {
+          window.removeEventListener('message', handleMessage)
+          document.body.removeChild(iframe)
+          reject(new Error('Timeout ao carregar RAT para PDF'))
+        }, 15000)
+
+        const handleMessage = (event: MessageEvent) => {
+          if (event.data?.type === 'RAT_READY' && event.data?.taskId === task.id) {
+            clearTimeout(timeout)
+            window.removeEventListener('message', handleMessage)
+            document.body.removeChild(iframe)
+            const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>RAT - ${task.title}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      .print\\:hidden { display: none !important; }
+      .print\\:break-inside-avoid { break-inside: avoid !important; }
+    }
+  </style>
+</head>
+<body class="bg-white">
+  <div class="max-w-4xl mx-auto p-8 text-black">
+    ${event.data.html}
+  </div>
+</body>
+</html>`
+            resolve(html)
+          }
+        }
+
+        window.addEventListener('message', handleMessage)
+        document.body.appendChild(iframe)
+        iframe.src = `/rat/${task.id}?hideHeader=true`
+      })
+
+      const blob = new Blob([htmlString], { type: 'application/pdf' })
+
+      let clientName = 'Cliente'
+      if (task.clientId) {
+        const client = clients.find((c) => c.id === task.clientId)
+        if (client) clientName = client.name
+      }
+      const dateStr = format(new Date(), 'dd-MM-yyyy')
+      const fileName = `RAT - ${clientName} - ${dateStr}.pdf`
+      const filePath = `${task.id}/${Date.now()}_${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('attachments')
+        .upload(filePath, blob, { contentType: 'application/pdf' })
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
+      const publicUrl = publicUrlData.publicUrl
+
+      const attachmentId = crypto.randomUUID()
+      const { error: dbError } = await supabase.from('attachments').insert({
+        id: attachmentId,
+        task_id: task.id,
+        name: fileName,
+        size: blob.size,
+        type: 'application/pdf',
+        url: publicUrl,
+      })
+
+      if (dbError) throw dbError
+
+      const newAttachment = {
+        id: attachmentId,
+        name: fileName,
+        size: blob.size,
+        type: 'application/pdf',
+        url: publicUrl,
+        createdAt: new Date().toISOString(),
+      }
+
+      updateTask(task.id, {
+        attachments: [...(task.attachments || []), newAttachment],
+      } as any)
+
+      toast.success('RAT salva em anexo com sucesso!')
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao salvar RAT em anexo')
+    } finally {
+      setIsSavingRAT(false)
+    }
+  }
+
   const handleComplete = () => {
     const completedCol = columns.find(
       (c) =>
@@ -171,7 +275,21 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                 className="w-full sm:w-auto"
                 onClick={() => window.open(`/rat/${task.id}`, '_blank')}
               >
-                <Printer className="w-4 h-4 mr-2" /> Gerar RAT
+                <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={handleSaveRAT}
+                disabled={isSavingRAT}
+              >
+                {isSavingRAT ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="w-4 h-4 mr-2" />
+                )}
+                Salvar RAT em anexo
               </Button>
               <Button
                 variant="outline"
