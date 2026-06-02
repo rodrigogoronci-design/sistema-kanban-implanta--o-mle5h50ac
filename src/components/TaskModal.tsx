@@ -916,7 +916,12 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     <div className="flex items-center justify-between">
                       <Label className="text-muted-foreground">Módulos Ministrados</Label>
                       {modules.length > 0 && (
-                        <Button variant="secondary" size="sm" onClick={handleSaveModules}>
+                        <Button
+                          className="text-[#000000] font-medium bg-[#80d460]"
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleSaveModules}
+                        >
                           <Check className="w-4 h-4 mr-1" /> Salvar Módulos
                         </Button>
                       )}
