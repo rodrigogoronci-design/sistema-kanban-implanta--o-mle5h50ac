@@ -6,17 +6,7 @@ import { formatHoursAndMinutes, getTaskHours } from '@/lib/time'
 import { Printer, Mail, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import logoImg from '@/assets/logo-sl-143a4.png'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+
 import { toast } from 'sonner'
 // @ts-expect-error
 import html2pdf from 'html2pdf.js'
@@ -29,10 +19,6 @@ export default function RAT() {
 
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-
-  const [emailModalOpen, setEmailModalOpen] = useState(false)
-  const [emailData, setEmailData] = useState({ to: '', subject: '', body: '' })
-  const [sendingEmail, setSendingEmail] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -118,70 +104,6 @@ export default function RAT() {
     }
   }, [loading, data, isGeneratePdf])
 
-  const handleSendEmail = async () => {
-    if (!emailData.to) {
-      toast.error('Informe o destinatário.')
-      return
-    }
-    setSendingEmail(true)
-    try {
-      const content = document.getElementById('rat-content')
-      const buffer = await html2pdf()
-        .set({
-          margin: [10, 10],
-          filename: 'rat.pdf',
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        })
-        .from(content)
-        .output('arraybuffer')
-
-      const blob = new Blob([buffer], { type: 'application/pdf' })
-      const fileName = `RAT_${data.task.title}.pdf`.replace(/[^a-zA-Z0-9.-]/g, '_')
-      const filePath = `${data.task.id}/${Date.now()}_${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('attachments')
-        .upload(filePath, blob, { contentType: 'application/pdf' })
-
-      if (uploadError) throw uploadError
-
-      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
-
-      const { error: attachError } = await supabase.from('attachments').insert({
-        task_id: data.task.id,
-        name: fileName,
-        size: blob.size,
-        type: 'application/pdf',
-        url: publicUrlData.publicUrl,
-      })
-
-      if (attachError) console.error('Erro ao salvar no attachments:', attachError)
-
-      const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
-        body: {
-          to: emailData.to,
-          subject: emailData.subject,
-          body: emailData.body,
-          attachmentUrl: publicUrlData.publicUrl,
-          attachmentName: fileName,
-          taskId: data.task.id,
-        },
-      })
-
-      if (fnError) throw fnError
-
-      toast.success('Email enviado com sucesso!')
-      setEmailModalOpen(false)
-    } catch (error: any) {
-      console.error(error)
-      toast.error(error.message || 'Erro ao enviar email.')
-    } finally {
-      setSendingEmail(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
@@ -213,18 +135,45 @@ export default function RAT() {
             <Button
               variant="outline"
               onClick={() => {
-                setEmailData({
-                  to:
-                    contacts && contacts.length > 0
-                      ? contacts
-                          .filter((c: any) => c.email)
-                          .map((c: any) => c.email)
-                          .join(', ')
-                      : '',
-                  subject: `Relatório de Atendimento Técnico - ${task.title}`,
-                  body: `Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe`,
-                })
-                setEmailModalOpen(true)
+                const to =
+                  contacts && contacts.length > 0
+                    ? contacts
+                        .filter((c: any) => c.email)
+                        .map((c: any) => c.email)
+                        .join(',')
+                    : ''
+
+                const clientName = task.client?.name || 'Cliente'
+                const taskTitle = task.title || ''
+                const trainedMods = Array.isArray(task.trained_modules) ? task.trained_modules : []
+                const modulos = trainedMods.length > 0 ? trainedMods.join(', ') : 'Não especificado'
+                const recordingUrl =
+                  task.recording_url || task.recordingUrl || '[Link não informado]'
+
+                const dateStr = task.scheduled_date ? task.scheduled_date.replace(/-/g, '') : ''
+                const timeStr = task.scheduled_time
+                  ? task.scheduled_time.replace(/:/g, '').substring(0, 6)
+                  : ''
+                const dateTimeStr = dateStr || timeStr ? `-${dateStr}_${timeStr}` : ''
+
+                const fileNameRef = `${clientName} ${taskTitle} (${modulos})${dateTimeStr}-Gravação de Reunião.mp4`
+
+                const subject = `Relatório de Atendimento Técnico - ${clientName}`
+
+                const body = `Prezado Cliente,
+
+Boa tarde!
+
+Em anexo, enviamos o Relatório de Atendimento Técnico (RAT) referente ao treinamento realizado, conforme agendamento com o nosso setor de implantação. Além disso, disponibilizamos, abaixo, o link para o download da gravação do treinamento, que abrange os módulos ${modulos}, para que você possa revisitar o conteúdo sempre que necessário.
+
+${fileNameRef}
+Link para download do treinamento: ${recordingUrl}
+
+Aviso: É necessário realizar o download, pois o arquivo será excluído automaticamente após 30 dias.
+
+Estamos à disposição para esclarecer quaisquer dúvidas que possam surgir em relação aos treinamentos e processos.`
+
+                window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
               }}
             >
               <Mail className="w-4 h-4 mr-2" /> Enviar por Email
@@ -536,52 +485,6 @@ export default function RAT() {
           }
         `}</style>
       </div>
-
-      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Enviar RAT por Email</DialogTitle>
-            <DialogDescription>
-              O relatório será gerado em PDF e enviado em anexo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label>Destinatários</Label>
-              <Input
-                value={emailData.to}
-                onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
-                placeholder="email@cliente.com"
-              />
-              <p className="text-xs text-muted-foreground">Separe múltiplos emails com vírgula.</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Assunto</Label>
-              <Input
-                value={emailData.subject}
-                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Mensagem</Label>
-              <Textarea
-                value={emailData.body}
-                onChange={(e) => setEmailData({ ...emailData, body: e.target.value })}
-                rows={5}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSendEmail} disabled={sendingEmail}>
-              {sendingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {sendingEmail ? 'Enviando...' : 'Enviar Email'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
