@@ -19,7 +19,7 @@ export function ProjectChecklistTab({ project }: Props) {
   const [newItem, setNewItem] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleAdd = async (e?: React.FormEvent) => {
+  const handleAdd = async (e?: React.SyntheticEvent) => {
     if (e) e.preventDefault()
     if (!newItem.trim() || isSubmitting) return
 
@@ -53,14 +53,20 @@ export function ProjectChecklistTab({ project }: Props) {
         </p>
       </div>
 
-      <form onSubmit={handleAdd} className="flex gap-2">
+      <div className="flex gap-2">
         <Input
           placeholder="Adicionar novo item ao checklist..."
           value={newItem}
           onChange={(e) => setNewItem(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleAdd(e)
+            }
+          }}
           disabled={isSubmitting}
         />
-        <Button type="submit" disabled={!newItem.trim() || isSubmitting}>
+        <Button type="button" onClick={handleAdd} disabled={!newItem.trim() || isSubmitting}>
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           ) : (
@@ -68,7 +74,7 @@ export function ProjectChecklistTab({ project }: Props) {
           )}
           Adicionar
         </Button>
-      </form>
+      </div>
 
       <div className="space-y-3 mt-4">
         {loading ? (
