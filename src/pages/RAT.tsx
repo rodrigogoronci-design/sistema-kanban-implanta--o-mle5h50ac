@@ -149,6 +149,16 @@ export default function RAT() {
 
       const { data: publicUrlData } = supabase.storage.from('rat-documents').getPublicUrl(filePath)
 
+      const { error: attachError } = await supabase.from('attachments').insert({
+        task_id: data.task.id,
+        name: fileName,
+        size: blob.size,
+        type: 'application/pdf',
+        url: publicUrlData.publicUrl,
+      })
+
+      if (attachError) console.error('Erro ao salvar no attachments:', attachError)
+
       const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
         body: {
           to: emailData.to,
@@ -326,9 +336,10 @@ export default function RAT() {
                       {isTraining && (
                         <div className="col-span-2 sm:col-span-4 mt-2 border-t pt-3 border-slate-200">
                           <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
-                            Modalidade de Treinamento
+                            Treinamento
                           </p>
                           <p className="font-medium">
+                            Modalidade:{' '}
                             {task.training_modality || task.trainingModality || 'Não informada'}
                           </p>
                         </div>
