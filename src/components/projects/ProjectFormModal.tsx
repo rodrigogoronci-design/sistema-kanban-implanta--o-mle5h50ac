@@ -24,6 +24,7 @@ import { Check, ChevronsUpDown, Settings } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import useMainStore, { Project } from '@/stores/main'
+import { toast } from 'sonner'
 import { StatusManagementModal } from './StatusManagementModal'
 import { ProjectTasksTab } from './ProjectTasksTab'
 import { ProjectGalleryTab } from './ProjectGalleryTab'
@@ -70,6 +71,10 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.name?.trim()) {
+      toast.error('O nome do projeto é obrigatório.')
+      return
+    }
     onSubmit(formData as any)
   }
 
@@ -265,13 +270,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Início Previsto</Label>
             <Input
               type="date"
-              value={formData.forecastStart?.split('T')[0] || ''}
+              value={formData.forecastStart ? formData.forecastStart.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  forecastStart: e.target.value
-                    ? new Date(e.target.value).toISOString()
-                    : undefined,
+                  forecastStart: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -280,11 +283,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Término Previsto</Label>
             <Input
               type="date"
-              value={formData.forecastEnd?.split('T')[0] || ''}
+              value={formData.forecastEnd ? formData.forecastEnd.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  forecastEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  forecastEnd: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -294,11 +297,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Início Implantação</Label>
             <Input
               type="date"
-              value={formData.implStart?.split('T')[0] || ''}
+              value={formData.implStart ? formData.implStart.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  implStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  implStart: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -307,11 +310,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Término Implantação</Label>
             <Input
               type="date"
-              value={formData.implEnd?.split('T')[0] || ''}
+              value={formData.implEnd ? formData.implEnd.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  implEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  implEnd: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -321,11 +324,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Início Treinamento</Label>
             <Input
               type="date"
-              value={formData.trainStart?.split('T')[0] || ''}
+              value={formData.trainStart ? formData.trainStart.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  trainStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  trainStart: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -334,11 +337,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Término Treinamento</Label>
             <Input
               type="date"
-              value={formData.trainEnd?.split('T')[0] || ''}
+              value={formData.trainEnd ? formData.trainEnd.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  trainEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  trainEnd: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -348,11 +351,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Início Operação</Label>
             <Input
               type="date"
-              value={formData.opStart?.split('T')[0] || ''}
+              value={formData.opStart ? formData.opStart.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  opStart: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  opStart: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -361,11 +364,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
             <Label>Término Operação</Label>
             <Input
               type="date"
-              value={formData.opEnd?.split('T')[0] || ''}
+              value={formData.opEnd ? formData.opEnd.substring(0, 10) : ''}
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  opEnd: e.target.value ? new Date(e.target.value).toISOString() : undefined,
+                  opEnd: e.target.value ? `${e.target.value}T00:00:00.000Z` : undefined,
                 })
               }
             />
@@ -379,72 +382,72 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="sm:max-w-3xl h-[85vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-6 pb-4 border-b">
-            <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
-          </DialogHeader>
+          <form
+            id="project-form"
+            onSubmit={handleSubmit}
+            className="flex flex-col h-full overflow-hidden"
+          >
+            <DialogHeader className="p-6 pb-4 border-b">
+              <DialogTitle>{project ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
+            </DialogHeader>
 
-          {project ? (
-            <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
-              <div className="px-6 pt-4">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="details">Detalhes</TabsTrigger>
-                  <TabsTrigger value="tasks">Atividades</TabsTrigger>
-                  <TabsTrigger value="checklist">Checklist</TabsTrigger>
-                  <TabsTrigger value="gallery">Galeria</TabsTrigger>
-                </TabsList>
-              </div>
+            {project ? (
+              <Tabs defaultValue="details" className="flex-1 overflow-hidden flex flex-col">
+                <div className="px-6 pt-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="details">Detalhes</TabsTrigger>
+                    <TabsTrigger value="tasks">Atividades</TabsTrigger>
+                    <TabsTrigger value="checklist">Checklist</TabsTrigger>
+                    <TabsTrigger value="gallery">Galeria</TabsTrigger>
+                  </TabsList>
+                </div>
 
-              <TabsContent
-                value="details"
-                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-              >
-                <form id="project-form" onSubmit={handleSubmit}>
+                <TabsContent
+                  value="details"
+                  className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+                >
                   {renderFormFields()}
-                </form>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent
-                value="tasks"
-                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-              >
-                <ProjectTasksTab project={project as Project} />
-              </TabsContent>
+                <TabsContent
+                  value="tasks"
+                  className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+                >
+                  <ProjectTasksTab project={project as Project} />
+                </TabsContent>
 
-              <TabsContent
-                value="checklist"
-                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
-              >
-                <ProjectChecklistTab project={project as Project} />
-              </TabsContent>
+                <TabsContent
+                  value="checklist"
+                  className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+                >
+                  <ProjectChecklistTab project={project as Project} />
+                </TabsContent>
 
-              <TabsContent
-                value="gallery"
-                className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+                <TabsContent
+                  value="gallery"
+                  className="flex-1 overflow-y-auto p-6 m-0 focus-visible:outline-none"
+                >
+                  <ProjectGalleryTab project={project as Project} />
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-6">{renderFormFields()}</div>
+            )}
+
+            <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSaving}
               >
-                <ProjectGalleryTab project={project as Project} />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <div className="flex-1 overflow-y-auto p-6">
-              <form id="project-form" onSubmit={handleSubmit}>
-                {renderFormFields()}
-              </form>
+                Cancelar
+              </Button>
+              <Button type="submit" form="project-form" disabled={isSaving}>
+                {isSaving ? 'Salvando...' : 'Salvar'}
+              </Button>
             </div>
-          )}
-
-          <div className="p-6 pt-4 border-t bg-background flex justify-end gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSaving}
-            >
-              Cancelar
-            </Button>
-            <Button type="submit" form="project-form" disabled={isSaving}>
-              {isSaving ? 'Salvando...' : 'Salvar'}
-            </Button>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
       <StatusManagementModal open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen} />

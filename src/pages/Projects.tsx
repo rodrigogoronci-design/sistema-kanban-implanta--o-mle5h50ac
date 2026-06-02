@@ -138,6 +138,7 @@ export default function Projects() {
           ...data,
           clientId: dbData.client_id,
           statusId: dbData.status_id,
+          analystId: dbData.analyst_id,
         } as Project)
         toast.success('Projeto atualizado com sucesso!')
       } else {
@@ -161,6 +162,7 @@ export default function Projects() {
           id: newProject.id,
           clientId: dbData.client_id,
           statusId: dbData.status_id,
+          analystId: dbData.analyst_id,
         } as Project)
         toast.success('Projeto criado com sucesso!')
       }
