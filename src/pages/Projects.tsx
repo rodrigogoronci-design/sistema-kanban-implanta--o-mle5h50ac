@@ -29,6 +29,17 @@ import { Progress } from '@/components/ui/progress'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
+const formatSafeDate = (dateStr: string | null | undefined) => {
+  if (!dateStr) return '--/--/----'
+  try {
+    const d = parseISO(dateStr)
+    const correctedDate = new Date(d.getTime() + d.getTimezoneOffset() * 60000)
+    return format(correctedDate, 'dd/MM/yyyy')
+  } catch {
+    return '--/--/----'
+  }
+}
+
 export default function Projects() {
   const {
     projects,
@@ -362,18 +373,8 @@ export default function Projects() {
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
                       <div className="flex flex-col gap-0.5">
-                        <div>
-                          I:{' '}
-                          {project.forecastStart
-                            ? format(parseISO(project.forecastStart), 'dd/MM/yyyy')
-                            : '--/--/----'}
-                        </div>
-                        <div>
-                          T:{' '}
-                          {project.forecastEnd
-                            ? format(parseISO(project.forecastEnd), 'dd/MM/yyyy')
-                            : '--/--/----'}
-                        </div>
+                        <div>I: {formatSafeDate(project.forecastStart)}</div>
+                        <div>T: {formatSafeDate(project.forecastEnd)}</div>
                       </div>
                     </TableCell>
                     <TableCell>
