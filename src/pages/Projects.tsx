@@ -361,18 +361,20 @@ export default function Projects() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {project.implStart || project.trainStart ? (
-                        <>
-                          {project.implStart && (
-                            <div>I: {format(parseISO(project.implStart), 'dd/MM/yyyy')}</div>
-                          )}
-                          {project.trainStart && (
-                            <div>T: {format(parseISO(project.trainStart), 'dd/MM/yyyy')}</div>
-                          )}
-                        </>
-                      ) : (
-                        '-'
-                      )}
+                      <div className="flex flex-col gap-0.5">
+                        <div>
+                          I:{' '}
+                          {project.forecastStart
+                            ? format(parseISO(project.forecastStart), 'dd/MM/yyyy')
+                            : '--/--/----'}
+                        </div>
+                        <div>
+                          T:{' '}
+                          {project.forecastEnd
+                            ? format(parseISO(project.forecastEnd), 'dd/MM/yyyy')
+                            : '--/--/----'}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 min-w-[80px]">
