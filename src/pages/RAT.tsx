@@ -3,17 +3,36 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { format, parseISO } from 'date-fns'
 import { formatHoursAndMinutes, getTaskHours } from '@/lib/time'
-import { Printer, Mail } from 'lucide-react'
+import { Printer, Mail, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import logoImg from '@/assets/logo-sl-143a4.png'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+// @ts-expect-error
+import html2pdf from 'html2pdf.js'
 
 export default function RAT() {
   const { taskId } = useParams()
   const [searchParams] = useSearchParams()
   const hideHeader = searchParams.get('hideHeader') === 'true'
+  const isGeneratePdf = searchParams.get('generatePdf') === 'true'
 
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
+  const [emailData, setEmailData] = useState({ to: '', subject: '', body: '' })
+  const [sendingEmail, setSendingEmail] = useState(false)
 
   useEffect(() => {
     async function loadData() {
@@ -69,23 +88,89 @@ export default function RAT() {
   }, [taskId])
 
   useEffect(() => {
-    if (!loading && data?.task) {
+    if (!loading && data?.task && isGeneratePdf) {
       const timer = setTimeout(() => {
         const content = document.getElementById('rat-content')
         if (content && window.parent !== window) {
-          window.parent.postMessage(
-            {
-              type: 'RAT_READY',
-              html: content.outerHTML,
-              taskId: data.task.id,
-            },
-            '*',
-          )
+          html2pdf()
+            .set({
+              margin: [10, 10],
+              filename: 'rat.pdf',
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            })
+            .from(content)
+            .output('arraybuffer')
+            .then((buffer: ArrayBuffer) => {
+              window.parent.postMessage(
+                {
+                  type: 'RAT_READY',
+                  pdfBuffer: buffer,
+                  taskId: data.task.id,
+                },
+                '*',
+              )
+            })
         }
       }, 500)
       return () => clearTimeout(timer)
     }
-  }, [loading, data])
+  }, [loading, data, isGeneratePdf])
+
+  const handleSendEmail = async () => {
+    if (!emailData.to) {
+      toast.error('Informe o destinatário.')
+      return
+    }
+    setSendingEmail(true)
+    try {
+      const content = document.getElementById('rat-content')
+      const buffer = await html2pdf()
+        .set({
+          margin: [10, 10],
+          filename: 'rat.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(content)
+        .output('arraybuffer')
+
+      const blob = new Blob([buffer], { type: 'application/pdf' })
+      const fileName = `RAT_${data.task.title}.pdf`.replace(/[^a-zA-Z0-9.-]/g, '_')
+      const filePath = `${data.task.id}/${Date.now()}_${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('rat-documents')
+        .upload(filePath, blob, { contentType: 'application/pdf' })
+
+      if (uploadError) throw uploadError
+
+      const { data: publicUrlData } = supabase.storage.from('rat-documents').getPublicUrl(filePath)
+
+      const { error: fnError } = await supabase.functions.invoke('send-rat-email', {
+        body: {
+          to: emailData.to,
+          subject: emailData.subject,
+          body: emailData.body,
+          attachmentUrl: publicUrlData.publicUrl,
+          attachmentName: fileName,
+          taskId: data.task.id,
+        },
+      })
+
+      if (fnError) throw fnError
+
+      toast.success('Email enviado com sucesso!')
+      setEmailModalOpen(false)
+    } catch (error: any) {
+      console.error(error)
+      toast.error(error.message || 'Erro ao enviar email.')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -107,15 +192,7 @@ export default function RAT() {
   const totalHours = getTaskHours({ time_entries: task.time_entries })
   const participants = Array.isArray(task.participants) ? task.participants : []
   const trainedModules = Array.isArray(task.trained_modules) ? task.trained_modules : []
-
-  const mailToLink = `mailto:${
-    contacts && contacts.length > 0
-      ? contacts
-          .filter((c: any) => c.email)
-          .map((c: any) => c.email)
-          .join(',')
-      : ''
-  }?subject=${encodeURIComponent(`Relatório de Atendimento Técnico - ${task.title}`)}&body=${encodeURIComponent(`Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe\n\n(Não se esqueça de anexar o arquivo PDF gerado)`)}`
+  const isTraining = task.category?.name?.toLowerCase().includes('treinamento')
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
@@ -123,10 +200,24 @@ export default function RAT() {
         <div className="print:hidden p-4 bg-muted border-b flex justify-between items-center">
           <p className="text-sm text-muted-foreground">Visualização de Impressão</p>
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <a href={mailToLink}>
-                <Mail className="w-4 h-4 mr-2" /> Enviar por Email
-              </a>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEmailData({
+                  to:
+                    contacts && contacts.length > 0
+                      ? contacts
+                          .filter((c: any) => c.email)
+                          .map((c: any) => c.email)
+                          .join(', ')
+                      : '',
+                  subject: `Relatório de Atendimento Técnico - ${task.title}`,
+                  body: `Olá,\n\nSegue em anexo o Relatório de Atendimento Técnico referente à atividade "${task.title}".\n\nAtenciosamente,\nEquipe`,
+                })
+                setEmailModalOpen(true)
+              }}
+            >
+              <Mail className="w-4 h-4 mr-2" /> Enviar por Email
             </Button>
             <Button onClick={() => window.print()}>
               <Printer className="w-4 h-4 mr-2" /> Imprimir RAT
@@ -232,6 +323,16 @@ export default function RAT() {
                             : '-'}
                         </p>
                       </div>
+                      {isTraining && (
+                        <div className="col-span-2 sm:col-span-4 mt-2 border-t pt-3 border-slate-200">
+                          <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
+                            Modalidade de Treinamento
+                          </p>
+                          <p className="font-medium">
+                            {task.training_modality || task.trainingModality || 'Não informada'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </section>
 
@@ -424,6 +525,52 @@ export default function RAT() {
           }
         `}</style>
       </div>
+
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Enviar RAT por Email</DialogTitle>
+            <DialogDescription>
+              O relatório será gerado em PDF e enviado em anexo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Destinatários</Label>
+              <Input
+                value={emailData.to}
+                onChange={(e) => setEmailData({ ...emailData, to: e.target.value })}
+                placeholder="email@cliente.com"
+              />
+              <p className="text-xs text-muted-foreground">Separe múltiplos emails com vírgula.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Assunto</Label>
+              <Input
+                value={emailData.subject}
+                onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mensagem</Label>
+              <Textarea
+                value={emailData.body}
+                onChange={(e) => setEmailData({ ...emailData, body: e.target.value })}
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSendEmail} disabled={sendingEmail}>
+              {sendingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {sendingEmail ? 'Enviando...' : 'Enviar Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

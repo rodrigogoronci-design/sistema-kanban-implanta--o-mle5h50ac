@@ -109,10 +109,16 @@ export function TaskAttachments({ task, onUpdate }: Props) {
 
   const handleDelete = async (attachment: Attachment) => {
     if (attachment.url.includes('supabase.co')) {
-      const pathParts = attachment.url.split('/attachments/')
-      if (pathParts.length > 1) {
-        const filePath = pathParts[1]
-        await supabase.storage.from('attachments').remove([filePath])
+      if (attachment.url.includes('/attachments/')) {
+        const pathParts = attachment.url.split('/attachments/')
+        if (pathParts.length > 1) {
+          await supabase.storage.from('attachments').remove([pathParts[1]])
+        }
+      } else if (attachment.url.includes('/rat-documents/')) {
+        const pathParts = attachment.url.split('/rat-documents/')
+        if (pathParts.length > 1) {
+          await supabase.storage.from('rat-documents').remove([pathParts[1]])
+        }
       }
     }
 

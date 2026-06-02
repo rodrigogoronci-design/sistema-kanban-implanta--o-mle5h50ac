@@ -92,6 +92,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
   const category = task ? categories.find((c) => c.id === task.categoryId) : undefined
   const isTraining = category?.name?.toLowerCase().includes('treinamento')
+  const modality = task.trainingModality || task.training_modality || ''
 
   useEffect(() => {
     if (isTraining) {
@@ -150,50 +151,31 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
   const handleSaveRAT = async () => {
     setIsSavingRAT(true)
     try {
-      const htmlString = await new Promise<string>((resolve, reject) => {
+      const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
         const iframe = document.createElement('iframe')
         iframe.style.display = 'none'
 
         const timeout = setTimeout(() => {
           window.removeEventListener('message', handleMessage)
           document.body.removeChild(iframe)
-          reject(new Error('Timeout ao carregar RAT para PDF'))
-        }, 15000)
+          reject(new Error('Timeout ao gerar RAT para PDF'))
+        }, 30000)
 
         const handleMessage = (event: MessageEvent) => {
           if (event.data?.type === 'RAT_READY' && event.data?.taskId === task.id) {
             clearTimeout(timeout)
             window.removeEventListener('message', handleMessage)
             document.body.removeChild(iframe)
-            const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>RAT - ${task.title}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @media print {
-      .print\\:hidden { display: none !important; }
-      .print\\:break-inside-avoid { break-inside: avoid !important; }
-    }
-  </style>
-</head>
-<body class="bg-white">
-  <div class="max-w-4xl mx-auto p-8 text-black">
-    ${event.data.html}
-  </div>
-</body>
-</html>`
-            resolve(html)
+            resolve(event.data.pdfBuffer)
           }
         }
 
         window.addEventListener('message', handleMessage)
         document.body.appendChild(iframe)
-        iframe.src = `/rat/${task.id}?hideHeader=true`
+        iframe.src = `/rat/${task.id}?hideHeader=true&generatePdf=true`
       })
 
-      const blob = new Blob([htmlString], { type: 'application/pdf' })
+      const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
 
       let clientName = 'Cliente'
       if (task.clientId) {
@@ -205,12 +187,12 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
       const filePath = `${task.id}/${Date.now()}_${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from('attachments')
+        .from('rat-documents')
         .upload(filePath, blob, { contentType: 'application/pdf' })
 
       if (uploadError) throw uploadError
 
-      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
+      const { data: publicUrlData } = supabase.storage.from('rat-documents').getPublicUrl(filePath)
       const publicUrl = publicUrlData.publicUrl
 
       const attachmentId = crypto.randomUUID()
@@ -666,6 +648,33 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Select>
                   </div>
                 </div>
+                {isTraining && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Modalidade</Label>
+                      <Select
+                        value={modality || 'none'}
+                        onValueChange={(val: any) =>
+                          updateTask(task.id, {
+                            trainingModality: val === 'none' ? '' : val,
+                            training_modality: val === 'none' ? '' : val,
+                          } as any)
+                        }
+                      >
+                        <SelectTrigger className="bg-background">
+                          <SelectValue placeholder="Selecione a modalidade" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none" className="text-muted-foreground italic">
+                            Não definida
+                          </SelectItem>
+                          <SelectItem value="Remoto">Remoto</SelectItem>
+                          <SelectItem value="Presencial">Presencial</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Data de Criação</Label>

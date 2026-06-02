@@ -136,6 +136,17 @@ export default function KanbanCard({ task, onClick, onDragStart }: KanbanCardPro
           <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
             {task.priority || 'Média'}
           </Badge>
+          {(task.trainingModality || task.training_modality) &&
+            category?.name?.toLowerCase().includes('treinamento') && (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 h-4 bg-muted/50 border-muted-foreground/20 text-muted-foreground"
+              >
+                {(task.trainingModality || task.training_modality) === 'Remoto'
+                  ? '💻 Remoto'
+                  : '🏢 Presencial'}
+              </Badge>
+            )}
           {(task.recordingUrl || task.recording_url) && (
             <a
               href={task.recordingUrl || task.recording_url}

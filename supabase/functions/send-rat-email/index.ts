@@ -39,7 +39,6 @@ Deno.serve(async (req: Request) => {
     pdfUrl = attachmentUrl
 
     if (!taskId && attachmentUrl) {
-      // fallback: attempt to extract UUID from URL if not explicitly provided
       const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
       const match = attachmentUrl.match(uuidRegex)
       if (match) {
@@ -48,12 +47,13 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`[send-rat-email] To: ${to}, Subject: ${subject}, TaskID: ${taskId}`)
-    console.log(`[send-rat-email] Attachment URL: ${attachmentUrl}`)
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
     if (RESEND_API_KEY) {
       const fileRes = await fetch(attachmentUrl)
+      if (!fileRes.ok) throw new Error(`Failed to fetch attachment from URL: ${fileRes.statusText}`)
+
       const fileBuffer = await fileRes.arrayBuffer()
       const base64Content = arrayBufferToBase64(fileBuffer)
 
@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
         html: body.replace(/\n/g, '<br>'),
         attachments: [
           {
-            filename: attachmentName,
+            filename: attachmentName || 'RAT.pdf',
             content: base64Content,
           },
         ],
@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
       await supabase.from('rat_email_logs').insert({
         task_id: taskId,
         recipient_email: recipient,
-        status: 'success',
+        status: 'sent',
         pdf_url: pdfUrl,
       })
     }
