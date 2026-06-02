@@ -385,7 +385,7 @@ export default function RAT() {
         <style>{`
           @media print {
             @page { 
-              margin: 20mm 15mm;
+              margin: 15mm;
               size: A4;
             }
             body { 
@@ -394,21 +394,32 @@ export default function RAT() {
               background-color: white; 
             }
             .print\\:hidden { display: none !important; }
-            .print\\:break-inside-avoid { break-inside: avoid !important; }
+            .print\\:break-inside-avoid { 
+              page-break-inside: avoid !important;
+              break-inside: avoid !important; 
+            }
+            section {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+              margin-bottom: 1rem !important;
+            }
             #rat-content { 
               padding: 0 !important; 
               max-width: 100% !important;
             }
             tr {
-              page-break-inside: avoid;
-              break-inside: avoid;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
-            h2 {
-              page-break-after: avoid;
-              break-after: avoid;
+            h2, h3, h4 {
+              page-break-after: avoid !important;
+              break-after: avoid !important;
             }
             .bg-white.min-h-screen {
-              min-height: auto;
+              min-height: auto !important;
+            }
+            table {
+              page-break-inside: auto;
             }
           }
         `}</style>

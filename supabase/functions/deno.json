@@ -1,6 +1,5 @@
 {
   "_versions": {
-    "manage-user": 3,
-    "send-rat-email": 2
+    "manage-user": 3
   }
 }

@@ -361,10 +361,14 @@ export default function Projects() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
-                      {project.forecastStart && project.forecastEnd ? (
+                      {project.implStart || project.trainStart ? (
                         <>
-                          <div>I: {format(parseISO(project.forecastStart), 'dd/MM/yyyy')}</div>
-                          <div>T: {format(parseISO(project.forecastEnd), 'dd/MM/yyyy')}</div>
+                          {project.implStart && (
+                            <div>I: {format(parseISO(project.implStart), 'dd/MM/yyyy')}</div>
+                          )}
+                          {project.trainStart && (
+                            <div>T: {format(parseISO(project.trainStart), 'dd/MM/yyyy')}</div>
+                          )}
                         </>
                       ) : (
                         '-'
