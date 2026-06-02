@@ -14,9 +14,8 @@ interface Props {
 }
 
 export function ProjectChecklistTab({ project }: Props) {
-  const { checklists, addChecklist, toggleChecklist, deleteChecklist } = useProjectChecklists(
-    project.id,
-  )
+  const { checklists, loading, addChecklist, toggleChecklist, deleteChecklist } =
+    useProjectChecklists(project.id)
   const [newItem, setNewItem] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -72,7 +71,11 @@ export function ProjectChecklistTab({ project }: Props) {
       </form>
 
       <div className="space-y-3 mt-4">
-        {checklists.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground opacity-50" />
+          </div>
+        ) : checklists.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-2">
             <CheckCircle2 className="w-8 h-8 opacity-20" />
             <p>Nenhum item no checklist ainda.</p>
