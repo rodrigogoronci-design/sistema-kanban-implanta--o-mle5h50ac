@@ -114,27 +114,30 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
   if (!task) return null
 
-  const handleAddParticipant = () => {
+  const handleAddParticipant = async () => {
     if (!participantName.trim()) return
     const current = task.participants || []
     const newParticipants = [...current, participantName.trim()]
     updateTask(task.id, { participants: newParticipants })
+    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
     setParticipantName('')
   }
 
-  const handleRemoveParticipant = (name: string) => {
+  const handleRemoveParticipant = async (name: string) => {
     const current = task.participants || []
     const newParticipants = current.filter((p: string) => p !== name)
     updateTask(task.id, { participants: newParticipants })
+    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
   }
 
   const handleModuleChange = (mod: string, checked: boolean) => {
     setLocalModules((prev) => (checked ? [...prev, mod] : prev.filter((m) => m !== mod)))
   }
 
-  const handleSaveModules = (e: React.MouseEvent) => {
+  const handleSaveModules = async (e: React.MouseEvent) => {
     e.preventDefault()
-    updateTask(task.id, { trainedModules: localModules })
+    updateTask(task.id, { trainedModules: localModules, trained_modules: localModules } as any)
+    await supabase.from('tasks').update({ trained_modules: localModules }).eq('id', task.id)
     toast.success('Módulos salvos com sucesso!')
   }
 
@@ -187,12 +190,12 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
       const filePath = `${task.id}/${Date.now()}_${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from('rat-documents')
+        .from('attachments')
         .upload(filePath, blob, { contentType: 'application/pdf' })
 
       if (uploadError) throw uploadError
 
-      const { data: publicUrlData } = supabase.storage.from('rat-documents').getPublicUrl(filePath)
+      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
       const publicUrl = publicUrlData.publicUrl
 
       const attachmentId = crypto.randomUUID()
@@ -654,12 +657,17 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       <Label className="text-muted-foreground">Modalidade</Label>
                       <Select
                         value={modality || 'none'}
-                        onValueChange={(val: any) =>
+                        onValueChange={async (val: any) => {
+                          const newVal = val === 'none' ? '' : val
                           updateTask(task.id, {
-                            trainingModality: val === 'none' ? '' : val,
-                            training_modality: val === 'none' ? '' : val,
+                            trainingModality: newVal,
+                            training_modality: newVal,
                           } as any)
-                        }
+                          await supabase
+                            .from('tasks')
+                            .update({ training_modality: newVal })
+                            .eq('id', task.id)
+                        }}
                       >
                         <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Selecione a modalidade" />

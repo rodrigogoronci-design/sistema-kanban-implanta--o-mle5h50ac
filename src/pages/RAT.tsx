@@ -142,12 +142,12 @@ export default function RAT() {
       const filePath = `${data.task.id}/${Date.now()}_${fileName}`
 
       const { error: uploadError } = await supabase.storage
-        .from('rat-documents')
+        .from('attachments')
         .upload(filePath, blob, { contentType: 'application/pdf' })
 
       if (uploadError) throw uploadError
 
-      const { data: publicUrlData } = supabase.storage.from('rat-documents').getPublicUrl(filePath)
+      const { data: publicUrlData } = supabase.storage.from('attachments').getPublicUrl(filePath)
 
       const { error: attachError } = await supabase.from('attachments').insert({
         task_id: data.task.id,
@@ -274,7 +274,7 @@ export default function RAT() {
                         Razão Social / Nome
                       </p>
                       <p className="font-medium text-base">
-                        {task.client?.name || 'Não informado'}
+                        {task.client?.name || 'Não Informado'}
                       </p>
                     </div>
                     <div>
@@ -282,7 +282,7 @@ export default function RAT() {
                         CNPJ
                       </p>
                       <p className="font-medium text-base">
-                        {task.client?.cnpj || 'Não informado'}
+                        {task.client?.cnpj || 'Não Informado'}
                       </p>
                     </div>
                     <div className="sm:col-span-2">
@@ -290,7 +290,7 @@ export default function RAT() {
                         Projeto
                       </p>
                       <p className="font-medium text-base">
-                        {task.project?.name || 'Não informado'}
+                        {task.project?.name || 'Não Informado'}
                       </p>
                     </div>
                   </div>
@@ -314,14 +314,14 @@ export default function RAT() {
                         <p className="font-medium">
                           {analysts.length > 0
                             ? analysts.map((a: any) => a.nome).join(', ')
-                            : 'Não informado'}
+                            : 'Não Informado'}
                         </p>
                       </div>
                       <div className="col-span-2 sm:col-span-3">
                         <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
                           Categoria
                         </p>
-                        <p className="font-medium">{task.category?.name || 'Não informada'}</p>
+                        <p className="font-medium">{task.category?.name || 'Não Informado'}</p>
                       </div>
                       <div>
                         <p className="text-slate-500 text-xs uppercase tracking-wider mb-1 print:mb-0">
@@ -340,7 +340,7 @@ export default function RAT() {
                           </p>
                           <p className="font-medium">
                             Modalidade:{' '}
-                            {task.training_modality || task.trainingModality || 'Não informada'}
+                            {task.training_modality || task.trainingModality || 'Não Informado'}
                           </p>
                         </div>
                       )}
