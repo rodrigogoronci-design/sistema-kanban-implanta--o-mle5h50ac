@@ -88,6 +88,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
 
   const [participantName, setParticipantName] = useState('')
   const [modules, setModules] = useState<{ id: string; name: string }[]>([])
+  const [localModules, setLocalModules] = useState<string[]>([])
 
   const category = task ? categories.find((c) => c.id === task.categoryId) : undefined
   const isTraining = category?.name?.toLowerCase().includes('treinamento')
@@ -104,29 +105,36 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
     }
   }, [isTraining])
 
+  useEffect(() => {
+    if (task) {
+      setLocalModules(task.trainedModules || [])
+    }
+  }, [task?.trainedModules])
+
   if (!task) return null
 
-  const handleAddParticipant = async () => {
+  const handleAddParticipant = () => {
     if (!participantName.trim()) return
-    const current = (task as any).participants || []
+    const current = task.participants || []
     const newParticipants = [...current, participantName.trim()]
-    updateTask(task.id, { participants: newParticipants } as any)
-    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
+    updateTask(task.id, { participants: newParticipants })
     setParticipantName('')
   }
 
-  const handleRemoveParticipant = async (name: string) => {
-    const current = (task as any).participants || []
+  const handleRemoveParticipant = (name: string) => {
+    const current = task.participants || []
     const newParticipants = current.filter((p: string) => p !== name)
-    updateTask(task.id, { participants: newParticipants } as any)
-    await supabase.from('tasks').update({ participants: newParticipants }).eq('id', task.id)
+    updateTask(task.id, { participants: newParticipants })
   }
 
-  const handleModuleChange = async (mod: string, checked: boolean) => {
-    const current = (task as any).trained_modules || (task as any).trainedModules || []
-    const newModules = checked ? [...current, mod] : current.filter((m: string) => m !== mod)
-    updateTask(task.id, { trained_modules: newModules, trainedModules: newModules } as any)
-    await supabase.from('tasks').update({ trained_modules: newModules }).eq('id', task.id)
+  const handleModuleChange = (mod: string, checked: boolean) => {
+    setLocalModules((prev) => (checked ? [...prev, mod] : prev.filter((m) => m !== mod)))
+  }
+
+  const handleSaveModules = (e: React.MouseEvent) => {
+    e.preventDefault()
+    updateTask(task.id, { trainedModules: localModules })
+    toast.success('Módulos salvos com sucesso!')
   }
 
   const handleClientChange = (val: string) => {
@@ -887,7 +895,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {((task as any).participants || []).map((p: string, i: number) => (
+                    {(task.participants || []).map((p: string, i: number) => (
                       <Badge key={i} variant="secondary" className="flex items-center gap-1">
                         {p}
                         <X
@@ -896,7 +904,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                         />
                       </Badge>
                     ))}
-                    {((task as any).participants || []).length === 0 && (
+                    {(task.participants || []).length === 0 && (
                       <span className="text-sm text-muted-foreground italic">
                         Nenhum participante registrado.
                       </span>
@@ -907,6 +915,11 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-muted-foreground">Módulos Ministrados</Label>
+                      {modules.length > 0 && (
+                        <Button variant="secondary" size="sm" onClick={handleSaveModules}>
+                          <Check className="w-4 h-4 mr-1" /> Salvar Módulos
+                        </Button>
+                      )}
                     </div>
                     {modules.length === 0 ? (
                       <div className="p-4 border rounded-md bg-background text-sm text-muted-foreground">
@@ -919,16 +932,12 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                         >
                           Módulos
                         </a>
-                        .{' '}
+                        .
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 border rounded-md bg-background">
                         {modules.map((module) => {
-                          const isChecked = (
-                            (task as any).trained_modules ||
-                            (task as any).trainedModules ||
-                            []
-                          ).includes(module.name)
+                          const isChecked = localModules.includes(module.name)
                           return (
                             <label
                               key={module.id}
@@ -947,7 +956,7 @@ export default function TaskModal({ taskId, onClose }: { taskId: string; onClose
                       </div>
                     )}
                   </div>
-                )}{' '}
+                )}
               </div>
 
               <Separator />

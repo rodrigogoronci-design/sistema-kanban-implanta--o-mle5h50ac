@@ -106,6 +106,8 @@ export interface Task {
   timeEntries: TimeEntry[]
   createdAt: string
   dueDate?: string
+  participants?: string[]
+  trainedModules?: string[]
 }
 export interface Column {
   id: string
@@ -304,6 +306,8 @@ async function loadInitialData() {
         completionDate: t.completion_date || undefined,
         dueDate: t.due_date || undefined,
         createdAt: t.created_at || new Date().toISOString(),
+        participants: t.participants || [],
+        trainedModules: t.trained_modules || [],
         checklist: (subtasks || [])
           .filter((st: any) => st.task_id === t.id)
           .map((st: any) => ({
@@ -384,6 +388,8 @@ export default function useMainStore() {
       if ('scheduledDate' in payload) dbPayload.scheduled_date = payload.scheduledDate || null
       if ('scheduledTime' in payload) dbPayload.scheduled_time = payload.scheduledTime || null
       if ('completionDate' in payload) dbPayload.completion_date = payload.completionDate || null
+      if ('participants' in payload) dbPayload.participants = payload.participants || []
+      if ('trainedModules' in payload) dbPayload.trained_modules = payload.trainedModules || []
 
       if (Object.keys(dbPayload).length > 0) {
         supabase
@@ -531,6 +537,8 @@ export default function useMainStore() {
           scheduled_date: task.scheduledDate || null,
           scheduled_time: task.scheduledTime || null,
           completion_date: task.completionDate || null,
+          participants: task.participants || [],
+          trained_modules: task.trainedModules || [],
           created_at: task.createdAt || new Date().toISOString(),
         })
         .then(({ error }) => {
