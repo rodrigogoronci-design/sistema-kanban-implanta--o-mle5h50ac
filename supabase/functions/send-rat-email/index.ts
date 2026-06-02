@@ -53,7 +53,7 @@ Deno.serve(async (req: Request) => {
     if (RESEND_API_KEY) {
       const fileRes = await fetch(attachmentUrl)
       if (!fileRes.ok) throw new Error(`Failed to fetch attachment from URL: ${fileRes.statusText}`)
-
+      
       const fileBuffer = await fileRes.arrayBuffer()
       const base64Content = arrayBufferToBase64(fileBuffer)
 
