@@ -9,7 +9,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Trash2, Edit2, Briefcase, ArrowUp, ArrowDown, Minus, Search } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Edit2,
+  Briefcase,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Search,
+  DollarSign,
+} from 'lucide-react'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
 import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
@@ -17,6 +27,7 @@ import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -61,9 +72,19 @@ export default function Projects() {
   const [analystFilter, setAnalystFilter] = useState<string>('all')
   const [clientFilter, setClientFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [commissionFilter, setCommissionFilter] = useState<boolean>(false)
+  const [commissionStatusFilter, setCommissionStatusFilter] = useState<string>('all')
 
   const filteredProjects = projects.filter((project) => {
     let match = true
+    const p = project as any
+
+    if (commissionFilter) {
+      match = match && p.generates_commission === true
+    }
+    if (commissionStatusFilter !== 'all') {
+      match = match && p.commission_status === commissionStatusFilter
+    }
 
     if (statusFilter !== 'all') {
       match = match && project.statusId === statusFilter
@@ -117,6 +138,8 @@ export default function Projects() {
         op_end: data.opEnd || null,
         forecast_start: data.forecastStart || null,
         forecast_end: data.forecastEnd || null,
+        generates_commission: data.generates_commission || false,
+        commission_status: data.commission_status || 'Pendente',
       }
 
       if (editingProject) {
@@ -139,6 +162,8 @@ export default function Projects() {
           clientId: dbData.client_id,
           statusId: dbData.status_id,
           analystId: dbData.analyst_id,
+          generates_commission: dbData.generates_commission,
+          commission_status: dbData.commission_status,
         } as Project)
         toast.success('Projeto atualizado com sucesso!')
       } else {
@@ -163,6 +188,8 @@ export default function Projects() {
           clientId: dbData.client_id,
           statusId: dbData.status_id,
           analystId: dbData.analyst_id,
+          generates_commission: dbData.generates_commission,
+          commission_status: dbData.commission_status,
         } as Project)
         toast.success('Projeto criado com sucesso!')
       }
@@ -263,6 +290,29 @@ export default function Projects() {
               ))}
             </SelectContent>
           </Select>
+          <div className="flex items-center space-x-2 border rounded-md px-3 h-10 bg-background shrink-0">
+            <Checkbox
+              id="commission-filter"
+              checked={commissionFilter}
+              onCheckedChange={(c) => setCommissionFilter(!!c)}
+            />
+            <label
+              htmlFor="commission-filter"
+              className="text-sm font-medium leading-none cursor-pointer"
+            >
+              Gera Comissão
+            </label>
+          </div>
+          <Select value={commissionStatusFilter} onValueChange={setCommissionStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Status da comissão" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem value="Pendente">Pendente</SelectItem>
+              <SelectItem value="Pago">Pago</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -277,6 +327,7 @@ export default function Projects() {
               <TableHead>Responsáveis</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Prioridade</TableHead>
+              <TableHead>Comissão</TableHead>
               <TableHead>Checklist</TableHead>
               <TableHead>Prazos</TableHead>
               <TableHead>Horas</TableHead>
@@ -286,7 +337,7 @@ export default function Projects() {
           <TableBody>
             {filteredProjects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Nenhum projeto encontrado.
                 </TableCell>
               </TableRow>
@@ -361,6 +412,26 @@ export default function Projects() {
                         {getPriorityIcon(priority)}
                         <span>{priority}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {(project as any).generates_commission ? (
+                        <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-xs font-normal whitespace-nowrap',
+                              (project as any).commission_status === 'Pago'
+                                ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200'
+                                : 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200',
+                            )}
+                          >
+                            <DollarSign className="w-3 h-3 mr-1" />
+                            {(project as any).commission_status || 'Pendente'}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 min-w-[100px]">
