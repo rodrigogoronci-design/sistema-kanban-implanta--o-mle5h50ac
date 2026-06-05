@@ -30,6 +30,10 @@ interface CommissionProject {
   clients: {
     name: string
   } | null
+  project_statuses: {
+    name: string
+    color: string
+  } | null
 }
 
 export default function Commissions() {
@@ -41,7 +45,9 @@ export default function Commissions() {
     setLoading(true)
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, commission_status, impl_end, forecast_end, clients(name)')
+      .select(
+        'id, name, commission_status, impl_end, forecast_end, clients(name), project_statuses(name, color)',
+      )
       .eq('generates_commission', true)
       .order('impl_end', { ascending: false, nullsFirst: false })
 
@@ -184,14 +190,15 @@ export default function Commissions() {
               <TableHead>Projeto</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Data (Fim Previsto/Impl)</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Status do Projeto</TableHead>
+              <TableHead>Status Comissão</TableHead>
               <TableHead className="text-right">Ação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
+                <TableCell colSpan={6} className="h-24 text-center">
                   <div className="flex justify-center">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
@@ -199,7 +206,7 @@ export default function Commissions() {
               </TableRow>
             ) : filteredProjects.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                   Nenhum projeto com comissão encontrado.
                 </TableCell>
               </TableRow>
@@ -215,6 +222,21 @@ export default function Commissions() {
                       <span className="text-muted-foreground" title="Término Previsto">
                         {formatDate(project.forecast_end)}
                       </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {project.project_statuses ? (
+                      <Badge
+                        variant="outline"
+                        style={{
+                          borderColor: project.project_statuses.color,
+                          color: project.project_statuses.color,
+                        }}
+                      >
+                        {project.project_statuses.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
