@@ -47,7 +47,7 @@ const AppRoutes = () => {
         <Route path="/cadastros/modules" element={<Modules />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/monitoramento" element={<Monitoramento />} />
-        <Route path="/commissions" element={<Commissions />} />
+        <Route path="/comissoes" element={<Commissions />} />
       </Route>
       <Route path="/rat/:taskId" element={<RAT />} />
       <Route path="*" element={<NotFound />} />

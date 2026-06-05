@@ -293,7 +293,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
 
         {formData.generates_commission && (
           <div className="space-y-2">
-            <Label>Status de Pagamento</Label>
+            <Label>Status da Comissão</Label>
             <Select
               value={formData.commission_status || 'Pendente'}
               onValueChange={(v) => setFormData({ ...formData, commission_status: v })}

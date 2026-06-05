@@ -9,7 +9,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -20,7 +19,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Loader2 } from 'lucide-react'
+import { Loader2, DollarSign, Clock, CheckCircle } from 'lucide-react'
 
 interface CommissionProject {
   id: string
@@ -115,6 +114,9 @@ export default function Commissions() {
     return format(parseISO(dateStr), 'dd/MM/yyyy', { locale: ptBR })
   }
 
+  const pendingCount = filteredProjects.filter((p) => p.commission_status === 'Pendente').length
+  const paidCount = filteredProjects.filter((p) => p.commission_status === 'Pago').length
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -145,7 +147,37 @@ export default function Commissions() {
         </div>
       </div>
 
-      <div className="rounded-md border bg-card overflow-hidden">
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Total de Projetos</h3>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="p-6 pt-0">
+            <div className="text-2xl font-bold">{filteredProjects.length}</div>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Comissões Pendentes</h3>
+            <Clock className="h-4 w-4 text-yellow-500" />
+          </div>
+          <div className="p-6 pt-0">
+            <div className="text-2xl font-bold">{pendingCount}</div>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+            <h3 className="tracking-tight text-sm font-medium">Comissões Pagas</h3>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </div>
+          <div className="p-6 pt-0">
+            <div className="text-2xl font-bold">{paidCount}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
