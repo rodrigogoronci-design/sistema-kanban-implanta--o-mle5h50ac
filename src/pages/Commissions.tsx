@@ -59,8 +59,12 @@ export default function Commissions() {
     fetchProjects()
   }, [])
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'Pago' ? 'Pendente' : 'Pago'
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    const originalProject = projects.find((p) => p.id === id)
+    if (!originalProject) return
+    const currentStatus = originalProject.commission_status
+
+    if (currentStatus === newStatus) return
 
     // Optimistic update
     setProjects(projects.map((p) => (p.id === id ? { ...p, commission_status: newStatus } : p)))
@@ -194,14 +198,18 @@ export default function Commissions() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant={project.commission_status === 'Pago' ? 'outline' : 'default'}
-                      size="sm"
-                      onClick={() => handleToggleStatus(project.id, project.commission_status)}
-                      className="w-[150px]"
+                    <Select
+                      value={project.commission_status || 'Pendente'}
+                      onValueChange={(value) => handleStatusChange(project.id, value)}
                     >
-                      {project.commission_status === 'Pago' ? 'Marcar Pendente' : 'Marcar Pago'}
-                    </Button>
+                      <SelectTrigger className="w-[130px] ml-auto h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                        <SelectItem value="Pago">Pago</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                 </TableRow>
               ))

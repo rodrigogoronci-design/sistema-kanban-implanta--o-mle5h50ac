@@ -27,6 +27,7 @@ import {
   UserCheck,
   BookOpen,
   Mail,
+  DollarSign,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ export default function Layout() {
     { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
     { title: 'Clientes', url: '/clients', icon: Building2 },
     { title: 'Projetos', url: '/projects', icon: Briefcase },
+    { title: 'Comissões', url: '/commissions', icon: DollarSign },
     { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
@@ -77,6 +79,7 @@ export default function Layout() {
       '/',
       '/clients',
       '/projects',
+      '/commissions',
       '/analysts',
       '/users',
       '/reports',
@@ -88,6 +91,7 @@ export default function Layout() {
       '/',
       '/clients',
       '/projects',
+      '/commissions',
       '/analysts',
       '/reports',
       '/cadastros',
