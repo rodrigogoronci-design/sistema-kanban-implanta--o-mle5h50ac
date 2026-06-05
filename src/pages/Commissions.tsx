@@ -200,7 +200,7 @@ export default function Commissions() {
             ) : filteredProjects.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  Nenhum projeto com comissão encontrado para este período.
+                  Nenhum projeto com comissão encontrado.
                 </TableCell>
               </TableRow>
             ) : (

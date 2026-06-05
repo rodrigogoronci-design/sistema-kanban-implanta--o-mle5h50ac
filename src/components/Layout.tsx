@@ -49,7 +49,7 @@ export default function Layout() {
     { title: 'Área de Trabalho', url: '/', icon: LayoutDashboard },
     { title: 'Clientes', url: '/clients', icon: Building2 },
     { title: 'Projetos', url: '/projects', icon: Briefcase },
-    { title: 'Comissões', url: '/comissoes', icon: DollarSign },
+    { title: 'Controle de Comissões', url: '/comissoes', icon: DollarSign },
     { title: 'Analistas', url: '/analysts', icon: UserCheck },
     { title: 'Usuários', url: '/users', icon: Users },
     { title: 'Relatórios', url: '/reports', icon: PieChart },
