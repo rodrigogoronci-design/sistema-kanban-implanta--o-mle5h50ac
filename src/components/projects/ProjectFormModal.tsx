@@ -42,7 +42,12 @@ interface Props {
 export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSaving }: Props) {
   const { clients, analysts, projectStatuses } = useMainStore()
   const [formData, setFormData] = useState<
-    Partial<Project> & { priority?: string; notes?: string }
+    Partial<Project> & {
+      priority?: string
+      notes?: string
+      generates_commission?: boolean
+      commission_status?: string
+    }
   >({})
   const [clientOpen, setClientOpen] = useState(false)
   const [analystsOpen, setAnalystsOpen] = useState(false)
@@ -55,6 +60,8 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           ...project,
           priority: (project as any).priority || 'Média',
           notes: (project as any).notes || '',
+          generates_commission: (project as any).generates_commission || false,
+          commission_status: (project as any).commission_status || 'Pendente',
         })
       } else {
         setFormData({
@@ -64,6 +71,8 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           statusId: '',
           priority: 'Média',
           notes: '',
+          generates_commission: false,
+          commission_status: 'Pendente',
         })
       }
     }
@@ -261,6 +270,44 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           placeholder="Anotações internas do projeto..."
           className="min-h-[80px] resize-none"
         />
+      </div>
+
+      <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 p-4 border rounded-md bg-muted/20">
+        <div className="space-y-3 flex flex-col justify-center">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="generates_commission"
+              checked={formData.generates_commission || false}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, generates_commission: checked === true })
+              }
+            />
+            <Label htmlFor="generates_commission" className="font-medium cursor-pointer">
+              Gera Comissão?
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Marque se este projeto gera comissão para o analista responsável.
+          </p>
+        </div>
+
+        {formData.generates_commission && (
+          <div className="space-y-2">
+            <Label>Status de Pagamento</Label>
+            <Select
+              value={formData.commission_status || 'Pendente'}
+              onValueChange={(v) => setFormData({ ...formData, commission_status: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Pago">Pago</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="col-span-1 md:col-span-2 pt-4 border-t mt-2">
