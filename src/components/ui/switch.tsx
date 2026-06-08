@@ -1,4 +1,3 @@
-/* Switch Component primitives - A component that displays a switch (a component that displays a toggle) - from shadcn/ui (exposes Switch) */
 import * as React from 'react'
 import * as SwitchPrimitives from '@radix-ui/react-switch'
 

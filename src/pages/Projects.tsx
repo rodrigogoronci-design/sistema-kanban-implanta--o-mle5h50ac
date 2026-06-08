@@ -28,6 +28,7 @@ import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ export default function Projects() {
 
   const { checklists } = useProjectChecklists()
 
+  const [isTogglingCommission, setIsTogglingCommission] = useState<Record<string, boolean>>({})
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
   const [searchTerm, setSearchTerm] = useState('')
@@ -115,6 +117,31 @@ export default function Projects() {
   const handleEdit = (project: Project) => {
     setEditingProject(project)
     setModalOpen(true)
+  }
+
+  const handleToggleCommission = async (projectId: string, newValue: boolean) => {
+    setIsTogglingCommission((prev) => ({ ...prev, [projectId]: true }))
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ generates_commission: newValue })
+        .eq('id', projectId)
+
+      if (error) throw error
+
+      const project = projects.find((p) => p.id === projectId)
+      if (project) {
+        updateProject(projectId, { ...project, generates_commission: newValue } as any)
+      }
+      toast.success(
+        newValue ? 'Projeto atualizado: gera comissão.' : 'Projeto atualizado: não gera comissão.',
+      )
+    } catch (error: any) {
+      console.error(error)
+      toast.error('Erro ao atualizar comissão: ' + error.message)
+    } finally {
+      setIsTogglingCommission((prev) => ({ ...prev, [projectId]: false }))
+    }
   }
 
   const [isSaving, setIsSaving] = useState(false)
@@ -414,12 +441,17 @@ export default function Projects() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {(project as any).generates_commission ? (
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={!!(project as any).generates_commission}
+                          onCheckedChange={(checked) => handleToggleCommission(project.id, checked)}
+                          disabled={isTogglingCommission[project.id]}
+                        />
+                        {(project as any).generates_commission && (
                           <Badge
                             variant="outline"
                             className={cn(
-                              'text-xs font-normal whitespace-nowrap',
+                              'text-xs font-normal whitespace-nowrap transition-all duration-300',
                               (project as any).commission_status === 'Pago'
                                 ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200'
                                 : 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200',
@@ -428,10 +460,8 @@ export default function Projects() {
                             <DollarSign className="w-3 h-3 mr-1" />
                             {(project as any).commission_status || 'Pendente'}
                           </Badge>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1 min-w-[100px]">
