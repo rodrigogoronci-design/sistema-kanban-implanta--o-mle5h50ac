@@ -60,8 +60,8 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           ...project,
           priority: (project as any).priority || 'Média',
           notes: (project as any).notes || '',
-          generates_commission: (project as any).generates_commission || false,
-          commission_status: (project as any).commission_status || 'Pendente',
+          generates_commission: project.generates_commission || false,
+          commission_status: project.commission_status || null,
         })
       } else {
         setFormData({
@@ -72,7 +72,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           priority: 'Média',
           notes: '',
           generates_commission: false,
-          commission_status: 'Pendente',
+          commission_status: null,
         })
       }
     }
@@ -279,7 +279,11 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
               id="generates_commission"
               checked={formData.generates_commission || false}
               onCheckedChange={(checked) =>
-                setFormData({ ...formData, generates_commission: checked === true })
+                setFormData({
+                  ...formData,
+                  generates_commission: checked === true,
+                  commission_status: checked === true ? 'Pendente' : null,
+                })
               }
             />
             <Label htmlFor="generates_commission" className="font-medium cursor-pointer">

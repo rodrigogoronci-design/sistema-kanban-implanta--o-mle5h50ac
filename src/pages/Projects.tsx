@@ -21,7 +21,6 @@ import {
   DollarSign,
 } from 'lucide-react'
 import { ProjectFormModal } from '@/components/projects/ProjectFormModal'
-import { ProjectsDashboard } from '@/components/projects/ProjectsDashboard'
 import { format, parseISO } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { getTaskHours, formatHoursAndMinutes } from '@/lib/time'
@@ -36,10 +35,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useProjectChecklists } from '@/hooks/use-project-checklists'
 import { Progress } from '@/components/ui/progress'
 import { supabase } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Download, FileSpreadsheet, FileText } from 'lucide-react'
+import html2pdf from 'html2pdf.js'
 
 const formatSafeDate = (dateStr: string | null | undefined) => {
   if (!dateStr) return '--/--/----'
@@ -74,23 +82,10 @@ export default function Projects() {
   const [analystFilter, setAnalystFilter] = useState<string>('all')
   const [clientFilter, setClientFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [commissionFilter, setCommissionFilter] = useState<boolean>(false)
-  const [commissionStatusFilter, setCommissionStatusFilter] = useState<string>('all')
+  const [financialFilter, setFinancialFilter] = useState<string>('all')
 
-  const filteredProjects = projects.filter((project) => {
+  const commonFilteredProjects = projects.filter((project) => {
     let match = true
-    const p = project as any
-
-    if (commissionFilter) {
-      match = match && p.generates_commission === true
-    }
-    if (commissionStatusFilter !== 'all') {
-      match = match && p.commission_status === commissionStatusFilter
-    }
-
-    if (statusFilter !== 'all') {
-      match = match && project.statusId === statusFilter
-    }
     if (analystFilter !== 'all') {
       match = match && !!project.analystIds?.includes(analystFilter)
     }
@@ -105,9 +100,62 @@ export default function Projects() {
 
       match = match && (projectNameMatch || clientNameMatch)
     }
-
     return match
   })
+
+  const projectsForStatusCounts = commonFilteredProjects.filter((project) => {
+    const p = project as any
+    if (financialFilter === 'gera-comissao') return p.generates_commission === true
+    if (financialFilter === 'pendentes')
+      return p.generates_commission === true && p.commission_status === 'Pendente'
+    if (financialFilter === 'pagas')
+      return p.generates_commission === true && p.commission_status === 'Pago'
+    if (financialFilter === 'sem-comissao') return !p.generates_commission
+    return true
+  })
+
+  const projectsForFinancialCounts = commonFilteredProjects.filter((project) => {
+    if (statusFilter !== 'all') {
+      return project.statusId === statusFilter
+    }
+    return true
+  })
+
+  const filteredProjects = commonFilteredProjects.filter((project) => {
+    let match = true
+    if (statusFilter !== 'all') {
+      match = match && project.statusId === statusFilter
+    }
+    const p = project as any
+    if (financialFilter === 'gera-comissao') {
+      match = match && p.generates_commission === true
+    } else if (financialFilter === 'pendentes') {
+      match = match && p.generates_commission === true && p.commission_status === 'Pendente'
+    } else if (financialFilter === 'pagas') {
+      match = match && p.generates_commission === true && p.commission_status === 'Pago'
+    } else if (financialFilter === 'sem-comissao') {
+      match = match && !p.generates_commission
+    }
+    return match
+  })
+
+  const totalStatusCount = projectsForStatusCounts.length
+  const getStatusCount = (statusId: string) =>
+    projectsForStatusCounts.filter((p) => p.statusId === statusId).length
+
+  const allCount = projectsForFinancialCounts.length
+  const geraComissaoCount = projectsForFinancialCounts.filter(
+    (p) => (p as any).generates_commission === true,
+  ).length
+  const pendentesCount = projectsForFinancialCounts.filter(
+    (p) => (p as any).generates_commission === true && (p as any).commission_status === 'Pendente',
+  ).length
+  const pagasCount = projectsForFinancialCounts.filter(
+    (p) => (p as any).generates_commission === true && (p as any).commission_status === 'Pago',
+  ).length
+  const semComissaoCount = projectsForFinancialCounts.filter(
+    (p) => !(p as any).generates_commission,
+  ).length
 
   const handleCreate = () => {
     setEditingProject(undefined)
@@ -122,16 +170,25 @@ export default function Projects() {
   const handleToggleCommission = async (projectId: string, newValue: boolean) => {
     setIsTogglingCommission((prev) => ({ ...prev, [projectId]: true }))
     try {
+      const newCommissionStatus = newValue ? 'Pendente' : null
+
       const { error } = await supabase
         .from('projects')
-        .update({ generates_commission: newValue })
+        .update({
+          generates_commission: newValue,
+          commission_status: newCommissionStatus,
+        })
         .eq('id', projectId)
 
       if (error) throw error
 
       const project = projects.find((p) => p.id === projectId)
       if (project) {
-        updateProject(projectId, { ...project, generates_commission: newValue } as any)
+        updateProject(projectId, {
+          ...project,
+          generates_commission: newValue,
+          commission_status: newCommissionStatus,
+        } as any)
       }
       toast.success(
         newValue ? 'Projeto atualizado: gera comissão.' : 'Projeto atualizado: não gera comissão.',
@@ -145,6 +202,200 @@ export default function Projects() {
   }
 
   const [isSaving, setIsSaving] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+
+  const exportCSV = () => {
+    try {
+      setIsExporting(true)
+      const headers = [
+        'Projeto',
+        'Empresa',
+        'Responsável',
+        'Status',
+        'Prioridade',
+        'Horas Contratadas',
+        'Início Implantação',
+        'Fim Implantação',
+        'Início Treinamento',
+        'Fim Treinamento',
+        'Início Operação',
+        'Fim Operação',
+        'Início Previsão',
+        'Fim Previsão',
+        'Gera Comissão',
+        'Status Comissão',
+      ]
+
+      const rows = filteredProjects.map((project) => {
+        const client = clients.find((c) => c.id === project.clientId)?.name || ''
+        const analystIds = project.analystIds || []
+        const analystNames = analystIds
+          .map(
+            (id) =>
+              analysts.find((a) => a.id === id)?.nome || users.find((u) => u.id === id)?.name || '',
+          )
+          .filter(Boolean)
+          .join(', ')
+        const status = projectStatuses.find((s) => s.id === project.statusId)?.name || ''
+
+        const esc = (str: string | number) => `"${String(str).replace(/"/g, '""')}"`
+
+        return [
+          esc(project.name),
+          esc(client),
+          esc(analystNames),
+          esc(status),
+          esc((project as any).priority || 'Média'),
+          esc(project.contractedHours || 0),
+          esc(formatSafeDate(project.implStart)),
+          esc(formatSafeDate(project.implEnd)),
+          esc(formatSafeDate(project.trainStart)),
+          esc(formatSafeDate(project.trainEnd)),
+          esc(formatSafeDate(project.opStart)),
+          esc(formatSafeDate(project.opEnd)),
+          esc(formatSafeDate(project.forecastStart)),
+          esc(formatSafeDate(project.forecastEnd)),
+          esc((project as any).generates_commission ? 'Sim' : 'Não'),
+          esc((project as any).commission_status || ''),
+        ].join(',')
+      })
+
+      const csvContent = [headers.join(','), ...rows].join('\n')
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.setAttribute('href', url)
+      link.setAttribute('download', `projetos_export_${format(new Date(), 'yyyyMMdd_HHmm')}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Exportação CSV concluída com sucesso!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao exportar CSV')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const exportPDF = async () => {
+    try {
+      setIsExporting(true)
+      const html = `
+        <div style="font-family: sans-serif; padding: 20px;">
+          <h2 style="margin-bottom: 5px;">Relatório de Projetos</h2>
+          <p style="color: #666; font-size: 12px; margin-top: 0; margin-bottom: 20px;">
+            Data de exportação: ${format(new Date(), 'dd/MM/yyyy HH:mm')}
+          </p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 9px; text-align: left;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Projeto</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Empresa</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Resp.</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Status</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Pri.</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Hrs</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Implantação</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Treinamento</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Operação</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Previsão</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Comissão</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredProjects
+                .map((project) => {
+                  const client = clients.find((c) => c.id === project.clientId)?.name || ''
+                  const analystIds = project.analystIds || []
+                  const analystNames = analystIds
+                    .map(
+                      (id) =>
+                        analysts.find((a) => a.id === id)?.nome ||
+                        users.find((u) => u.id === id)?.name ||
+                        '',
+                    )
+                    .filter(Boolean)
+                    .join(', ')
+                  const status = projectStatuses.find((s) => s.id === project.statusId)?.name || ''
+                  const impl =
+                    formatSafeDate(project.implStart) + ' - ' + formatSafeDate(project.implEnd)
+                  const train =
+                    formatSafeDate(project.trainStart) + ' - ' + formatSafeDate(project.trainEnd)
+                  const oper =
+                    formatSafeDate(project.opStart) + ' - ' + formatSafeDate(project.opEnd)
+                  const prev =
+                    formatSafeDate(project.forecastStart) +
+                    ' - ' +
+                    formatSafeDate(project.forecastEnd)
+                  const comissao = (project as any).generates_commission
+                    ? 'Sim (' + ((project as any).commission_status || '') + ')'
+                    : 'Não'
+
+                  return (
+                    '<tr>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    project.name +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    client +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    analystNames +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    status +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    ((project as any).priority || '-') +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    (project.contractedHours || '-') +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb; white-space: nowrap;">' +
+                    impl +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb; white-space: nowrap;">' +
+                    train +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb; white-space: nowrap;">' +
+                    oper +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb; white-space: nowrap;">' +
+                    prev +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    comissao +
+                    '</td>' +
+                    '</tr>'
+                  )
+                })
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      `
+
+      const element = document.createElement('div')
+      element.innerHTML = html
+
+      const opt = {
+        margin: 10,
+        filename: `projetos_export_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      }
+
+      await html2pdf().set(opt).from(element).save()
+      toast.success('Exportação PDF concluída com sucesso!')
+    } catch (error) {
+      console.error(error)
+      toast.error('Erro ao exportar PDF')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleSubmit = async (data: Omit<Project, 'id'> & any) => {
     setIsSaving(true)
@@ -166,7 +417,7 @@ export default function Projects() {
         forecast_start: data.forecastStart || null,
         forecast_end: data.forecastEnd || null,
         generates_commission: data.generates_commission || false,
-        commission_status: data.commission_status || 'Pendente',
+        commission_status: data.generates_commission ? data.commission_status || 'Pendente' : null,
       }
 
       if (editingProject) {
@@ -262,9 +513,27 @@ export default function Projects() {
             <h1 className="text-2xl font-bold tracking-tight">Projetos</h1>
             <p className="text-sm text-muted-foreground">Gerencie os projetos de implantação.</p>
           </div>
-          <Button onClick={handleCreate} className="shrink-0">
-            <Plus className="w-4 h-4 mr-2" /> Novo Projeto
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="shrink-0" disabled={isExporting}>
+                  <Download className="w-4 h-4 mr-2" />
+                  {isExporting ? 'Exportando...' : 'Exportar'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportCSV}>
+                  <FileSpreadsheet className="w-4 h-4 mr-2" /> Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportPDF}>
+                  <FileText className="w-4 h-4 mr-2" /> Exportar PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={handleCreate} className="shrink-0">
+              <Plus className="w-4 h-4 mr-2" /> Novo Projeto
+            </Button>
+          </div>
         </div>
         <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2">
           <div className="relative flex-1 w-full sm:w-auto sm:min-w-[200px]">
@@ -291,19 +560,6 @@ export default function Projects() {
                 ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filtrar por status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              {projectStatuses.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={analystFilter} onValueChange={setAnalystFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por responsável" />
@@ -317,33 +573,81 @@ export default function Projects() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex items-center space-x-2 border rounded-md px-3 h-10 bg-background shrink-0">
-            <Checkbox
-              id="commission-filter"
-              checked={commissionFilter}
-              onCheckedChange={(c) => setCommissionFilter(!!c)}
-            />
-            <label
-              htmlFor="commission-filter"
-              className="text-sm font-medium leading-none cursor-pointer"
-            >
-              Gera Comissão
-            </label>
-          </div>
-          <Select value={commissionStatusFilter} onValueChange={setCommissionStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Status da comissão" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="Pendente">Pendente</SelectItem>
-              <SelectItem value="Pago">Pago</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
-      <ProjectsDashboard projects={filteredProjects} />
+      <div className="flex flex-col gap-3">
+        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+          <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <TabsList className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
+              <TabsTrigger value="all" className="gap-2 px-4">
+                Todos
+                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                  {totalStatusCount}
+                </Badge>
+              </TabsTrigger>
+              {projectStatuses.map((s) => (
+                <TabsTrigger key={s.id} value={s.id} className="gap-2 px-4">
+                  <div
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: s.color }}
+                  />
+                  {s.name}
+                  <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                    {getStatusCount(s.id)}
+                  </Badge>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
+
+        <Tabs value={financialFilter} onValueChange={setFinancialFilter} className="w-full">
+          <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <TabsList className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
+              <TabsTrigger value="all" className="px-4 gap-2">
+                Todas
+                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                  {allCount}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="gera-comissao" className="px-4 gap-2">
+                Gera Comissão
+                <Badge
+                  variant="secondary"
+                  className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary"
+                >
+                  {geraComissaoCount}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pendentes" className="px-4 gap-2">
+                Pendentes
+                <Badge
+                  variant="secondary"
+                  className="px-1.5 py-0.5 text-xs bg-yellow-500/10 text-yellow-600"
+                >
+                  {pendentesCount}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pagas" className="px-4 gap-2">
+                Pagas
+                <Badge
+                  variant="secondary"
+                  className="px-1.5 py-0.5 text-xs bg-emerald-500/10 text-emerald-600"
+                >
+                  {pagasCount}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="sem-comissao" className="px-4 gap-2">
+                Sem Comissão
+                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                  {semComissaoCount}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </Tabs>
+      </div>
 
       <div className="border rounded-xl bg-card shadow-sm overflow-hidden">
         <Table>

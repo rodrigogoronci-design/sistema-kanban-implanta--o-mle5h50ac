@@ -54,6 +54,8 @@ export interface Project {
   forecastStart?: string
   forecastEnd?: string
   contractedHours?: number | null
+  generates_commission?: boolean
+  commission_status?: string | null
 }
 export interface Subtask {
   id: string
@@ -263,6 +265,8 @@ async function loadInitialData() {
         forecastStart: p.forecast_start || undefined,
         forecastEnd: p.forecast_end || undefined,
         contractedHours: p.contracted_hours || null,
+        generates_commission: p.generates_commission || false,
+        commission_status: p.commission_status || null,
       })),
       projectStatuses: (statuses || []).map((s: any) => ({
         id: s.id,
@@ -691,6 +695,8 @@ export default function useMainStore() {
           forecast_start: project.forecastStart,
           forecast_end: project.forecastEnd,
           contracted_hours: project.contractedHours,
+          generates_commission: project.generates_commission,
+          commission_status: project.commission_status,
         })
         .then(() => {
           if (project.analystIds && project.analystIds.length > 0) {
@@ -722,6 +728,9 @@ export default function useMainStore() {
       if ('forecastStart' in payload) dbPayload.forecast_start = payload.forecastStart
       if ('forecastEnd' in payload) dbPayload.forecast_end = payload.forecastEnd
       if ('contractedHours' in payload) dbPayload.contracted_hours = payload.contractedHours
+      if ('generates_commission' in payload)
+        dbPayload.generates_commission = payload.generates_commission
+      if ('commission_status' in payload) dbPayload.commission_status = payload.commission_status
 
       if (Object.keys(dbPayload).length > 0) {
         supabase.from('projects').update(dbPayload).eq('id', id).then()
