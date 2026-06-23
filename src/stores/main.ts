@@ -56,6 +56,7 @@ export interface Project {
   contractedHours?: number | null
   generates_commission?: boolean
   commission_status?: string | null
+  is_new_client?: boolean
 }
 export interface Subtask {
   id: string
@@ -267,6 +268,7 @@ async function loadInitialData() {
         contractedHours: p.contracted_hours || null,
         generates_commission: p.generates_commission || false,
         commission_status: p.commission_status || null,
+        is_new_client: p.is_new_client || false,
       })),
       projectStatuses: (statuses || []).map((s: any) => ({
         id: s.id,
@@ -697,6 +699,7 @@ export default function useMainStore() {
           contracted_hours: project.contractedHours,
           generates_commission: project.generates_commission,
           commission_status: project.commission_status,
+          is_new_client: project.is_new_client || false,
         })
         .then(() => {
           if (project.analystIds && project.analystIds.length > 0) {
@@ -731,6 +734,7 @@ export default function useMainStore() {
       if ('generates_commission' in payload)
         dbPayload.generates_commission = payload.generates_commission
       if ('commission_status' in payload) dbPayload.commission_status = payload.commission_status
+      if ('is_new_client' in payload) dbPayload.is_new_client = payload.is_new_client
 
       if (Object.keys(dbPayload).length > 0) {
         supabase.from('projects').update(dbPayload).eq('id', id).then()

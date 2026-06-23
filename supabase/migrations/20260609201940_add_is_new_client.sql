@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS is_new_client BOOLEAN NOT NULL DEFAULT false;

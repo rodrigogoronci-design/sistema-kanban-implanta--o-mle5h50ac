@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/command'
 import { Check, ChevronsUpDown, Settings } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import useMainStore, { Project } from '@/stores/main'
 import { toast } from 'sonner'
@@ -47,6 +48,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
       notes?: string
       generates_commission?: boolean
       commission_status?: string
+      is_new_client?: boolean
     }
   >({})
   const [clientOpen, setClientOpen] = useState(false)
@@ -60,8 +62,9 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           ...project,
           priority: (project as any).priority || 'Média',
           notes: (project as any).notes || '',
-          generates_commission: project.generates_commission || false,
-          commission_status: project.commission_status || null,
+          generates_commission: (project as any).generates_commission || false,
+          commission_status: (project as any).commission_status || null,
+          is_new_client: (project as any).is_new_client || false,
         })
       } else {
         setFormData({
@@ -73,6 +76,7 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           notes: '',
           generates_commission: false,
           commission_status: null,
+          is_new_client: false,
         })
       }
     }
@@ -269,6 +273,25 @@ export function ProjectFormModal({ open, onOpenChange, project, onSubmit, isSavi
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           placeholder="Anotações internas do projeto..."
           className="min-h-[80px] resize-none"
+        />
+      </div>
+
+      <div className="col-span-1 md:col-span-2 flex flex-row items-center justify-between p-4 border rounded-md bg-blue-50/50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900 mt-2">
+        <div className="space-y-1">
+          <Label
+            htmlFor="is_new_client"
+            className="text-base font-semibold text-blue-900 dark:text-blue-200 cursor-pointer"
+          >
+            Implantação de Novo Cliente
+          </Label>
+          <p className="text-sm text-blue-700/70 dark:text-blue-300/70">
+            Marque se este projeto representa o onboarding de um novo cliente.
+          </p>
+        </div>
+        <Switch
+          id="is_new_client"
+          checked={formData.is_new_client || false}
+          onCheckedChange={(checked) => setFormData({ ...formData, is_new_client: checked })}
         />
       </div>
 

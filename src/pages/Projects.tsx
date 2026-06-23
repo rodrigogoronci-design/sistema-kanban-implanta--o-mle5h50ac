@@ -76,6 +76,7 @@ export default function Projects() {
   const { checklists } = useProjectChecklists()
 
   const [isTogglingCommission, setIsTogglingCommission] = useState<Record<string, boolean>>({})
+  const [isTogglingNewClient, setIsTogglingNewClient] = useState<Record<string, boolean>>({})
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | undefined>()
   const [searchTerm, setSearchTerm] = useState('')
@@ -83,8 +84,9 @@ export default function Projects() {
   const [clientFilter, setClientFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [financialFilter, setFinancialFilter] = useState<string>('all')
+  const [isNewClientFilter, setIsNewClientFilter] = useState(false)
 
-  const commonFilteredProjects = projects.filter((project) => {
+  const baseFilteredProjects = projects.filter((project) => {
     let match = true
     if (analystFilter !== 'all') {
       match = match && !!project.analystIds?.includes(analystFilter)
@@ -103,14 +105,40 @@ export default function Projects() {
     return match
   })
 
+  const projectsForNewClientCount = baseFilteredProjects.filter((project) => {
+    let match = true
+    if (statusFilter !== 'all') {
+      match = match && project.statusId === statusFilter
+    }
+    if (financialFilter === 'gera-comissao') {
+      match = match && project.generates_commission === true
+    } else if (financialFilter === 'pendentes') {
+      match =
+        match && project.generates_commission === true && project.commission_status === 'Pendente'
+    } else if (financialFilter === 'pagas') {
+      match = match && project.generates_commission === true && project.commission_status === 'Pago'
+    } else if (financialFilter === 'sem-comissao') {
+      match = match && !project.generates_commission
+    }
+    return match
+  })
+
+  const totalNewClients = projectsForNewClientCount.filter((p) => p.is_new_client).length
+
+  const commonFilteredProjects = baseFilteredProjects.filter((project) => {
+    if (isNewClientFilter) {
+      return !!project.is_new_client
+    }
+    return true
+  })
+
   const projectsForStatusCounts = commonFilteredProjects.filter((project) => {
-    const p = project as any
-    if (financialFilter === 'gera-comissao') return p.generates_commission === true
+    if (financialFilter === 'gera-comissao') return project.generates_commission === true
     if (financialFilter === 'pendentes')
-      return p.generates_commission === true && p.commission_status === 'Pendente'
+      return project.generates_commission === true && project.commission_status === 'Pendente'
     if (financialFilter === 'pagas')
-      return p.generates_commission === true && p.commission_status === 'Pago'
-    if (financialFilter === 'sem-comissao') return !p.generates_commission
+      return project.generates_commission === true && project.commission_status === 'Pago'
+    if (financialFilter === 'sem-comissao') return !project.generates_commission
     return true
   })
 
@@ -126,15 +154,15 @@ export default function Projects() {
     if (statusFilter !== 'all') {
       match = match && project.statusId === statusFilter
     }
-    const p = project as any
     if (financialFilter === 'gera-comissao') {
-      match = match && p.generates_commission === true
+      match = match && project.generates_commission === true
     } else if (financialFilter === 'pendentes') {
-      match = match && p.generates_commission === true && p.commission_status === 'Pendente'
+      match =
+        match && project.generates_commission === true && project.commission_status === 'Pendente'
     } else if (financialFilter === 'pagas') {
-      match = match && p.generates_commission === true && p.commission_status === 'Pago'
+      match = match && project.generates_commission === true && project.commission_status === 'Pago'
     } else if (financialFilter === 'sem-comissao') {
-      match = match && !p.generates_commission
+      match = match && !project.generates_commission
     }
     return match
   })
@@ -145,17 +173,15 @@ export default function Projects() {
 
   const allCount = projectsForFinancialCounts.length
   const geraComissaoCount = projectsForFinancialCounts.filter(
-    (p) => (p as any).generates_commission === true,
+    (p) => p.generates_commission === true,
   ).length
   const pendentesCount = projectsForFinancialCounts.filter(
-    (p) => (p as any).generates_commission === true && (p as any).commission_status === 'Pendente',
+    (p) => p.generates_commission === true && p.commission_status === 'Pendente',
   ).length
   const pagasCount = projectsForFinancialCounts.filter(
-    (p) => (p as any).generates_commission === true && (p as any).commission_status === 'Pago',
+    (p) => p.generates_commission === true && p.commission_status === 'Pago',
   ).length
-  const semComissaoCount = projectsForFinancialCounts.filter(
-    (p) => !(p as any).generates_commission,
-  ).length
+  const semComissaoCount = projectsForFinancialCounts.filter((p) => !p.generates_commission).length
 
   const handleCreate = () => {
     setEditingProject(undefined)
@@ -165,6 +191,36 @@ export default function Projects() {
   const handleEdit = (project: Project) => {
     setEditingProject(project)
     setModalOpen(true)
+  }
+
+  const handleToggleNewClient = async (projectId: string, newValue: boolean) => {
+    setIsTogglingNewClient((prev) => ({ ...prev, [projectId]: true }))
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          is_new_client: newValue,
+        })
+        .eq('id', projectId)
+
+      if (error) throw error
+
+      const project = projects.find((p) => p.id === projectId)
+      if (project) {
+        updateProject(projectId, {
+          ...project,
+          is_new_client: newValue,
+        })
+      }
+      toast.success(
+        newValue ? 'Projeto atualizado: Novo Cliente.' : 'Projeto atualizado: Cliente Existente.',
+      )
+    } catch (error: any) {
+      console.error(error)
+      toast.error('Erro ao atualizar status de novo cliente: ' + error.message)
+    } finally {
+      setIsTogglingNewClient((prev) => ({ ...prev, [projectId]: false }))
+    }
   }
 
   const handleToggleCommission = async (projectId: string, newValue: boolean) => {
@@ -188,7 +244,7 @@ export default function Projects() {
           ...project,
           generates_commission: newValue,
           commission_status: newCommissionStatus,
-        } as any)
+        })
       }
       toast.success(
         newValue ? 'Projeto atualizado: gera comissão.' : 'Projeto atualizado: não gera comissão.',
@@ -224,6 +280,7 @@ export default function Projects() {
         'Fim Previsão',
         'Gera Comissão',
         'Status Comissão',
+        'Implantação Novo Cliente',
       ]
 
       const rows = filteredProjects.map((project) => {
@@ -255,8 +312,9 @@ export default function Projects() {
           esc(formatSafeDate(project.opEnd)),
           esc(formatSafeDate(project.forecastStart)),
           esc(formatSafeDate(project.forecastEnd)),
-          esc((project as any).generates_commission ? 'Sim' : 'Não'),
-          esc((project as any).commission_status || ''),
+          esc(project.generates_commission ? 'Sim' : 'Não'),
+          esc(project.commission_status || ''),
+          esc(project.is_new_client ? 'Sim' : 'Não'),
         ].join(',')
       })
 
@@ -301,6 +359,7 @@ export default function Projects() {
                 <th style="padding: 6px; border: 1px solid #e5e7eb;">Operação</th>
                 <th style="padding: 6px; border: 1px solid #e5e7eb;">Previsão</th>
                 <th style="padding: 6px; border: 1px solid #e5e7eb;">Comissão</th>
+                <th style="padding: 6px; border: 1px solid #e5e7eb;">Novo Cliente</th>
               </tr>
             </thead>
             <tbody>
@@ -328,9 +387,10 @@ export default function Projects() {
                     formatSafeDate(project.forecastStart) +
                     ' - ' +
                     formatSafeDate(project.forecastEnd)
-                  const comissao = (project as any).generates_commission
-                    ? 'Sim (' + ((project as any).commission_status || '') + ')'
+                  const comissao = project.generates_commission
+                    ? 'Sim (' + (project.commission_status || '') + ')'
                     : 'Não'
+                  const novoCli = project.is_new_client ? 'Sim' : 'Não'
 
                   return (
                     '<tr>' +
@@ -366,6 +426,9 @@ export default function Projects() {
                     '</td>' +
                     '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
                     comissao +
+                    '</td>' +
+                    '<td style="padding: 6px; border: 1px solid #e5e7eb;">' +
+                    novoCli +
                     '</td>' +
                     '</tr>'
                   )
@@ -418,6 +481,7 @@ export default function Projects() {
         forecast_end: data.forecastEnd || null,
         generates_commission: data.generates_commission || false,
         commission_status: data.generates_commission ? data.commission_status || 'Pendente' : null,
+        is_new_client: data.is_new_client || false,
       }
 
       if (editingProject) {
@@ -442,7 +506,8 @@ export default function Projects() {
           analystId: dbData.analyst_id,
           generates_commission: dbData.generates_commission,
           commission_status: dbData.commission_status,
-        } as Project)
+          is_new_client: dbData.is_new_client,
+        })
         toast.success('Projeto atualizado com sucesso!')
       } else {
         const { data: newProject, error } = await supabase
@@ -468,7 +533,8 @@ export default function Projects() {
           analystId: dbData.analyst_id,
           generates_commission: dbData.generates_commission,
           commission_status: dbData.commission_status,
-        } as Project)
+          is_new_client: dbData.is_new_client,
+        })
         toast.success('Projeto criado com sucesso!')
       }
       setModalOpen(false)
@@ -577,30 +643,52 @@ export default function Projects() {
       </div>
 
       <div className="flex flex-col gap-3">
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-          <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <TabsList className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
-              <TabsTrigger value="all" className="gap-2 px-4">
-                Todos
+        <div className="flex flex-col xl:flex-row gap-3 xl:items-center">
+          <div className="w-full xl:w-auto overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
+              <button
+                onClick={() => setIsNewClientFilter(!isNewClientFilter)}
+                className={cn(
+                  'inline-flex items-center justify-center whitespace-nowrap rounded-sm px-4 gap-2 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                  isNewClientFilter
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'hover:bg-background/50 text-muted-foreground',
+                )}
+              >
+                <Briefcase className="w-4 h-4" />
+                Novos Clientes
                 <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
-                  {totalStatusCount}
+                  {totalNewClients}
                 </Badge>
-              </TabsTrigger>
-              {projectStatuses.map((s) => (
-                <TabsTrigger key={s.id} value={s.id} className="gap-2 px-4">
-                  <div
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: s.color }}
-                  />
-                  {s.name}
+              </button>
+            </div>
+          </div>
+
+          <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full xl:w-auto">
+            <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <TabsList className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
+                <TabsTrigger value="all" className="gap-2 px-4">
+                  Todos
                   <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
-                    {getStatusCount(s.id)}
+                    {totalStatusCount}
                   </Badge>
                 </TabsTrigger>
-              ))}
-            </TabsList>
-          </div>
-        </Tabs>
+                {projectStatuses.map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-2 px-4">
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: s.color }}
+                    />
+                    {s.name}
+                    <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                      {getStatusCount(s.id)}
+                    </Badge>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+          </Tabs>
+        </div>
 
         <Tabs value={financialFilter} onValueChange={setFinancialFilter} className="w-full">
           <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
@@ -690,11 +778,24 @@ export default function Projects() {
                 return (
                   <TableRow key={project.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium max-w-[200px] truncate">
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="truncate" title={project.name}>
-                          {project.name}
-                        </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="truncate" title={project.name}>
+                            {project.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Switch
+                            checked={!!project.is_new_client}
+                            onCheckedChange={(checked) =>
+                              handleToggleNewClient(project.id, checked)
+                            }
+                            disabled={isTogglingNewClient[project.id]}
+                            className="scale-75 data-[state=checked]:bg-blue-600 data-[state=unchecked]:bg-slate-200"
+                          />
+                          <span className="text-[10px] text-muted-foreground">Novo Cliente</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell
@@ -747,22 +848,22 @@ export default function Projects() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch
-                          checked={!!(project as any).generates_commission}
+                          checked={!!project.generates_commission}
                           onCheckedChange={(checked) => handleToggleCommission(project.id, checked)}
                           disabled={isTogglingCommission[project.id]}
                         />
-                        {(project as any).generates_commission && (
+                        {project.generates_commission && (
                           <Badge
                             variant="outline"
                             className={cn(
                               'text-xs font-normal whitespace-nowrap transition-all duration-300',
-                              (project as any).commission_status === 'Pago'
+                              project.commission_status === 'Pago'
                                 ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-200'
                                 : 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-200',
                             )}
                           >
                             <DollarSign className="w-3 h-3 mr-1" />
-                            {(project as any).commission_status || 'Pendente'}
+                            {project.commission_status || 'Pendente'}
                           </Badge>
                         )}
                       </div>

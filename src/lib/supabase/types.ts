@@ -408,6 +408,7 @@ export type Database = {
           id: string
           impl_end: string | null
           impl_start: string | null
+          is_new_client: boolean
           name: string
           notes: string | null
           op_end: string | null
@@ -428,6 +429,7 @@ export type Database = {
           id?: string
           impl_end?: string | null
           impl_start?: string | null
+          is_new_client?: boolean
           name: string
           notes?: string | null
           op_end?: string | null
@@ -448,6 +450,7 @@ export type Database = {
           id?: string
           impl_end?: string | null
           impl_start?: string | null
+          is_new_client?: boolean
           name?: string
           notes?: string | null
           op_end?: string | null
@@ -1009,6 +1012,7 @@ export const Constants = {
 //   priority: text (nullable, default: 'Média'::text)
 //   generates_commission: boolean (nullable, default: false)
 //   commission_status: text (nullable, default: 'Pendente'::text)
+//   is_new_client: boolean (not null, default: false)
 // Table: rat_email_logs
 //   id: uuid (not null, default: gen_random_uuid())
 //   task_id: uuid (nullable)
@@ -1302,6 +1306,9 @@ export const Constants = {
 //   Policy "authenticated_select" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+//   Policy "authenticated_update_projects_new_client" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: rat_email_logs
