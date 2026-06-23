@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import useMainStore from '@/stores/main'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,7 @@ import {
 import GlobalAttachmentGallery from '@/components/GlobalAttachmentGallery'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/hooks/use-auth'
 import TaskModal from '@/components/TaskModal'
 import KanbanCard from '@/components/KanbanCard'
 import ArchiveManager from '@/components/ArchiveManager'
@@ -102,6 +103,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 
 export default function Index() {
+  const { profile } = useAuth()
   const {
     tasks,
     columns,
@@ -117,6 +119,7 @@ export default function Index() {
     deleteColumn,
     reorderColumns,
     addClient,
+    loaded,
   } = useMainStore()
   const [view, setView] = useState<'kanban' | 'list' | 'gallery' | 'calendar'>('kanban')
   const [calendarDate, setCalendarDate] = useState(new Date())
@@ -152,6 +155,19 @@ export default function Index() {
   const [search, setSearch] = useState('')
   const [filterUser, setFilterUser] = useState('all')
   const [filterClient, setFilterClient] = useState('all')
+  const [hasSetDefaultUser, setHasSetDefaultUser] = useState(false)
+
+  useEffect(() => {
+    if (loaded && !hasSetDefaultUser) {
+      if (profile) {
+        const currentAnalyst = analysts.find((a) => a.userId === profile.id)
+        if (currentAnalyst) {
+          setFilterUser(currentAnalyst.id)
+        }
+      }
+      setHasSetDefaultUser(true)
+    }
+  }, [loaded, profile, analysts, hasSetDefaultUser])
   const [filterProject, setFilterProject] = useState('all')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterDueDate, setFilterDueDate] = useState<Date | undefined>()
