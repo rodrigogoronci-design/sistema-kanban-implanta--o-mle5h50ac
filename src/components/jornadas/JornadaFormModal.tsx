@@ -26,7 +26,7 @@ interface StepData {
   id?: string
   name: string
   position: number
-  atividades: { id?: string; name: string; description?: string; estimated_hours?: number }[]
+  atividades: { id?: string; name: string; description?: string }[]
 }
 
 interface Props {
@@ -57,7 +57,6 @@ export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSav
             atividades: e.atividades.map((a) => ({
               name: a.name,
               description: a.description || '',
-              estimated_hours: a.estimated_hours || undefined,
             })),
           })),
         )
