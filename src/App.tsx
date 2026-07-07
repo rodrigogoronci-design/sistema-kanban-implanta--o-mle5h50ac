@@ -17,6 +17,8 @@ import Modules from './pages/Modules'
 import Cadastros from './pages/Cadastros'
 import Monitoramento from './pages/Monitoramento'
 import Commissions from './pages/Commissions'
+import Jornadas from './pages/Jornadas'
+import ProjetosImplantacao from './pages/ProjetosImplantacao'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
@@ -48,6 +50,8 @@ const AppRoutes = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/monitoramento" element={<Monitoramento />} />
         <Route path="/comissoes" element={<Commissions />} />
+        <Route path="/jornadas" element={<Jornadas />} />
+        <Route path="/projetos-implantacao" element={<ProjetosImplantacao />} />
       </Route>
       <Route path="/rat/:taskId" element={<RAT />} />
       <Route path="*" element={<NotFound />} />

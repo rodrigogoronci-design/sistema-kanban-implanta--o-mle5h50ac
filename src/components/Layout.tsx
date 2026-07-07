@@ -28,6 +28,8 @@ import {
   BookOpen,
   Mail,
   DollarSign,
+  Route,
+  Workflow,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -55,6 +57,8 @@ export default function Layout() {
     { title: 'Relatórios', url: '/reports', icon: PieChart },
     { title: 'Cadastros', url: '/cadastros', icon: BookOpen },
     { title: 'Envios RAT', url: '/monitoramento', icon: Mail },
+    { title: 'Jornadas', url: '/jornadas', icon: Route },
+    { title: 'Projetos de Implantação', url: '/projetos-implantacao', icon: Workflow },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
@@ -86,6 +90,8 @@ export default function Layout() {
       '/cadastros',
       '/settings',
       '/monitoramento',
+      '/jornadas',
+      '/projetos-implantacao',
     ],
     Gerente: [
       '/',
@@ -96,6 +102,8 @@ export default function Layout() {
       '/reports',
       '/cadastros',
       '/monitoramento',
+      '/jornadas',
+      '/projetos-implantacao',
     ],
     Colaborador: ['/', '/projects', '/cadastros', '/monitoramento'],
   }
