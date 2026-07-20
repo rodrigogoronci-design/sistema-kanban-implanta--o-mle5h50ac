@@ -331,7 +331,14 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                 <Input
                   type="date"
                   value={realizationDate || ''}
-                  onChange={(e) => setRealizationDate(e.target.value || null)}
+                  onChange={(e) => {
+                    const val = e.target.value || null
+                    setRealizationDate(val)
+                    if (val) {
+                      setStatus('Concluído')
+                      setIsCompleted(true)
+                    }
+                  }}
                 />
               </div>
             </div>
