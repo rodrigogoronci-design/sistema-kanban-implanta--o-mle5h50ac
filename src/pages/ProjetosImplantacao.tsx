@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Workflow, Building2, Loader2 } from 'lucide-react'
+import { Plus, Workflow, Building2, Loader2, Eye, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,8 +27,23 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog'
 import { useNavigate } from 'react-router-dom'
-import { fetchProjetos, createProjeto, ProjetoImplantacao } from '@/services/projetos-implantacao'
+import {
+  fetchProjetos,
+  createProjeto,
+  deleteProjeto,
+  ProjetoImplantacao,
+} from '@/services/projetos-implantacao'
 import { fetchJornadas, Jornada } from '@/services/jornadas'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -44,6 +59,9 @@ export default function ProjetosImplantacao() {
   const [newName, setNewName] = useState('')
   const [newJornada, setNewJornada] = useState('')
   const [newClient, setNewClient] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<ProjetoImplantacao | null>(null)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
@@ -87,6 +105,22 @@ export default function ProjetosImplantacao() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteProjeto(deleteTarget.id)
+      toast.success('Projeto excluído com sucesso!')
+      setDeleteTarget(null)
+      setConfirmText('')
+      loadData()
+    } catch (e: any) {
+      toast.error('Erro ao excluir: ' + e.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -120,7 +154,7 @@ export default function ProjetosImplantacao() {
               <TableHead>Projeto</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead className="w-[120px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -166,17 +200,34 @@ export default function ProjetosImplantacao() {
                         {p.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate(`/projetos-implantacao/${p.id}`)
-                        }}
-                      >
-                        Detalhes
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate(`/projetos-implantacao/${p.id}`)
+                          }}
+                          title="Visualizar projeto"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteTarget(p)
+                            setConfirmText('')
+                          }}
+                          title="Excluir projeto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 )
@@ -245,6 +296,53 @@ export default function ProjetosImplantacao() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null)
+            setConfirmText('')
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-left">
+              Esta ação não pode ser desfeita. O projeto{' '}
+              <strong className="text-foreground">{deleteTarget?.name}</strong> e todas as suas
+              atividades serão permanentemente excluídos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-delete" className="text-sm font-medium">
+              Para confirmar, digite o nome do projeto:{' '}
+              <span className="text-destructive font-semibold">{deleteTarget?.name}</span>
+            </Label>
+            <Input
+              id="confirm-delete"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={deleteTarget?.name}
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              disabled={confirmText !== deleteTarget?.name || deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Excluindo...' : 'Excluir Projeto'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

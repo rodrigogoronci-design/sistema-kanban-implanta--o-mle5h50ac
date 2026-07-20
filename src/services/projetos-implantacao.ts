@@ -158,6 +158,13 @@ export async function deleteAtividade(id: string): Promise<void> {
   if (error) throw error
 }
 
+export async function deleteProjeto(id: string): Promise<void> {
+  const { error: aError } = await db.from('projeto_atividades').delete().eq('project_id', id)
+  if (aError) throw aError
+  const { error } = await db.from('projetos_implantacao').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function checkAndUpdateProgression(
   projectId: string,
   etapas: { id: string; name: string; position: number }[],
