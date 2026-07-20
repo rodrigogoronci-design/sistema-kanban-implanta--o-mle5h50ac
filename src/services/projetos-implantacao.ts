@@ -11,6 +11,8 @@ export interface ProjetoImplantacao {
   current_step_id: string | null
   status: string
   created_at: string
+  data_demanda: string | null
+  analyst_id: string | null
 }
 
 export interface ProjetoAtividade {
@@ -83,6 +85,8 @@ export async function createProjeto(
   name: string,
   jornadaId: string,
   clientId?: string,
+  analystId?: string,
+  dataDemanda?: string,
 ): Promise<ProjetoImplantacao> {
   const template = await fetchJornadaDetails(jornadaId)
   const firstEtapa = template.etapas[0]
@@ -95,6 +99,8 @@ export async function createProjeto(
       client_id: clientId || null,
       current_step_id: firstEtapa?.id || null,
       status: 'Ativo',
+      analyst_id: analystId || null,
+      data_demanda: dataDemanda || null,
     })
     .select()
     .single()

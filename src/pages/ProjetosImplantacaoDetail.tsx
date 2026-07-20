@@ -20,6 +20,8 @@ import {
   Plus,
   Clock,
   Paperclip,
+  User,
+  Calendar as CalendarIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -132,6 +134,7 @@ export default function ProjetosImplantacaoDetail() {
   const completed = projeto.atividades.filter((a) => a.is_completed).length
   const progress = total > 0 ? (completed / total) * 100 : 0
   const currentStepIdx = projeto.etapas.findIndex((e) => e.id === projeto.current_step_id)
+  const analystName = analysts.find((a) => a.id === projeto.analyst_id)?.nome
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -151,6 +154,21 @@ export default function ProjetosImplantacaoDetail() {
           {client && (
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
               <Building2 className="w-3.5 h-3.5" /> {client.name}
+            </div>
+          )}
+          {(analystName || projeto.data_demanda) && (
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mt-1">
+              {analystName && (
+                <span className="flex items-center gap-1">
+                  <User className="w-3.5 h-3.5" /> {analystName}
+                </span>
+              )}
+              {projeto.data_demanda && (
+                <span className="flex items-center gap-1">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  {new Date(projeto.data_demanda + 'T00:00:00').toLocaleDateString('pt-BR')}
+                </span>
+              )}
             </div>
           )}
         </div>

@@ -9,24 +9,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Workflow, Building2, Loader2, Eye, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  Workflow,
+  Building2,
+  Loader2,
+  Eye,
+  Trash2,
+  Edit2,
+  User,
+  CalendarIcon,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -38,41 +34,48 @@ import {
   AlertDialogAction,
 } from '@/components/ui/alert-dialog'
 import { useNavigate } from 'react-router-dom'
-import {
-  fetchProjetos,
-  createProjeto,
-  deleteProjeto,
-  ProjetoImplantacao,
-} from '@/services/projetos-implantacao'
+import { fetchProjetos, deleteProjeto, ProjetoImplantacao } from '@/services/projetos-implantacao'
 import { fetchJornadas, Jornada } from '@/services/jornadas'
+import { ProjetoFormModal } from '@/components/projetos-implantacao/ProjetoFormModal'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+
+const formatDate = (d: string | null) => {
+  if (!d) return '-'
+  const [y, m, day] = d.split('T')[0].split('-')
+  return `${day}/${m}/${y}`
+}
 
 export default function ProjetosImplantacao() {
   const [projetos, setProjetos] = useState<ProjetoImplantacao[]>([])
   const [jornadas, setJornadas] = useState<Jornada[]>([])
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
+  const [analysts, setAnalysts] = useState<{ id: string; nome: string }[]>([])
+  const [etapas, setEtapas] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
-  const [createOpen, setCreateOpen] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [editingProjeto, setEditingProjeto] = useState<ProjetoImplantacao | null>(null)
   const navigate = useNavigate()
-  const [saving, setSaving] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newJornada, setNewJornada] = useState('')
-  const [newClient, setNewClient] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<ProjetoImplantacao | null>(null)
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
 
   const loadData = useCallback(async () => {
     try {
-      const [p, j, cRes] = await Promise.all([
+      const [p, j, cRes, aRes, eRes] = await Promise.all([
         fetchProjetos(),
         fetchJornadas(),
-        (supabase as any).from('clients').select('id, name').order('name'),
+        supabase.from('clients').select('id, name').order('name'),
+        supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
+        supabase.from('jornada_etapas').select('id, name'),
       ])
       setProjetos(p)
       setJornadas(j)
       setClients(cRes.data || [])
+      setAnalysts(aRes.data || [])
+      const map: Record<string, string> = {}
+      for (const e of eRes.data || []) map[e.id] = e.name
+      setEtapas(map)
     } catch (e: any) {
       toast.error('Erro ao carregar: ' + e.message)
     } finally {
@@ -83,27 +86,6 @@ export default function ProjetosImplantacao() {
   useEffect(() => {
     loadData()
   }, [loadData])
-
-  const handleCreate = async () => {
-    if (!newName.trim() || !newJornada) {
-      toast.error('Preencha nome e jornada.')
-      return
-    }
-    setSaving(true)
-    try {
-      await createProjeto(newName.trim(), newJornada, newClient || undefined)
-      toast.success('Projeto criado com sucesso!')
-      setCreateOpen(false)
-      setNewName('')
-      setNewJornada('')
-      setNewClient('')
-      loadData()
-    } catch (e: any) {
-      toast.error('Erro: ' + e.message)
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -121,6 +103,11 @@ export default function ProjetosImplantacao() {
     }
   }
 
+  const getEtapaName = (p: ProjetoImplantacao) => {
+    if (p.status === 'Concluído') return 'Concluído'
+    return p.current_step_id ? etapas[p.current_step_id] || '-' : '-'
+  }
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -133,7 +120,10 @@ export default function ProjetosImplantacao() {
           </p>
         </div>
         <Button
-          onClick={() => setCreateOpen(true)}
+          onClick={() => {
+            setEditingProjeto(null)
+            setFormOpen(true)
+          }}
           className="shrink-0"
           disabled={jornadas.length === 0}
         >
@@ -153,26 +143,30 @@ export default function ProjetosImplantacao() {
             <TableRow className="bg-muted/50">
               <TableHead>Projeto</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Etapa Atual</TableHead>
+              <TableHead>Analista</TableHead>
+              <TableHead>Data Demanda</TableHead>
               <TableHead className="w-[120px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8">
+                <TableCell colSpan={6} className="text-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
             ) : projetos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum projeto de implantação.
                 </TableCell>
               </TableRow>
             ) : (
               projetos.map((p) => {
                 const client = clients.find((c) => c.id === p.client_id)
+                const analyst = analysts.find((a) => a.id === p.analyst_id)
+                const etapaName = getEtapaName(p)
                 return (
                   <TableRow
                     key={p.id}
@@ -197,8 +191,22 @@ export default function ProjetosImplantacao() {
                           p.status === 'Concluído' && 'bg-emerald-500/10 text-emerald-600',
                         )}
                       >
-                        {p.status}
+                        {etapaName}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {analyst ? (
+                        <span className="flex items-center gap-1">
+                          <User className="w-3 h-3" /> {analyst.nome}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <CalendarIcon className="w-3 h-3" /> {formatDate(p.data_demanda)}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -213,6 +221,19 @@ export default function ProjetosImplantacao() {
                           title="Visualizar projeto"
                         >
                           <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditingProjeto(p)
+                            setFormOpen(true)
+                          }}
+                          title="Editar projeto"
+                        >
+                          <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -237,65 +258,15 @@ export default function ProjetosImplantacao() {
         </Table>
       </div>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Novo Projeto de Implantação</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do Projeto *</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Ex: Implantação Cliente X"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Jornada (Template) *</Label>
-              <Select value={newJornada} onValueChange={setNewJornada}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma jornada" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jornadas.map((j) => (
-                    <SelectItem key={j.id} value={j.id}>
-                      {j.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <Select
-                value={newClient || 'none'}
-                onValueChange={(v) => setNewClient(v === 'none' ? '' : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button onClick={handleCreate} disabled={saving}>
-              {saving ? 'Criando...' : 'Criar Projeto'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProjetoFormModal
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        editingProjeto={editingProjeto}
+        jornadas={jornadas}
+        clients={clients}
+        analysts={analysts}
+        onSaved={loadData}
+      />
 
       <AlertDialog
         open={!!deleteTarget}
