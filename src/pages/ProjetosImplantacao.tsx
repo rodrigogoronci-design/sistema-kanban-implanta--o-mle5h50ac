@@ -125,15 +125,15 @@ export default function ProjetosImplantacao() {
             setFormOpen(true)
           }}
           className="shrink-0"
-          disabled={jornadas.length === 0}
         >
           <Plus className="w-4 h-4 mr-2" /> Novo Projeto
         </Button>
       </div>
 
       {jornadas.length === 0 && (
-        <div className="p-4 border border-amber-200 bg-amber-50 rounded-lg text-sm text-amber-800">
-          Nenhuma jornada cadastrada. Crie uma jornada primeiro na página de Jornadas.
+        <div className="p-4 border border-blue-200 bg-blue-50 rounded-lg text-sm text-blue-800">
+          Nenhuma jornada cadastrada. Você pode criar projetos sem jornada e adicionar etapas
+          dinamicamente.
         </div>
       )}
 

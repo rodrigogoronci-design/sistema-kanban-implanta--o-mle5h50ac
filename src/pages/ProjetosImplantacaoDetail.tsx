@@ -22,6 +22,7 @@ import {
   Paperclip,
   User,
   Calendar as CalendarIcon,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -29,8 +30,12 @@ import { supabase } from '@/lib/supabase/client'
 import {
   fetchProjetoDetails,
   updateAtividade,
+  updateProjeto,
   addExtraAtividade,
+  addAtividadeToProject,
   deleteAtividade,
+  addEtapaToProject,
+  deleteEtapaFromProject,
   checkAndUpdateProgression,
   ProjetoWithDetails,
   ProjetoAtividade,
@@ -48,6 +53,8 @@ export default function ProjetosImplantacaoDetail() {
   const [selectedAtividade, setSelectedAtividade] = useState<ProjetoAtividade | null>(null)
   const [newExtraName, setNewExtraName] = useState<Record<string, string>>({})
   const [openAccordions, setOpenAccordions] = useState<string[]>([])
+  const [newEtapaName, setNewEtapaName] = useState('')
+  const [addingEtapa, setAddingEtapa] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -116,6 +123,49 @@ export default function ProjetosImplantacaoDetail() {
     try {
       await deleteAtividade(atividadeId)
       toast.success('Atividade removida!')
+      await loadData()
+    } catch (e: any) {
+      toast.error('Erro: ' + e.message)
+    }
+  }
+
+  const handleAddEtapa = async () => {
+    const name = newEtapaName.trim()
+    if (!name || !id) return
+    setAddingEtapa(true)
+    try {
+      const position = projeto?.etapas.length || 0
+      const etapa = await addEtapaToProject(id, name, position)
+      if (!projeto?.current_step_id) {
+        await updateProjeto(id, { current_step_id: etapa.id })
+      }
+      setNewEtapaName('')
+      toast.success('Etapa criada!')
+      await loadData()
+    } catch (e: any) {
+      toast.error('Erro: ' + e.message)
+    } finally {
+      setAddingEtapa(false)
+    }
+  }
+
+  const handleDeleteEtapa = async (etapaId: string) => {
+    try {
+      await deleteEtapaFromProject(etapaId)
+      toast.success('Etapa removida!')
+      await loadData()
+    } catch (e: any) {
+      toast.error('Erro: ' + e.message)
+    }
+  }
+
+  const handleAddAtividade = async (etapaId: string) => {
+    const name = newExtraName[etapaId]?.trim()
+    if (!name) return
+    try {
+      await addAtividadeToProject(id!, etapaId, name)
+      setNewExtraName((prev) => ({ ...prev, [etapaId]: '' }))
+      toast.success('Atividade adicionada!')
       await loadData()
     } catch (e: any) {
       toast.error('Erro: ' + e.message)
@@ -242,27 +292,43 @@ export default function ProjetosImplantacaoDetail() {
                 isCurrent && 'border-primary/30 bg-primary/5',
               )}
             >
-              <AccordionTrigger className="hover:no-underline py-4">
-                <div className="flex items-center gap-2 flex-1 text-left">
-                  <div
-                    className={cn(
-                      'flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0',
-                      etProgress === 100
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : isCurrent
-                          ? 'bg-primary/10 text-primary'
-                          : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {etProgress === 100 ? <CheckCircle2 className="w-4 h-4" /> : etCompleted}
+              <div className="flex items-center gap-2">
+                <AccordionTrigger className="hover:no-underline py-4 flex-1">
+                  <div className="flex items-center gap-2 flex-1 text-left">
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0',
+                        etProgress === 100
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : isCurrent
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground',
+                      )}
+                    >
+                      {etProgress === 100 ? <CheckCircle2 className="w-4 h-4" /> : etCompleted}
+                    </div>
+                    <span className="font-semibold text-sm">{etapa.name}</span>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {etCompleted}/{etAtvs.length}
+                    </Badge>
+                    {isCurrent && <Badge className="text-xs">Etapa Atual</Badge>}
                   </div>
-                  <span className="font-semibold text-sm">{etapa.name}</span>
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    {etCompleted}/{etAtvs.length}
-                  </Badge>
-                  {isCurrent && <Badge className="text-xs">Etapa Atual</Badge>}
-                </div>
-              </AccordionTrigger>
+                </AccordionTrigger>
+                {!projeto.jornada_id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      handleDeleteEtapa(etapa.id)
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
               <AccordionContent>
                 <div className="space-y-2 pt-2 pb-4">
                   {etAtvs.length === 0 && (
@@ -347,22 +413,29 @@ export default function ProjetosImplantacaoDetail() {
                       onChange={(e) =>
                         setNewExtraName((prev) => ({ ...prev, [etapa.id]: e.target.value }))
                       }
-                      placeholder="Nome da atividade extra..."
+                      placeholder={
+                        projeto.jornada_id ? 'Nome da atividade extra...' : 'Nome da atividade...'
+                      }
                       className="h-8 text-sm"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
-                          handleAddExtra(etapa.id)
+                          projeto.jornada_id
+                            ? handleAddExtra(etapa.id)
+                            : handleAddAtividade(etapa.id)
                         }
                       }}
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddExtra(etapa.id)}
+                      onClick={() =>
+                        projeto.jornada_id ? handleAddExtra(etapa.id) : handleAddAtividade(etapa.id)
+                      }
                       disabled={!newExtraName[etapa.id]?.trim()}
                     >
-                      <Plus className="w-3.5 h-3.5 mr-1" /> Extra
+                      <Plus className="w-3.5 h-3.5 mr-1" />
+                      {projeto.jornada_id ? 'Extra' : 'Adicionar'}
                     </Button>
                   </div>
                 </div>
@@ -371,6 +444,38 @@ export default function ProjetosImplantacaoDetail() {
           )
         })}
       </Accordion>
+
+      {!projeto.jornada_id && (
+        <Card className="p-4 border-dashed">
+          <div className="flex items-center gap-2">
+            <Input
+              value={newEtapaName}
+              onChange={(e) => setNewEtapaName(e.target.value)}
+              placeholder="Nome da nova etapa..."
+              className="h-9"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAddEtapa()
+                }
+              }}
+            />
+            <Button
+              onClick={handleAddEtapa}
+              disabled={!newEtapaName.trim() || addingEtapa}
+              size="sm"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {addingEtapa ? 'Criando...' : 'Adicionar Etapa'}
+            </Button>
+          </div>
+          {projeto.etapas.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center mt-2">
+              Nenhuma etapa criada. Adicione a primeira etapa para começar.
+            </p>
+          )}
+        </Card>
+      )}
 
       <AtividadeDetailModal
         atividade={selectedAtividade}

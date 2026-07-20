@@ -75,8 +75,8 @@ export function ProjetoFormModal({
   }, [open, editingProjeto])
 
   const handleSave = async () => {
-    if (!name.trim() || !jornadaId) {
-      toast.error('Preencha nome e jornada.')
+    if (!name.trim()) {
+      toast.error('Preencha o nome do projeto.')
       return
     }
     setSaving(true)
@@ -95,7 +95,7 @@ export function ProjetoFormModal({
       } else {
         await createProjeto(
           name.trim(),
-          jornadaId,
+          jornadaId || undefined,
           clientVal || undefined,
           analystVal || undefined,
           dataVal || undefined,
@@ -129,12 +129,17 @@ export function ProjetoFormModal({
             />
           </div>
           <div className="space-y-2">
-            <Label>Jornada (Template) *</Label>
-            <Select value={jornadaId} onValueChange={setJornadaId} disabled={!!editingProjeto}>
+            <Label>Jornada (Template)</Label>
+            <Select
+              value={jornadaId || 'none'}
+              onValueChange={(v) => setJornadaId(v === 'none' ? '' : v)}
+              disabled={!!editingProjeto}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione uma jornada" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">Sem jornada (etapas dinâmicas)</SelectItem>
                 {jornadas.map((j) => (
                   <SelectItem key={j.id} value={j.id}>
                     {j.name}
@@ -142,6 +147,9 @@ export function ProjetoFormModal({
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Opcional. Sem jornada, as etapas podem ser criadas dinamicamente.
+            </p>
             {editingProjeto && (
               <p className="text-xs text-muted-foreground">
                 A jornada não pode ser alterada após a criação.

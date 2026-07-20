@@ -68,6 +68,13 @@ export async function fetchProjetoDetails(id: string): Promise<ProjetoWithDetail
       .eq('jornada_id', projeto.jornada_id)
       .order('position', { ascending: true })
     etapas = (eData || []).map((e: any) => ({ id: e.id, name: e.name, position: e.position }))
+  } else {
+    const { data: eData } = await db
+      .from('jornada_etapas')
+      .select('*')
+      .eq('project_id', id)
+      .order('position', { ascending: true })
+    etapas = (eData || []).map((e: any) => ({ id: e.id, name: e.name, position: e.position }))
   }
   if (etapas.length === 0 && (atividades || []).length > 0) {
     const uniqueIds = [...new Set((atividades || []).map((a: any) => a.etapa_id))]
@@ -83,21 +90,26 @@ export async function fetchProjetoDetails(id: string): Promise<ProjetoWithDetail
 
 export async function createProjeto(
   name: string,
-  jornadaId: string,
+  jornadaId?: string,
   clientId?: string,
   analystId?: string,
   dataDemanda?: string,
 ): Promise<ProjetoImplantacao> {
-  const template = await fetchJornadaDetails(jornadaId)
-  const firstEtapa = template.etapas[0]
+  let firstEtapaId: string | null = null
+  let template: Awaited<ReturnType<typeof fetchJornadaDetails>> | null = null
+
+  if (jornadaId) {
+    template = await fetchJornadaDetails(jornadaId)
+    firstEtapaId = template.etapas[0]?.id || null
+  }
 
   const { data: projeto, error } = await db
     .from('projetos_implantacao')
     .insert({
       name,
-      jornada_id: jornadaId,
+      jornada_id: jornadaId || null,
       client_id: clientId || null,
-      current_step_id: firstEtapa?.id || null,
+      current_step_id: firstEtapaId,
       status: 'Ativo',
       analyst_id: analystId || null,
       data_demanda: dataDemanda || null,
@@ -106,23 +118,25 @@ export async function createProjeto(
     .single()
   if (error) throw error
 
-  const allAtividades: any[] = []
-  for (const etapa of template.etapas) {
-    for (const atv of etapa.atividades) {
-      allAtividades.push({
-        project_id: projeto.id,
-        etapa_id: etapa.id,
-        name: atv.name,
-        description: atv.description,
-        status: 'A Fazer',
-        is_completed: false,
-        is_extra: false,
-      })
+  if (template) {
+    const allAtividades: any[] = []
+    for (const etapa of template.etapas) {
+      for (const atv of etapa.atividades) {
+        allAtividades.push({
+          project_id: projeto.id,
+          etapa_id: etapa.id,
+          name: atv.name,
+          description: atv.description,
+          status: 'A Fazer',
+          is_completed: false,
+          is_extra: false,
+        })
+      }
     }
-  }
-  if (allAtividades.length > 0) {
-    const { error: aError } = await db.from('projeto_atividades').insert(allAtividades)
-    if (aError) throw aError
+    if (allAtividades.length > 0) {
+      const { error: aError } = await db.from('projeto_atividades').insert(allAtividades)
+      if (aError) throw aError
+    }
   }
 
   return projeto
@@ -197,4 +211,51 @@ export async function checkAndUpdateProgression(
   } else {
     await updateProjeto(projectId, { status: 'Concluído' })
   }
+}
+
+export async function addEtapaToProject(
+  projectId: string,
+  name: string,
+  position: number,
+): Promise<{ id: string; name: string; position: number }> {
+  const { data, error } = await db
+    .from('jornada_etapas')
+    .insert({
+      project_id: projectId,
+      jornada_id: null,
+      name,
+      position,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return { id: data.id, name: data.name, position: data.position }
+}
+
+export async function deleteEtapaFromProject(etapaId: string): Promise<void> {
+  const { error: aError } = await db.from('projeto_atividades').delete().eq('etapa_id', etapaId)
+  if (aError) throw aError
+  const { error } = await db.from('jornada_etapas').delete().eq('id', etapaId)
+  if (error) throw error
+}
+
+export async function addAtividadeToProject(
+  projectId: string,
+  etapaId: string,
+  name: string,
+): Promise<ProjetoAtividade> {
+  const { data, error } = await db
+    .from('projeto_atividades')
+    .insert({
+      project_id: projectId,
+      etapa_id: etapaId,
+      name,
+      status: 'A Fazer',
+      is_completed: false,
+      is_extra: false,
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }
