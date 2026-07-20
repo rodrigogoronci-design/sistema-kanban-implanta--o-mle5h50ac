@@ -23,6 +23,7 @@ import {
   User,
   Calendar as CalendarIcon,
   Trash2,
+  Timer,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -41,6 +42,11 @@ import {
   ProjetoAtividade,
 } from '@/services/projetos-implantacao'
 import { AtividadeDetailModal } from '@/components/jornadas/AtividadeDetailModal'
+import {
+  fetchTimeEntriesByProject,
+  calculateDurationHours,
+  formatDuration,
+} from '@/services/projeto-atividade-time-entries'
 
 export default function ProjetosImplantacaoDetail() {
   const { id } = useParams<{ id: string }>()
@@ -55,6 +61,8 @@ export default function ProjetosImplantacaoDetail() {
   const [openAccordions, setOpenAccordions] = useState<string[]>([])
   const [newEtapaName, setNewEtapaName] = useState('')
   const [addingEtapa, setAddingEtapa] = useState(false)
+  const [projectTotalHours, setProjectTotalHours] = useState(0)
+  const [activityHours, setActivityHours] = useState<Record<string, number>>({})
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -79,6 +87,25 @@ export default function ProjetosImplantacaoDetail() {
         const currentIdx = p.etapas.findIndex((e) => e.id === p.current_step_id)
         const defaultOpen = currentIdx >= 0 ? [p.etapas[currentIdx].id] : [p.etapas[0].id]
         setOpenAccordions(defaultOpen)
+      }
+
+      try {
+        const timeEntries = await fetchTimeEntriesByProject(id)
+        const total = timeEntries.reduce(
+          (sum, e) => sum + calculateDurationHours(e.start_time, e.end_time),
+          0,
+        )
+        setProjectTotalHours(total)
+
+        const perActivity: Record<string, number> = {}
+        for (const e of timeEntries) {
+          const dur = calculateDurationHours(e.start_time, e.end_time)
+          perActivity[e.projeto_atividade_id] = (perActivity[e.projeto_atividade_id] || 0) + dur
+        }
+        setActivityHours(perActivity)
+      } catch {
+        setProjectTotalHours(0)
+        setActivityHours({})
       }
     } catch (e: any) {
       toast.error('Erro ao carregar projeto: ' + e.message)
@@ -233,15 +260,31 @@ export default function ProjetosImplantacaoDetail() {
         </Badge>
       </div>
 
-      <Card className="p-6">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-muted-foreground">Progresso Geral</span>
-          <span className="text-sm font-bold">
-            {completed} / {total} atividades ({Math.round(progress)}%)
-          </span>
-        </div>
-        <Progress value={progress} className="h-3" />
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-muted-foreground">Progresso Geral</span>
+            <span className="text-sm font-bold">
+              {completed} / {total} atividades ({Math.round(progress)}%)
+            </span>
+          </div>
+          <Progress value={progress} className="h-3" />
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Timer className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-muted-foreground">
+                Total Geral de Horas do Projeto
+              </span>
+            </div>
+          </div>
+          <div className="text-3xl font-bold tracking-tight">
+            {formatDuration(projectTotalHours)}
+          </div>
+        </Card>
+      </div>
 
       {projeto.etapas.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -381,6 +424,12 @@ export default function ProjetosImplantacaoDetail() {
                             <span className="flex items-center gap-0.5">
                               <Clock className="w-3 h-3" />
                               {new Date(a.forecast_date).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                          {activityHours[a.id] > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Timer className="w-3 h-3" />
+                              {formatDuration(activityHours[a.id])}
                             </span>
                           )}
                           {a.rat_url && (
