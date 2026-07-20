@@ -120,12 +120,31 @@ export default function ProjetosImplantacaoDetail() {
 
   const handleUpdate = async (atividadeId: string, data: Partial<ProjetoAtividade>) => {
     if (!projeto) return
+
+    const enrichedData = { ...data }
+
+    if ('realization_date' in enrichedData) {
+      const dateValue = enrichedData.realization_date
+      if (!dateValue || dateValue === '') {
+        enrichedData.status = 'Em Andamento'
+        enrichedData.is_completed = false
+      } else {
+        enrichedData.status = 'Concluído'
+        enrichedData.is_completed = true
+      }
+    }
+
     const updatedAtividades = projeto.atividades.map((a) =>
-      a.id === atividadeId ? { ...a, ...data } : a,
+      a.id === atividadeId ? { ...a, ...enrichedData } : a,
     )
     setProjeto((prev) => (prev ? { ...prev, atividades: updatedAtividades } : null))
+
+    if (selectedAtividade?.id === atividadeId) {
+      setSelectedAtividade({ ...selectedAtividade, ...enrichedData })
+    }
+
     try {
-      await updateAtividade(atividadeId, data)
+      await updateAtividade(atividadeId, enrichedData)
       await checkAndUpdateProgression(id!, projeto.etapas, updatedAtividades)
       await loadData()
     } catch (e: any) {
