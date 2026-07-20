@@ -27,6 +27,7 @@ export interface ProjetoAtividade {
   minutes_spent: number
   is_completed: boolean
   is_extra: boolean
+  rat_url: string | null
 }
 
 export interface ProjetoWithDetails extends ProjetoImplantacao {

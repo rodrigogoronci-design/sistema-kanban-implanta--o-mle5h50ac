@@ -27,9 +27,9 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { useNavigate } from 'react-router-dom'
 import { fetchProjetos, createProjeto, ProjetoImplantacao } from '@/services/projetos-implantacao'
 import { fetchJornadas, Jornada } from '@/services/jornadas'
-import { ProjetoDetailModal } from '@/components/jornadas/ProjetoDetailModal'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +39,7 @@ export default function ProjetosImplantacao() {
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const navigate = useNavigate()
   const [saving, setSaving] = useState(false)
   const [newName, setNewName] = useState('')
   const [newJornada, setNewJornada] = useState('')
@@ -143,7 +143,7 @@ export default function ProjetosImplantacao() {
                   <TableRow
                     key={p.id}
                     className="hover:bg-muted/50 cursor-pointer"
-                    onClick={() => setDetailId(p.id)}
+                    onClick={() => navigate(`/projetos-implantacao/${p.id}`)}
                   >
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">
@@ -172,7 +172,7 @@ export default function ProjetosImplantacao() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setDetailId(p.id)
+                          navigate(`/projetos-implantacao/${p.id}`)
                         }}
                       >
                         Detalhes
@@ -245,16 +245,6 @@ export default function ProjetosImplantacao() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {detailId && (
-        <ProjetoDetailModal
-          projectId={detailId}
-          onClose={() => {
-            setDetailId(null)
-            loadData()
-          }}
-        />
-      )}
     </div>
   )
 }

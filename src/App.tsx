@@ -19,6 +19,7 @@ import Monitoramento from './pages/Monitoramento'
 import Commissions from './pages/Commissions'
 import Jornadas from './pages/Jornadas'
 import ProjetosImplantacao from './pages/ProjetosImplantacao'
+import ProjetosImplantacaoDetail from './pages/ProjetosImplantacaoDetail'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 
 const AppRoutes = () => {
@@ -52,6 +53,7 @@ const AppRoutes = () => {
         <Route path="/comissoes" element={<Commissions />} />
         <Route path="/jornadas" element={<Jornadas />} />
         <Route path="/projetos-implantacao" element={<ProjetosImplantacao />} />
+        <Route path="/projetos-implantacao/:id" element={<ProjetosImplantacaoDetail />} />
       </Route>
       <Route path="/rat/:taskId" element={<RAT />} />
       <Route path="*" element={<NotFound />} />
