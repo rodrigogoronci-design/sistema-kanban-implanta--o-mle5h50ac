@@ -64,8 +64,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
   const [responsibleId, setResponsibleId] = useState<string | null>(null)
   const [forecastDate, setForecastDate] = useState<string | null>(null)
   const [realizationDate, setRealizationDate] = useState<string | null>(null)
-  const [hoursSpent, setHoursSpent] = useState(0)
-  const [minutesSpent, setMinutesSpent] = useState(0)
   const [isCompleted, setIsCompleted] = useState(false)
   const [ratUrl, setRatUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -101,8 +99,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
       setResponsibleId(atividade.responsible_id)
       setForecastDate(atividade.forecast_date)
       setRealizationDate(atividade.realization_date)
-      setHoursSpent(atividade.hours_spent)
-      setMinutesSpent(atividade.minutes_spent)
       setIsCompleted(atividade.is_completed)
       setRatUrl(atividade.rat_url || null)
       setTimeEntries([])
@@ -171,8 +167,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         responsible_id: responsibleId,
         forecast_date: forecastDate,
         realization_date: realizationDate,
-        hours_spent: hoursSpent,
-        minutes_spent: minutesSpent,
         is_completed: isCompleted,
       }
       if (isCompleted && !realizationDate) {
@@ -338,28 +332,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                   type="date"
                   value={realizationDate || ''}
                   onChange={(e) => setRealizationDate(e.target.value || null)}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label>Horas</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={hoursSpent}
-                  onChange={(e) => setHoursSpent(parseInt(e.target.value) || 0)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Minutos</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={minutesSpent}
-                  onChange={(e) => setMinutesSpent(parseInt(e.target.value) || 0)}
                 />
               </div>
             </div>

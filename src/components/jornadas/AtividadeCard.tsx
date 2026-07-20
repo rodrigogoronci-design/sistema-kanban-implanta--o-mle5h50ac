@@ -110,7 +110,7 @@ export function AtividadeCard({ atividade, analysts, onUpdate, onDelete }: Props
           className="text-sm resize-none"
         />
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Status</Label>
           <Select
@@ -146,32 +146,6 @@ export function AtividadeCard({ atividade, analysts, onUpdate, onDelete }: Props
             onChange={(e) => onUpdate(atividade.id, { realization_date: e.target.value || null })}
             className="h-8 text-sm"
           />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Tempo Gasto</Label>
-          <div className="flex gap-1">
-            <Input
-              type="number"
-              min="0"
-              value={atividade.hours_spent}
-              onChange={(e) =>
-                onUpdate(atividade.id, { hours_spent: parseInt(e.target.value) || 0 })
-              }
-              className="h-8 text-sm"
-              placeholder="h"
-            />
-            <Input
-              type="number"
-              min="0"
-              max="59"
-              value={atividade.minutes_spent}
-              onChange={(e) =>
-                onUpdate(atividade.id, { minutes_spent: parseInt(e.target.value) || 0 })
-              }
-              className="h-8 text-sm"
-              placeholder="m"
-            />
-          </div>
         </div>
       </div>
     </div>
