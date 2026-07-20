@@ -420,9 +420,11 @@ export default function ProjetosImplantacaoDetail() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
-                          projeto.jornada_id
-                            ? handleAddExtra(etapa.id)
-                            : handleAddAtividade(etapa.id)
+                          if (projeto.jornada_id) {
+                            handleAddExtra(etapa.id)
+                          } else {
+                            handleAddAtividade(etapa.id)
+                          }
                         }
                       }}
                     />
