@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 
 const STATUS_OPTIONS = [
   'A Fazer',
-  'Em andamento',
+  'Em Andamento',
   'Aguardando Cliente',
   'Aguardando Desenvolvimento',
   'Concluído',

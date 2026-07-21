@@ -43,7 +43,7 @@ import {
 
 const STATUS_OPTIONS = [
   'A Fazer',
-  'Em andamento',
+  'Em Andamento',
   'Aguardando Cliente',
   'Aguardando Desenvolvimento',
   'Concluído',
@@ -183,6 +183,24 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         updates.is_completed = false
       }
       await onUpdate(atividade.id, updates)
+
+      const { data: refreshed } = await supabase
+        .from('projeto_atividades')
+        .select('*')
+        .eq('id', atividade.id)
+        .single()
+
+      if (refreshed) {
+        setName(refreshed.name)
+        setDescription(refreshed.description || '')
+        setStatus(refreshed.status)
+        setResponsibleId(refreshed.responsible_id)
+        setForecastDate(refreshed.forecast_date)
+        setRealizationDate(refreshed.realization_date)
+        setIsCompleted(refreshed.is_completed)
+        setRatUrl(refreshed.rat_url || null)
+      }
+
       toast.success('Atividade atualizada!')
       onClose()
     } catch (e: any) {
