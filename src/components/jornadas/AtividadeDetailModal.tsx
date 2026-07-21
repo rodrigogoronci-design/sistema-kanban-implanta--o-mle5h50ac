@@ -172,11 +172,15 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
       if (isCompleted && !realizationDate) {
         const today = new Date().toISOString().split('T')[0]
         updates.realization_date = today
-        setRealizationDate(today)
-      }
-      if (isCompleted && status !== 'Concluído') {
         updates.status = 'Concluído'
-        setStatus('Concluído')
+        updates.is_completed = true
+        setRealizationDate(today)
+      } else if (realizationDate) {
+        updates.status = 'Concluído'
+        updates.is_completed = true
+      } else {
+        updates.status = 'Em Andamento'
+        updates.is_completed = false
       }
       await onUpdate(atividade.id, updates)
       toast.success('Atividade atualizada!')
@@ -337,6 +341,9 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                     if (val) {
                       setStatus('Concluído')
                       setIsCompleted(true)
+                    } else {
+                      setStatus('Em Andamento')
+                      setIsCompleted(false)
                     }
                   }}
                 />

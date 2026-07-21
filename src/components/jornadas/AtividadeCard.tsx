@@ -143,7 +143,18 @@ export function AtividadeCard({ atividade, analysts, onUpdate, onDelete }: Props
           <Input
             type="date"
             value={atividade.realization_date || ''}
-            onChange={(e) => onUpdate(atividade.id, { realization_date: e.target.value || null })}
+            onChange={(e) => {
+              const val = e.target.value || null
+              const updates: Partial<ProjetoAtividade> = { realization_date: val }
+              if (val) {
+                updates.status = 'Concluído'
+                updates.is_completed = true
+              } else {
+                updates.status = 'Em Andamento'
+                updates.is_completed = false
+              }
+              onUpdate(atividade.id, updates)
+            }}
             className="h-8 text-sm"
           />
         </div>

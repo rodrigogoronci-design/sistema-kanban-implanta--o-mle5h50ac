@@ -51,10 +51,23 @@ export function ProjetoDetailModal({ projectId, onClose }: Props) {
 
   const handleUpdate = async (id: string, data: Partial<ProjetoAtividade>) => {
     if (!projeto) return
-    const updatedAtividades = projeto.atividades.map((a) => (a.id === id ? { ...a, ...data } : a))
+    const enrichedData = { ...data }
+    if ('realization_date' in enrichedData) {
+      const dateValue = enrichedData.realization_date
+      if (!dateValue || dateValue === '') {
+        enrichedData.status = 'Em Andamento'
+        enrichedData.is_completed = false
+      } else {
+        enrichedData.status = 'Concluído'
+        enrichedData.is_completed = true
+      }
+    }
+    const updatedAtividades = projeto.atividades.map((a) =>
+      a.id === id ? { ...a, ...enrichedData } : a,
+    )
     setProjeto((prev) => (prev ? { ...prev, atividades: updatedAtividades } : null))
     try {
-      await updateAtividade(id, data)
+      await updateAtividade(id, enrichedData)
       await checkAndUpdateProgression(projectId, projeto.etapas, updatedAtividades)
       await loadData()
     } catch (e: any) {
