@@ -122,6 +122,11 @@ export default function MinhasAtividades() {
     const original = activities.find((a) => a.id === id)
     if (!original) return
 
+    if (!original.responsible_id && targetStatus !== 'A Fazer') {
+      toast.error('Defina um responsável antes de alterar o status da atividade.')
+      return
+    }
+
     if (
       original.status === targetStatus &&
       (targetStatus !== 'Concluído' || original.is_completed)

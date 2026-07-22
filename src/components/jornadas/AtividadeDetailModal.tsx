@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Upload, FileText, Trash2, Loader2, ExternalLink, Plus, Clock } from 'lucide-react'
+import { Upload, FileText, Trash2, Loader2, ExternalLink, Plus, Clock, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { ProjetoAtividade } from '@/services/projetos-implantacao'
@@ -303,14 +303,17 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label>Status</Label>
+                <Label className="flex items-center gap-1">
+                  Status
+                  {!responsibleId && <Lock className="w-3 h-3 text-muted-foreground" />}
+                </Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
+                      <SelectItem key={s} value={s} disabled={!responsibleId && s !== 'A Fazer'}>
                         {s}
                       </SelectItem>
                     ))}
@@ -321,7 +324,18 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                 <Label>Responsável</Label>
                 <Select
                   value={responsibleId || 'none'}
-                  onValueChange={(v) => setResponsibleId(v === 'none' ? null : v)}
+                  onValueChange={(v) => {
+                    const newId = v === 'none' ? null : v
+                    setResponsibleId(newId)
+                    if (!newId) {
+                      if (realizationDate) setRealizationDate(null)
+                      if (status !== 'A Fazer') {
+                        setStatus('A Fazer')
+                        setIsCompleted(false)
+                        toast.warning("Responsável removido, status foi redefinido para 'A Fazer'.")
+                      }
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="-" />
@@ -348,21 +362,36 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                 />
               </div>
               <div className="space-y-1">
-                <Label>Data Realizada</Label>
-                <Input
-                  type="date"
-                  value={realizationDate || ''}
-                  onChange={(e) => {
-                    const val = e.target.value || null
-                    setRealizationDate(val)
-                    if (val) {
-                      setStatus('Concluído')
-                      setIsCompleted(true)
-                    } else {
-                      setIsCompleted(false)
-                    }
-                  }}
-                />
+                <Label className="flex items-center gap-1">
+                  Data Realizada
+                  {!responsibleId && <Lock className="w-3 h-3 text-muted-foreground" />}
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="date"
+                    value={realizationDate || ''}
+                    disabled={!responsibleId}
+                    onChange={(e) => {
+                      const val = e.target.value || null
+                      setRealizationDate(val)
+                      if (val) {
+                        setStatus('Concluído')
+                        setIsCompleted(true)
+                      } else {
+                        setIsCompleted(false)
+                      }
+                    }}
+                    className={cn(!responsibleId && 'opacity-50 cursor-not-allowed')}
+                  />
+                  {!responsibleId && (
+                    <div
+                      className="absolute inset-0 cursor-not-allowed"
+                      onClick={() =>
+                        toast.error('Defina um responsável antes de preencher a data realizada.')
+                      }
+                    />
+                  )}
+                </div>
               </div>
             </div>
 

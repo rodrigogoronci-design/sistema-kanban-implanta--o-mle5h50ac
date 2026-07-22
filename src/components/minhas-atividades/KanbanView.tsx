@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { CalendarClock, GripVertical } from 'lucide-react'
+import { CalendarClock, GripVertical, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AtividadeWithRelations } from '@/services/minhas-atividades'
 
@@ -125,10 +125,15 @@ export function KanbanView({ activities, onSelect, onDrop }: Props) {
                     onDragEnd={handleDragEnd}
                     onClick={() => onSelect(a)}
                     className={cn(
-                      'bg-background rounded-lg border p-3 cursor-grab hover:border-primary/40 hover:shadow-md active:cursor-grabbing transition-all duration-200',
+                      'bg-background rounded-lg border p-3 cursor-grab hover:border-primary/40 hover:shadow-md active:cursor-grabbing transition-all duration-200 relative',
                       draggedId === a.id && 'opacity-40 scale-95',
                     )}
                   >
+                    {!a.responsible_id && a.status === 'A Fazer' && (
+                      <div className="absolute top-1 right-1" title="Sem responsável">
+                        <Lock className="w-3 h-3 text-muted-foreground" />
+                      </div>
+                    )}
                     <div className="flex items-start gap-1.5">
                       <GripVertical className="w-3 h-3 text-muted-foreground/40 mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
