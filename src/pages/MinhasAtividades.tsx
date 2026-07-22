@@ -170,22 +170,38 @@ export default function MinhasAtividades() {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ListTodo className="w-6 h-6 text-primary" /> Minhas Atividades
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Centralize e gerencie suas atividades de implantação.
-          </p>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <ListTodo className="w-6 h-6 text-primary" /> Minhas Atividades
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Centralize e gerencie suas atividades de implantação.
+        </p>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1 border rounded-lg p-1 w-fit">
+          {views.map((v) => (
+            <Button
+              key={v.id}
+              variant={view === v.id ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => handleViewChange(v.id)}
+            >
+              <v.icon className="w-4 h-4 mr-1" /> {v.label}
+            </Button>
+          ))}
         </div>
+
         <div className="flex items-center gap-2">
-          <Label className="text-sm font-medium whitespace-nowrap">Responsável</Label>
+          <Label className="text-xs font-medium whitespace-nowrap text-muted-foreground">
+            Responsável
+          </Label>
           <Select
             value={responsibleFilter}
             onValueChange={(v) => setResponsibleFilter(v as string | 'all')}
           >
-            <SelectTrigger className="w-full sm:w-[240px]">
+            <SelectTrigger className="h-8 w-full sm:w-[220px] text-sm">
               <SelectValue placeholder="Selecione um responsável" />
             </SelectTrigger>
             <SelectContent>
@@ -198,19 +214,6 @@ export default function MinhasAtividades() {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 border rounded-lg p-1 w-fit">
-        {views.map((v) => (
-          <Button
-            key={v.id}
-            variant={view === v.id ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleViewChange(v.id)}
-          >
-            <v.icon className="w-4 h-4 mr-1" /> {v.label}
-          </Button>
-        ))}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
