@@ -9,16 +9,19 @@ export interface AtividadeWithRelations extends ProjetoAtividade {
   client_id: string | null
 }
 
-export async function fetchMyAtividades(userId: string): Promise<AtividadeWithRelations[]> {
+export async function fetchUserAnalystId(userId: string): Promise<string | null> {
   const { data: analista } = await db.from('analistas').select('id').eq('user_id', userId).single()
+  return analista?.id || null
+}
 
-  if (!analista) return []
-
-  const { data: atividades, error } = await db
-    .from('projeto_atividades')
-    .select('*')
-    .eq('responsible_id', analista.id)
-
+export async function fetchAtividades(
+  responsibleId?: string | null,
+): Promise<AtividadeWithRelations[]> {
+  let query = db.from('projeto_atividades').select('*')
+  if (responsibleId) {
+    query = query.eq('responsible_id', responsibleId)
+  }
+  const { data: atividades, error } = await query
   if (error) throw error
   if (!atividades || atividades.length === 0) return []
 
@@ -46,4 +49,10 @@ export async function fetchMyAtividades(userId: string): Promise<AtividadeWithRe
       client_name: projeto?.client_id ? clientMap.get(projeto.client_id)?.name || null : null,
     }
   })
+}
+
+export async function fetchMyAtividades(userId: string): Promise<AtividadeWithRelations[]> {
+  const analistaId = await fetchUserAnalystId(userId)
+  if (!analistaId) return []
+  return fetchAtividades(analistaId)
 }

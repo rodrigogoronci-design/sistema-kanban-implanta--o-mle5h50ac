@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -12,7 +13,11 @@ import {
 import { ListTodo, Search, LayoutGrid, List as ListIcon, Calendar, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
-import { fetchMyAtividades, AtividadeWithRelations } from '@/services/minhas-atividades'
+import {
+  fetchAtividades,
+  fetchUserAnalystId,
+  AtividadeWithRelations,
+} from '@/services/minhas-atividades'
 import { updateAtividade, deleteAtividade, ProjetoAtividade } from '@/services/projetos-implantacao'
 import { KanbanView } from '@/components/minhas-atividades/KanbanView'
 import { ListView } from '@/components/minhas-atividades/ListView'
@@ -34,6 +39,18 @@ export default function MinhasAtividades() {
   const [clientFilter, setClientFilter] = useState('all')
   const [projectFilter, setProjectFilter] = useState('all')
   const [selected, setSelected] = useState<AtividadeWithRelations | null>(null)
+  const [responsibleFilter, setResponsibleFilter] = useState<string | 'all'>('all')
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    if (!user?.id) return
+    fetchUserAnalystId(user.id)
+      .then((id) => {
+        setResponsibleFilter(id || 'all')
+      })
+      .catch(() => setResponsibleFilter('all'))
+      .finally(() => setReady(true))
+  }, [user?.id])
 
   const loadData = useCallback(async () => {
     if (!user?.id) {
@@ -42,7 +59,7 @@ export default function MinhasAtividades() {
     }
     try {
       const [data, aRes] = await Promise.all([
-        fetchMyAtividades(user.id),
+        fetchAtividades(responsibleFilter === 'all' ? null : responsibleFilter),
         supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
       ])
       setActivities(data)
@@ -52,11 +69,12 @@ export default function MinhasAtividades() {
     } finally {
       setLoading(false)
     }
-  }, [user?.id])
+  }, [user?.id, responsibleFilter])
 
   useEffect(() => {
+    if (!ready) return
     loadData()
-  }, [loadData])
+  }, [ready, loadData])
 
   const handleViewChange = (v: ViewType) => {
     setView(v)
@@ -161,18 +179,38 @@ export default function MinhasAtividades() {
             Centralize e gerencie suas atividades de implantação.
           </p>
         </div>
-        <div className="flex items-center gap-1 border rounded-lg p-1">
-          {views.map((v) => (
-            <Button
-              key={v.id}
-              variant={view === v.id ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => handleViewChange(v.id)}
-            >
-              <v.icon className="w-4 h-4 mr-1" /> {v.label}
-            </Button>
-          ))}
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium whitespace-nowrap">Responsável</Label>
+          <Select
+            value={responsibleFilter}
+            onValueChange={(v) => setResponsibleFilter(v as string | 'all')}
+          >
+            <SelectTrigger className="w-full sm:w-[240px]">
+              <SelectValue placeholder="Selecione um responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os analistas</SelectItem>
+              {analysts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+      </div>
+
+      <div className="flex items-center gap-1 border rounded-lg p-1 w-fit">
+        {views.map((v) => (
+          <Button
+            key={v.id}
+            variant={view === v.id ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => handleViewChange(v.id)}
+          >
+            <v.icon className="w-4 h-4 mr-1" /> {v.label}
+          </Button>
+        ))}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
