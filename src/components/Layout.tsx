@@ -30,6 +30,7 @@ import {
   DollarSign,
   Route,
   Workflow,
+  ListTodo,
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -59,6 +60,7 @@ export default function Layout() {
     { title: 'Envios RAT', url: '/monitoramento', icon: Mail },
     { title: 'Jornadas', url: '/jornadas', icon: Route },
     { title: 'Projetos de Implantação', url: '/projetos-implantacao', icon: Workflow },
+    { title: 'Minhas Atividades', url: '/minhas-atividades', icon: ListTodo },
     { title: 'Configurações', url: '/settings', icon: Settings },
   ]
 
@@ -92,6 +94,7 @@ export default function Layout() {
       '/monitoramento',
       '/jornadas',
       '/projetos-implantacao',
+      '/minhas-atividades',
     ],
     Gerente: [
       '/',
@@ -104,8 +107,9 @@ export default function Layout() {
       '/monitoramento',
       '/jornadas',
       '/projetos-implantacao',
+      '/minhas-atividades',
     ],
-    Colaborador: ['/', '/projects', '/cadastros', '/monitoramento'],
+    Colaborador: ['/', '/projects', '/cadastros', '/monitoramento', '/minhas-atividades'],
   }
   const userRole = profile?.role || 'Administrador'
   const activePermissions = Object.keys(permissions).length > 0 ? permissions : defaultPermissions
