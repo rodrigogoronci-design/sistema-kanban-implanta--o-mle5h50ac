@@ -33,7 +33,14 @@ const STATUS_GROUPS: { title: string; badgeClass: string }[] = [
 export function ListView({ activities, onSelect }: Props) {
   const [sortField, setSortField] = useState<SortField>('forecast_date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    STATUS_GROUPS.forEach((g) => {
+      initial[g.title] = true
+    })
+    initial['Outros'] = true
+    return initial
+  })
 
   const handleSort = (f: SortField) => {
     if (sortField === f) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
