@@ -170,7 +170,7 @@ export default function MinhasAtividades() {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 shrink-0">
           <ListTodo className="w-6 h-6 text-primary" /> Minhas Atividades
         </h1>
@@ -187,8 +187,8 @@ export default function MinhasAtividades() {
             </Button>
           ))}
         </div>
-        <div className="flex items-center gap-2 flex-wrap flex-1 justify-end">
-          <div className="relative w-[180px] shrink-0">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap lg:ml-auto">
+          <div className="relative w-[150px] sm:w-[180px] max-w-[250px] shrink-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
@@ -198,7 +198,7 @@ export default function MinhasAtividades() {
             />
           </div>
           <Select value={clientFilter} onValueChange={setClientFilter}>
-            <SelectTrigger className="h-9 w-[160px] shrink-0">
+            <SelectTrigger className="h-9 w-[140px] lg:w-[160px] shrink-0">
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -211,7 +211,7 @@ export default function MinhasAtividades() {
             </SelectContent>
           </Select>
           <Select value={projectFilter} onValueChange={setProjectFilter}>
-            <SelectTrigger className="h-9 w-[160px] shrink-0">
+            <SelectTrigger className="h-9 w-[140px] lg:w-[160px] shrink-0">
               <SelectValue placeholder="Projeto" />
             </SelectTrigger>
             <SelectContent>
@@ -227,7 +227,7 @@ export default function MinhasAtividades() {
             value={responsibleFilter}
             onValueChange={(v) => setResponsibleFilter(v as string | 'all')}
           >
-            <SelectTrigger className="h-9 w-[170px] shrink-0">
+            <SelectTrigger className="h-9 w-[140px] lg:w-[170px] shrink-0">
               <SelectValue placeholder="Responsável" />
             </SelectTrigger>
             <SelectContent>
