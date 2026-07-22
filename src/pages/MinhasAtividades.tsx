@@ -189,9 +189,6 @@ export default function MinhasAtividades() {
             ))}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground hidden lg:block">
-          Centralize e gerencie suas atividades de implantação.
-        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
