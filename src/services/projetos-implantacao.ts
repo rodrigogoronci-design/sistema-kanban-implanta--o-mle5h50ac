@@ -192,24 +192,52 @@ export async function checkAndUpdateProgression(
 ): Promise<void> {
   const { data: projeto } = await db
     .from('projetos_implantacao')
-    .select('current_step_id')
+    .select('current_step_id, status')
     .eq('id', projectId)
     .single()
-  if (!projeto?.current_step_id) return
+  if (!projeto) return
 
-  const currentStepAtividades = atividades.filter((a) => a.etapa_id === projeto.current_step_id)
-  if (currentStepAtividades.length === 0) return
+  const allCompleted = atividades.length > 0 && atividades.every((a) => a.is_completed)
 
-  const allCompleted = currentStepAtividades.every((a) => a.is_completed)
-  if (!allCompleted) return
+  if (allCompleted) {
+    if (projeto.status !== 'Concluído') {
+      await updateProjeto(projectId, { status: 'Concluído' })
+    }
+    return
+  }
 
-  const currentIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
-  const nextStep = etapas[currentIdx + 1]
+  const updates: Partial<ProjetoImplantacao> = {}
 
-  if (nextStep) {
-    await updateProjeto(projectId, { current_step_id: nextStep.id })
-  } else {
-    await updateProjeto(projectId, { status: 'Concluído' })
+  if (projeto.status === 'Concluído') {
+    updates.status = 'Ativo'
+  }
+
+  const firstIncompleteStep = etapas.find((etapa) => {
+    const stepAtividades = atividades.filter((a) => a.etapa_id === etapa.id)
+    return stepAtividades.length > 0 && stepAtividades.some((a) => !a.is_completed)
+  })
+
+  if (firstIncompleteStep) {
+    const currentIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
+    const firstIncompleteIdx = etapas.findIndex((e) => e.id === firstIncompleteStep.id)
+    if (currentIdx === -1 || firstIncompleteIdx < currentIdx) {
+      updates.current_step_id = firstIncompleteStep.id
+    }
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await updateProjeto(projectId, updates)
+  }
+
+  if (!updates.current_step_id && projeto.current_step_id) {
+    const currentStepAtividades = atividades.filter((a) => a.etapa_id === projeto.current_step_id)
+    if (currentStepAtividades.length > 0 && currentStepAtividades.every((a) => a.is_completed)) {
+      const currentIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
+      const nextStep = etapas[currentIdx + 1]
+      if (nextStep) {
+        await updateProjeto(projectId, { current_step_id: nextStep.id })
+      }
+    }
   }
 }
 

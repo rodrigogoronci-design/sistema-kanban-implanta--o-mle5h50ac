@@ -309,22 +309,23 @@ export default function ProjetosImplantacaoDetail() {
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {projeto.etapas.map((etapa, idx) => {
             const isCurrent = etapa.id === projeto.current_step_id
-            const isPast = currentStepIdx > idx || projeto.status === 'Concluído'
             const etAtvs = projeto.atividades.filter((a) => a.etapa_id === etapa.id)
             const etDone = etAtvs.length > 0 && etAtvs.every((a) => a.is_completed)
+            const isPast = currentStepIdx > idx || projeto.status === 'Concluído'
+            const showCompleted = etDone || (etAtvs.length === 0 && isPast)
             return (
               <div key={etapa.id} className="flex items-center gap-2 shrink-0">
                 <div
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                    isPast || etDone
+                    showCompleted
                       ? 'bg-emerald-100 text-emerald-700'
                       : isCurrent
                         ? 'bg-primary/10 text-primary'
                         : 'bg-muted text-muted-foreground',
                   )}
                 >
-                  {isPast || etDone ? (
+                  {showCompleted ? (
                     <CheckCircle2 className="w-3.5 h-3.5" />
                   ) : (
                     <Circle className="w-3.5 h-3.5" />
