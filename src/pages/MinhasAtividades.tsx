@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -100,6 +100,44 @@ export default function MinhasAtividades() {
     if (selected?.id === id) setSelected((prev) => (prev ? { ...prev, ...data } : null))
   }
 
+  const handleKanbanDrop = async (id: string, targetStatus: string) => {
+    const original = activities.find((a) => a.id === id)
+    if (!original) return
+
+    if (
+      original.status === targetStatus &&
+      (targetStatus !== 'Concluído' || original.is_completed)
+    ) {
+      return
+    }
+
+    const updates: Partial<ProjetoAtividade> = { status: targetStatus }
+
+    if (targetStatus === 'Concluído') {
+      updates.is_completed = true
+      updates.status = 'Concluído'
+      if (!original.realization_date) {
+        updates.realization_date = new Date().toISOString().split('T')[0]
+      }
+    } else {
+      updates.is_completed = false
+    }
+
+    setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)))
+
+    try {
+      await updateAtividade(id, updates)
+      if (selected?.id === id) {
+        setSelected((prev) => (prev ? { ...prev, ...updates } : null))
+      }
+    } catch (e: any) {
+      setActivities((prev) => prev.map((a) => (a.id === id ? original : a)))
+      toast.error(
+        'Erro ao mover atividade: ' + e.message + '. A atividade voltou à coluna original.',
+      )
+    }
+  }
+
   const handleDelete = async (id: string) => {
     await deleteAtividade(id)
     setActivities((prev) => prev.filter((a) => a.id !== id))
@@ -184,7 +222,7 @@ export default function MinhasAtividades() {
           <p>Nenhuma atividade encontrada com os filtros atuais.</p>
         </div>
       ) : view === 'kanban' ? (
-        <KanbanView activities={filtered} onSelect={setSelected} />
+        <KanbanView activities={filtered} onSelect={setSelected} onDrop={handleKanbanDrop} />
       ) : view === 'list' ? (
         <ListView activities={filtered} onSelect={setSelected} />
       ) : (
