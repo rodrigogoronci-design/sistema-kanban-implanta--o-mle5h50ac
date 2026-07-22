@@ -301,14 +301,14 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1 min-w-0">
                 <Label className="flex items-center gap-1">
                   Status
                   {!responsibleId && <Lock className="w-3 h-3 text-muted-foreground" />}
                 </Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -320,7 +320,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label>Responsável</Label>
                 <Select
                   value={responsibleId || 'none'}
@@ -337,7 +337,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="-" />
                   </SelectTrigger>
                   <SelectContent>
@@ -352,16 +352,17 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1 min-w-0">
                 <Label>Data Agendada (Previsão)</Label>
                 <Input
                   type="date"
                   value={forecastDate || ''}
                   onChange={(e) => setForecastDate(e.target.value || null)}
+                  className="w-full"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label className="flex items-center gap-1">
                   Data Realizada
                   {!responsibleId && <Lock className="w-3 h-3 text-muted-foreground" />}
@@ -381,7 +382,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                         setIsCompleted(false)
                       }
                     }}
-                    className={cn(!responsibleId && 'opacity-50 cursor-not-allowed')}
+                    className={cn('w-full', !responsibleId && 'opacity-50 cursor-not-allowed')}
                   />
                   {!responsibleId && (
                     <div
