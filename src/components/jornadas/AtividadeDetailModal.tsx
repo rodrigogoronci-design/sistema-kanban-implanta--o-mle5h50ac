@@ -301,7 +301,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label className="flex items-center gap-1">
                   Status
@@ -352,7 +352,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <Label>Data Agendada (Previsão)</Label>
                 <Input
