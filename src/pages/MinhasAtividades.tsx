@@ -170,79 +170,76 @@ export default function MinhasAtividades() {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <ListTodo className="w-6 h-6 text-primary" /> Minhas Atividades
-          </h1>
-          <div className="flex items-center gap-1 border rounded-lg p-1">
-            {views.map((v) => (
-              <Button
-                key={v.id}
-                variant={view === v.id ? 'default' : 'ghost'}
-                size="sm"
-                className="h-7 px-2"
-                onClick={() => handleViewChange(v.id)}
-              >
-                <v.icon className="w-4 h-4" />
-              </Button>
-            ))}
+      <div className="flex items-center gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 shrink-0">
+          <ListTodo className="w-6 h-6 text-primary" /> Minhas Atividades
+        </h1>
+        <div className="flex items-center gap-1 border rounded-lg p-1 shrink-0">
+          {views.map((v) => (
+            <Button
+              key={v.id}
+              variant={view === v.id ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => handleViewChange(v.id)}
+            >
+              <v.icon className="w-4 h-4" />
+            </Button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap flex-1 justify-end">
+          <div className="relative w-[180px] shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
           </div>
+          <Select value={clientFilter} onValueChange={setClientFilter}>
+            <SelectTrigger className="h-9 w-[160px] shrink-0">
+              <SelectValue placeholder="Cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger className="h-9 w-[160px] shrink-0">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os projetos</SelectItem>
+              {projects.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={responsibleFilter}
+            onValueChange={(v) => setResponsibleFilter(v as string | 'all')}
+          >
+            <SelectTrigger className="h-9 w-[170px] shrink-0">
+              <SelectValue placeholder="Responsável" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os analistas</SelectItem>
+              {analysts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
-        <div className="relative w-full sm:w-[200px] shrink-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
-          />
-        </div>
-        <Select value={clientFilter} onValueChange={setClientFilter}>
-          <SelectTrigger className="h-9 w-full sm:w-[180px]">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clients.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={projectFilter} onValueChange={setProjectFilter}>
-          <SelectTrigger className="h-9 w-full sm:w-[180px]">
-            <SelectValue placeholder="Projeto" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os projetos</SelectItem>
-            {projects.map((p) => (
-              <SelectItem key={p.id} value={p.id}>
-                {p.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={responsibleFilter}
-          onValueChange={(v) => setResponsibleFilter(v as string | 'all')}
-        >
-          <SelectTrigger className="h-9 w-full sm:w-[200px]">
-            <SelectValue placeholder="Responsável" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os analistas</SelectItem>
-            {analysts.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.nome}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {loading ? (
