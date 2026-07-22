@@ -111,13 +111,54 @@ export function ListView({ activities, onSelect }: Props) {
                 </TableCell>
                 <TableCell className="py-2 text-sm">{fmt(a.forecast_date)}</TableCell>
                 <TableCell className="py-2">
-                  {a.is_completed || a.status === 'Concluído' ? (
-                    <Badge className="bg-emerald-100 text-emerald-700 text-xs">Concluído</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-xs">
-                      {a.status}
-                    </Badge>
-                  )}
+                  {(() => {
+                    if (a.is_completed || a.status === 'Concluído') {
+                      return (
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs">Concluído</Badge>
+                      )
+                    }
+                    switch (a.status) {
+                      case 'A Fazer':
+                        return (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-slate-100 text-slate-600"
+                          >
+                            {a.status}
+                          </Badge>
+                        )
+                      case 'Em Andamento':
+                        return (
+                          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                            {a.status}
+                          </Badge>
+                        )
+                      case 'Aguardando Cliente':
+                        return (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-amber-100 text-amber-700"
+                          >
+                            {a.status}
+                          </Badge>
+                        )
+                      case 'Aguardando Desenvolvimento':
+                        return (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-purple-100 text-purple-700"
+                          >
+                            {a.status}
+                          </Badge>
+                        )
+                      default:
+                        return (
+                          <Badge variant="secondary" className="text-xs">
+                            {a.status}
+                          </Badge>
+                        )
+                    }
+                  })()}
                 </TableCell>
               </TableRow>
             ))

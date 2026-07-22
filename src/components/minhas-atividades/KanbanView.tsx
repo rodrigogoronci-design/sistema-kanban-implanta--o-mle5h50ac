@@ -15,8 +15,16 @@ const COLS = [
   },
   {
     title: 'Em Andamento',
+    filter: (a: AtividadeWithRelations) => a.status === 'Em Andamento' && !a.is_completed,
+  },
+  {
+    title: 'Aguardando Cliente',
+    filter: (a: AtividadeWithRelations) => a.status === 'Aguardando Cliente' && !a.is_completed,
+  },
+  {
+    title: 'Aguardando Desenvolvimento',
     filter: (a: AtividadeWithRelations) =>
-      !a.is_completed && a.status !== 'A Fazer' && a.status !== 'Concluído',
+      a.status === 'Aguardando Desenvolvimento' && !a.is_completed,
   },
   {
     title: 'Concluído',
@@ -26,16 +34,16 @@ const COLS = [
 
 export function KanbanView({ activities, onSelect }: Props) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="flex gap-4 overflow-x-auto pb-4">
       {COLS.map((col) => {
         const items = activities.filter(col.filter)
         return (
           <div
             key={col.title}
-            className="bg-muted/30 rounded-xl p-3 flex flex-col gap-2 min-h-[300px]"
+            className="bg-muted/30 rounded-xl p-3 flex flex-col gap-2 min-h-[300px] min-w-[260px] flex-1"
           >
             <div className="flex items-center justify-between pb-1">
-              <h3 className="font-medium text-sm">{col.title}</h3>
+              <h3 className="font-medium text-sm whitespace-nowrap">{col.title}</h3>
               <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full">
                 {items.length}
               </span>

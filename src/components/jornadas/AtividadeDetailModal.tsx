@@ -179,7 +179,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         updates.status = 'Concluído'
         updates.is_completed = true
       } else {
-        updates.status = 'Em Andamento'
         updates.is_completed = false
       }
       await onUpdate(atividade.id, updates)
@@ -360,7 +359,6 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                       setStatus('Concluído')
                       setIsCompleted(true)
                     } else {
-                      setStatus('Em Andamento')
                       setIsCompleted(false)
                     }
                   }}
