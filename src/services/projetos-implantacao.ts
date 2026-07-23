@@ -1,289 +1,257 @@
 import { supabase } from '@/lib/supabase/client'
-import { fetchJornadaDetails } from './jornadas'
+import { Database } from '@/lib/supabase/types'
 
-const db = supabase as any
+type ProjetoRow = Database['public']['Tables']['projetos_implantacao']['Row']
 
-export interface ProjetoImplantacao {
-  id: string
-  jornada_id: string | null
-  client_id: string | null
-  name: string
-  current_step_id: string | null
-  status: string
-  created_at: string
-  data_demanda: string | null
-  analyst_id: string | null
+export type ProjetoImplantacao = ProjetoRow & {
+  is_new_client?: boolean
+  migrated_from_id?: string | null
+  client?: { id: string; name: string } | null
+  analyst?: { id: string; nome: string } | null
 }
 
-export interface ProjetoAtividade {
-  id: string
-  project_id: string
-  etapa_id: string
-  name: string
-  description: string | null
-  responsible_id: string | null
-  status: string
-  forecast_date: string | null
-  realization_date: string | null
-  hours_spent: number
-  minutes_spent: number
-  is_completed: boolean
-  is_extra: boolean
-  rat_url: string | null
+export type ProjetoAtividade = Database['public']['Tables']['projeto_atividades']['Row'] & {
+  migrated_from_task_id?: string | null
+  responsible?: { id: string; nome: string } | null
 }
 
-export interface ProjetoWithDetails extends ProjetoImplantacao {
-  atividades: ProjetoAtividade[]
-  etapas: { id: string; name: string; position: number }[]
+export type ProjetoWithDetails = ProjetoImplantacao & {
+  etapas: Array<{
+    id: string
+    name: string
+    position: number
+    atividades: ProjetoAtividade[]
+  }>
 }
 
-export async function fetchProjetos(): Promise<ProjetoImplantacao[]> {
-  const { data, error } = await db
+export async function fetchProjetos(filter?: {
+  isNewClient?: boolean
+}): Promise<ProjetoImplantacao[]> {
+  let query = supabase
     .from('projetos_implantacao')
-    .select('*')
+    .select('*, client:clients(id, name), analyst:analistas(id, nome)')
     .order('created_at', { ascending: false })
+
+  if (filter?.isNewClient !== undefined) {
+    query = query.eq('is_new_client' as any, filter.isNewClient) as any
+  }
+
+  const { data, error } = await query
   if (error) throw error
-  return data || []
+  return (data || []) as unknown as ProjetoImplantacao[]
 }
 
-export async function fetchProjetoDetails(id: string): Promise<ProjetoWithDetails> {
-  const { data: projeto, error: pError } = await db
+export async function fetchProjetoDetails(id: string): Promise<ProjetoWithDetails | null> {
+  const { data: projeto, error } = await supabase
     .from('projetos_implantacao')
-    .select('*')
+    .select('*, client:clients(id, name), analyst:analistas(id, nome)')
     .eq('id', id)
     .single()
-  if (pError) throw pError
 
-  const { data: atividades, error: aError } = await db
-    .from('projeto_atividades')
+  if (error || !projeto) return null
+
+  const { data: etapas } = await supabase
+    .from('jornada_etapas')
     .select('*')
     .eq('project_id', id)
-  if (aError) throw aError
+    .order('position', { ascending: true })
 
-  let etapas: { id: string; name: string; position: number }[] = []
-  if (projeto.jornada_id) {
-    const { data: eData } = await db
-      .from('jornada_etapas')
-      .select('*')
-      .eq('jornada_id', projeto.jornada_id)
-      .order('position', { ascending: true })
-    etapas = (eData || []).map((e: any) => ({ id: e.id, name: e.name, position: e.position }))
-  } else {
-    const { data: eData } = await db
-      .from('jornada_etapas')
-      .select('*')
-      .eq('project_id', id)
-      .order('position', { ascending: true })
-    etapas = (eData || []).map((e: any) => ({ id: e.id, name: e.name, position: e.position }))
-  }
-  if (etapas.length === 0 && (atividades || []).length > 0) {
-    const uniqueIds = [...new Set((atividades || []).map((a: any) => a.etapa_id))]
-    etapas = uniqueIds.map((eid: string, idx: number) => ({
-      id: eid,
-      name: `Etapa ${idx + 1}`,
-      position: idx,
-    }))
-  }
+  const etapasWithAtividades = await Promise.all(
+    (etapas || []).map(async (etapa) => {
+      const { data: atividades } = await supabase
+        .from('projeto_atividades')
+        .select('*, responsible:analistas(id, nome)')
+        .eq('etapa_id', etapa.id)
+        .order('name', { ascending: true })
+      return { ...etapa, atividades: (atividades || []) as unknown as ProjetoAtividade[] }
+    }),
+  )
 
-  return { ...projeto, atividades: atividades || [], etapas }
+  return { ...projeto, etapas: etapasWithAtividades } as unknown as ProjetoWithDetails
 }
 
 export async function createProjeto(
-  name: string,
-  jornadaId?: string,
-  clientId?: string,
-  analystId?: string,
-  dataDemanda?: string,
+  data: Partial<ProjetoImplantacao>,
 ): Promise<ProjetoImplantacao> {
-  let firstEtapaId: string | null = null
-  let template: Awaited<ReturnType<typeof fetchJornadaDetails>> | null = null
-
-  if (jornadaId) {
-    template = await fetchJornadaDetails(jornadaId)
-    firstEtapaId = template.etapas[0]?.id || null
+  const insertData: Record<string, unknown> = {
+    name: data.name,
+    client_id: data.client_id || null,
+    analyst_id: data.analyst_id || null,
+    jornada_id: data.jornada_id || null,
+    status: data.status || 'Ativo',
+    data_demanda: data.data_demanda || null,
+    is_new_client: data.is_new_client || false,
   }
 
-  const { data: projeto, error } = await db
+  const { data: result, error } = await supabase
     .from('projetos_implantacao')
-    .insert({
-      name,
-      jornada_id: jornadaId || null,
-      client_id: clientId || null,
-      current_step_id: firstEtapaId,
-      status: 'Ativo',
-      analyst_id: analystId || null,
-      data_demanda: dataDemanda || null,
-    })
+    .insert(insertData as any)
     .select()
     .single()
+
   if (error) throw error
-
-  if (template) {
-    const allAtividades: any[] = []
-    for (const etapa of template.etapas) {
-      for (const atv of etapa.atividades) {
-        allAtividades.push({
-          project_id: projeto.id,
-          etapa_id: etapa.id,
-          name: atv.name,
-          description: atv.description,
-          status: 'A Fazer',
-          is_completed: false,
-          is_extra: false,
-        })
-      }
-    }
-    if (allAtividades.length > 0) {
-      const { error: aError } = await db.from('projeto_atividades').insert(allAtividades)
-      if (aError) throw aError
-    }
-  }
-
-  return projeto
+  return result as unknown as ProjetoImplantacao
 }
 
-export async function updateProjeto(id: string, data: Partial<ProjetoImplantacao>): Promise<void> {
-  const { error } = await db.from('projetos_implantacao').update(data).eq('id', id)
+export async function updateProjeto(
+  id: string,
+  data: Partial<ProjetoImplantacao>,
+): Promise<ProjetoImplantacao> {
+  const updateData: Record<string, unknown> = {}
+  if (data.name !== undefined) updateData.name = data.name
+  if (data.client_id !== undefined) updateData.client_id = data.client_id
+  if (data.analyst_id !== undefined) updateData.analyst_id = data.analyst_id
+  if (data.jornada_id !== undefined) updateData.jornada_id = data.jornada_id
+  if (data.status !== undefined) updateData.status = data.status
+  if (data.data_demanda !== undefined) updateData.data_demanda = data.data_demanda
+  if (data.is_new_client !== undefined) updateData.is_new_client = data.is_new_client
+
+  const { data: result, error } = await supabase
+    .from('projetos_implantacao')
+    .update(updateData as any)
+    .eq('id', id)
+    .select()
+    .single()
+
   if (error) throw error
+  return result as unknown as ProjetoImplantacao
 }
 
-export async function updateAtividade(id: string, data: Partial<ProjetoAtividade>): Promise<void> {
-  const { error } = await db.from('projeto_atividades').update(data).eq('id', id)
+export async function updateAtividade(
+  id: string,
+  data: Partial<ProjetoAtividade>,
+): Promise<ProjetoAtividade> {
+  const updateData: Record<string, unknown> = { ...data }
+  delete updateData.responsible
+  delete updateData.migrated_from_task_id
+
+  const { data: result, error } = await supabase
+    .from('projeto_atividades')
+    .update(updateData as any)
+    .eq('id', id)
+    .select()
+    .single()
+
   if (error) throw error
+  return result as unknown as ProjetoAtividade
 }
 
 export async function addExtraAtividade(
-  projectId: string,
+  projetoId: string,
   etapaId: string,
   name: string,
 ): Promise<ProjetoAtividade> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('projeto_atividades')
     .insert({
-      project_id: projectId,
+      project_id: projetoId,
       etapa_id: etapaId,
       name,
       status: 'A Fazer',
       is_completed: false,
       is_extra: true,
+      hours_spent: 0,
+      minutes_spent: 0,
     })
     .select()
     .single()
+
   if (error) throw error
-  return data
+  return data as unknown as ProjetoAtividade
 }
 
 export async function deleteAtividade(id: string): Promise<void> {
-  const { error } = await db.from('projeto_atividades').delete().eq('id', id)
+  const { error } = await supabase.from('projeto_atividades').delete().eq('id', id)
   if (error) throw error
 }
 
 export async function deleteProjeto(id: string): Promise<void> {
-  const { error: aError } = await db.from('projeto_atividades').delete().eq('project_id', id)
-  if (aError) throw aError
-  const { error } = await db.from('projetos_implantacao').delete().eq('id', id)
+  await supabase.from('projeto_atividades').delete().eq('project_id', id)
+  await supabase.from('jornada_etapas').delete().eq('project_id', id)
+  const { error } = await supabase.from('projetos_implantacao').delete().eq('id', id)
   if (error) throw error
 }
 
-export async function checkAndUpdateProgression(
-  projectId: string,
-  etapas: { id: string; name: string; position: number }[],
-  atividades: ProjetoAtividade[],
-): Promise<void> {
-  const { data: projeto } = await db
+export async function checkAndUpdateProgression(projetoId: string): Promise<void> {
+  const { data: projeto } = await supabase
     .from('projetos_implantacao')
-    .select('current_step_id, status')
-    .eq('id', projectId)
+    .select('current_step_id')
+    .eq('id', projetoId)
     .single()
-  if (!projeto) return
 
-  const allCompleted = atividades.length > 0 && atividades.every((a) => a.is_completed)
+  if (!projeto?.current_step_id) return
 
-  if (allCompleted) {
-    if (projeto.status !== 'Concluído') {
-      await updateProjeto(projectId, { status: 'Concluído' })
-    }
-    return
-  }
+  const { data: pending } = await supabase
+    .from('projeto_atividades')
+    .select('id')
+    .eq('project_id', projetoId)
+    .eq('etapa_id', projeto.current_step_id)
+    .eq('is_completed', false)
 
-  const updates: Partial<ProjetoImplantacao> = {}
+  if (pending && pending.length > 0) return
 
-  if (projeto.status === 'Concluído') {
-    updates.status = 'Ativo'
-  }
+  const { data: etapas } = await supabase
+    .from('jornada_etapas')
+    .select('id, position')
+    .eq('project_id', projetoId)
+    .order('position', { ascending: true })
 
-  const firstIncompleteStep = etapas.find((etapa) => {
-    const stepAtividades = atividades.filter((a) => a.etapa_id === etapa.id)
-    return stepAtividades.length > 0 && stepAtividades.some((a) => !a.is_completed)
-  })
+  if (!etapas || etapas.length === 0) return
 
-  if (firstIncompleteStep) {
-    const currentIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
-    const firstIncompleteIdx = etapas.findIndex((e) => e.id === firstIncompleteStep.id)
-    if (currentIdx === -1 || firstIncompleteIdx < currentIdx) {
-      updates.current_step_id = firstIncompleteStep.id
-    }
-  }
+  const currentIndex = etapas.findIndex((e: any) => e.id === projeto.current_step_id)
+  if (currentIndex < 0 || currentIndex >= etapas.length - 1) return
 
-  if (Object.keys(updates).length > 0) {
-    await updateProjeto(projectId, updates)
-  }
-
-  if (!updates.current_step_id && projeto.current_step_id) {
-    const currentStepAtividades = atividades.filter((a) => a.etapa_id === projeto.current_step_id)
-    if (currentStepAtividades.length > 0 && currentStepAtividades.every((a) => a.is_completed)) {
-      const currentIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
-      const nextStep = etapas[currentIdx + 1]
-      if (nextStep) {
-        await updateProjeto(projectId, { current_step_id: nextStep.id })
-      }
-    }
-  }
+  await supabase
+    .from('projetos_implantacao')
+    .update({ current_step_id: etapas[currentIndex + 1].id })
+    .eq('id', projetoId)
 }
 
-export async function addEtapaToProject(
-  projectId: string,
-  name: string,
-  position: number,
-): Promise<{ id: string; name: string; position: number }> {
-  const { data, error } = await db
+export async function addEtapaToProject(projetoId: string, name: string): Promise<any> {
+  const { data: etapas } = await supabase
     .from('jornada_etapas')
-    .insert({
-      project_id: projectId,
-      jornada_id: null,
-      name,
-      position,
-    })
+    .select('position')
+    .eq('project_id', projetoId)
+    .order('position', { ascending: false })
+    .limit(1)
+
+  const nextPosition = (etapas?.[0]?.position || 0) + 1
+
+  const { data, error } = await supabase
+    .from('jornada_etapas')
+    .insert({ project_id: projetoId, name, position: nextPosition })
     .select()
     .single()
+
   if (error) throw error
-  return { id: data.id, name: data.name, position: data.position }
+  return data
 }
 
 export async function deleteEtapaFromProject(etapaId: string): Promise<void> {
-  const { error: aError } = await db.from('projeto_atividades').delete().eq('etapa_id', etapaId)
-  if (aError) throw aError
-  const { error } = await db.from('jornada_etapas').delete().eq('id', etapaId)
+  const { error } = await supabase.from('jornada_etapas').delete().eq('id', etapaId)
   if (error) throw error
 }
 
 export async function addAtividadeToProject(
-  projectId: string,
+  projetoId: string,
   etapaId: string,
   name: string,
 ): Promise<ProjetoAtividade> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('projeto_atividades')
     .insert({
-      project_id: projectId,
+      project_id: projetoId,
       etapa_id: etapaId,
       name,
       status: 'A Fazer',
       is_completed: false,
       is_extra: false,
+      hours_spent: 0,
+      minutes_spent: 0,
     })
     .select()
     .single()
+
   if (error) throw error
-  return data
+  return data as unknown as ProjetoAtividade
 }

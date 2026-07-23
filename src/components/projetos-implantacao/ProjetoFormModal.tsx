@@ -9,8 +9,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
 import {
   Select,
   SelectContent,
@@ -18,94 +16,97 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { CalendarIcon } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import { Jornada } from '@/services/jornadas'
-import { ProjetoImplantacao, createProjeto, updateProjeto } from '@/services/projetos-implantacao'
+import { Checkbox } from '@/components/ui/checkbox'
+import { supabase } from '@/lib/supabase/client'
+import { createProjeto, updateProjeto, ProjetoImplantacao } from '@/services/projetos-implantacao'
+import { toast } from '@/hooks/use-toast'
 
-interface Props {
+interface ProjetoFormModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  editingProjeto?: ProjetoImplantacao | null
-  jornadas: Jornada[]
-  clients: { id: string; name: string }[]
-  analysts: { id: string; nome: string }[]
-  onSaved: () => void
+  projeto?: ProjetoImplantacao | null
+  onSaved?: () => void
 }
 
-export function ProjetoFormModal({
-  open,
-  onOpenChange,
-  editingProjeto,
-  jornadas,
-  clients,
-  analysts,
-  onSaved,
-}: Props) {
+interface ClientOption {
+  id: string
+  name: string
+}
+interface AnalystOption {
+  id: string
+  nome: string
+}
+
+export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: ProjetoFormModalProps) {
   const [name, setName] = useState('')
-  const [jornadaId, setJornadaId] = useState('')
   const [clientId, setClientId] = useState('')
   const [analystId, setAnalystId] = useState('')
-  const [dataDemanda, setDataDemanda] = useState<Date | undefined>(undefined)
+  const [status, setStatus] = useState('Ativo')
+  const [dataDemanda, setDataDemanda] = useState('')
+  const [isNewClient, setIsNewClient] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [clients, setClients] = useState<ClientOption[]>([])
+  const [analysts, setAnalysts] = useState<AnalystOption[]>([])
 
   useEffect(() => {
-    if (open) {
-      if (editingProjeto) {
-        setName(editingProjeto.name)
-        setJornadaId(editingProjeto.jornada_id || '')
-        setClientId(editingProjeto.client_id || '')
-        setAnalystId(editingProjeto.analyst_id || '')
-        setDataDemanda(
-          editingProjeto.data_demanda
-            ? new Date(editingProjeto.data_demanda + 'T00:00:00')
-            : undefined,
-        )
-      } else {
-        setName('')
-        setJornadaId('')
-        setClientId('')
-        setAnalystId('')
-        setDataDemanda(undefined)
-      }
+    if (projeto) {
+      setName(projeto.name || '')
+      setClientId(projeto.client_id || '')
+      setAnalystId(projeto.analyst_id || '')
+      setStatus(projeto.status || 'Ativo')
+      setDataDemanda(projeto.data_demanda || '')
+      setIsNewClient((projeto as any).is_new_client || false)
+    } else {
+      setName('')
+      setClientId('')
+      setAnalystId('')
+      setStatus('Ativo')
+      setDataDemanda('')
+      setIsNewClient(false)
     }
-  }, [open, editingProjeto])
+  }, [projeto, open])
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      const [{ data: clientsData }, { data: analystsData }] = await Promise.all([
+        supabase.from('clients').select('id, name').order('name'),
+        supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
+      ])
+      setClients(clientsData || [])
+      setAnalysts(analystsData || [])
+    }
+    fetchOptions()
+  }, [])
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Preencha o nome do projeto.')
+      toast({ title: 'Erro', description: 'Nome é obrigatório', variant: 'destructive' })
       return
     }
+
     setSaving(true)
     try {
-      const clientVal = clientId || null
-      const analystVal = analystId || null
-      const dataVal = dataDemanda ? format(dataDemanda, 'yyyy-MM-dd') : null
-      if (editingProjeto) {
-        await updateProjeto(editingProjeto.id, {
-          name: name.trim(),
-          client_id: clientVal,
-          analyst_id: analystVal,
-          data_demanda: dataVal,
-        })
-        toast.success('Projeto atualizado!')
-      } else {
-        await createProjeto(
-          name.trim(),
-          jornadaId || undefined,
-          clientVal || undefined,
-          analystVal || undefined,
-          dataVal || undefined,
-        )
-        toast.success('Projeto criado!')
+      const data = {
+        name: name.trim(),
+        client_id: clientId || null,
+        analyst_id: analystId || null,
+        status,
+        data_demanda: dataDemanda || null,
+        is_new_client: isNewClient,
       }
+
+      if (projeto) {
+        await updateProjeto(projeto.id, data)
+        toast({ title: 'Sucesso', description: 'Projeto atualizado' })
+      } else {
+        await createProjeto(data)
+        toast({ title: 'Sucesso', description: 'Projeto criado' })
+      }
+
+      onSaved?.()
       onOpenChange(false)
-      onSaved()
-    } catch (e: any) {
-      toast.error('Erro: ' + e.message)
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao salvar projeto', variant: 'destructive' })
     } finally {
       setSaving(false)
     }
@@ -115,58 +116,25 @@ export function ProjetoFormModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {editingProjeto ? 'Editar Projeto' : 'Novo Projeto de Implantação'}
-          </DialogTitle>
+          <DialogTitle>{projeto ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Nome do Projeto *</Label>
+            <Label htmlFor="proj-name">Nome</Label>
             <Input
+              id="proj-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Implantação Cliente X"
+              placeholder="Nome do projeto"
             />
           </div>
           <div className="space-y-2">
-            <Label>Jornada (Template)</Label>
-            <Select
-              value={jornadaId || 'none'}
-              onValueChange={(v) => setJornadaId(v === 'none' ? '' : v)}
-              disabled={!!editingProjeto}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma jornada" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem jornada (etapas dinâmicas)</SelectItem>
-                {jornadas.map((j) => (
-                  <SelectItem key={j.id} value={j.id}>
-                    {j.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Opcional. Sem jornada, as etapas podem ser criadas dinamicamente.
-            </p>
-            {editingProjeto && (
-              <p className="text-xs text-muted-foreground">
-                A jornada não pode ser alterada após a criação.
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
             <Label>Cliente</Label>
-            <Select
-              value={clientId || 'none'}
-              onValueChange={(v) => setClientId(v === 'none' ? '' : v)}
-            >
+            <Select value={clientId} onValueChange={setClientId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
@@ -176,16 +144,12 @@ export function ProjetoFormModal({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Analista Responsável</Label>
-            <Select
-              value={analystId || 'none'}
-              onValueChange={(v) => setAnalystId(v === 'none' ? '' : v)}
-            >
+            <Label>Analista</Label>
+            <Select value={analystId} onValueChange={setAnalystId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um analista" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
                 {analysts.map((a) => (
                   <SelectItem key={a.id} value={a.id}>
                     {a.nome}
@@ -194,41 +158,48 @@ export function ProjetoFormModal({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Data da Demanda</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !dataDemanda && 'text-muted-foreground',
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dataDemanda
-                    ? format(dataDemanda, 'dd/MM/yyyy', { locale: ptBR })
-                    : 'Selecionar data'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={dataDemanda}
-                  onSelect={setDataDemanda}
-                  locale={ptBR}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Pausado">Pausado</SelectItem>
+                  <SelectItem value="Concluído">Concluído</SelectItem>
+                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="proj-data-demanda">Data da Demanda</Label>
+              <Input
+                id="proj-data-demanda"
+                type="date"
+                value={dataDemanda}
+                onChange={(e) => setDataDemanda(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 pt-2">
+            <Checkbox
+              id="proj-is-new-client"
+              checked={isNewClient}
+              onCheckedChange={(checked) => setIsNewClient(checked === true)}
+            />
+            <Label htmlFor="proj-is-new-client" className="cursor-pointer">
+              Novo Cliente
+            </Label>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Salvando...' : editingProjeto ? 'Salvar' : 'Criar Projeto'}
+            {saving ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogFooter>
       </DialogContent>
