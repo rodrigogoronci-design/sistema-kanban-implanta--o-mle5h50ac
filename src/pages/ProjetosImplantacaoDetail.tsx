@@ -74,7 +74,7 @@ export default function ProjetosImplantacaoDetail() {
       setProjeto(p)
       setAnalysts(aRes.data || [])
 
-      if (p.client_id) {
+      if (p?.client_id) {
         const { data: cData } = await supabase
           .from('clients')
           .select('name')
@@ -83,7 +83,7 @@ export default function ProjetosImplantacaoDetail() {
         setClient(cData || null)
       }
 
-      if (p.etapas.length > 0) {
+      if (p?.etapas?.length) {
         const currentIdx = p.etapas.findIndex((e) => e.id === p.current_step_id)
         const defaultOpen = currentIdx >= 0 ? [p.etapas[currentIdx].id] : [p.etapas[0].id]
         setOpenAccordions(defaultOpen)
@@ -134,7 +134,7 @@ export default function ProjetosImplantacaoDetail() {
       }
     }
 
-    const updatedAtividades = projeto.atividades.map((a) =>
+    const updatedAtividades = (projeto.atividades ?? []).map((a) =>
       a.id === atividadeId ? { ...a, ...enrichedData } : a,
     )
     setProjeto((prev) => (prev ? { ...prev, atividades: updatedAtividades } : null))
@@ -180,7 +180,7 @@ export default function ProjetosImplantacaoDetail() {
     if (!name || !id) return
     setAddingEtapa(true)
     try {
-      const position = projeto?.etapas.length || 0
+      const position = projeto?.etapas?.length || 0
       const etapa = await addEtapaToProject(id, name, position)
       if (!projeto?.current_step_id) {
         await updateProjeto(id, { current_step_id: etapa.id })
@@ -226,10 +226,12 @@ export default function ProjetosImplantacaoDetail() {
     )
   }
 
-  const total = projeto.atividades.length
-  const completed = projeto.atividades.filter((a) => a.is_completed).length
+  const etapas = projeto.etapas ?? []
+  const atividades = projeto.atividades ?? []
+  const total = atividades.length
+  const completed = atividades.filter((a) => a.is_completed).length
   const progress = total > 0 ? (completed / total) * 100 : 0
-  const currentStepIdx = projeto.etapas.findIndex((e) => e.id === projeto.current_step_id)
+  const currentStepIdx = etapas.findIndex((e) => e.id === projeto.current_step_id)
   const analystName = analysts.find((a) => a.id === projeto.analyst_id)?.nome
 
   return (
@@ -305,11 +307,11 @@ export default function ProjetosImplantacaoDetail() {
         </Card>
       </div>
 
-      {projeto.etapas.length > 0 && (
+      {etapas.length > 0 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          {projeto.etapas.map((etapa, idx) => {
+          {etapas.map((etapa, idx) => {
             const isCurrent = etapa.id === projeto.current_step_id
-            const etAtvs = projeto.atividades.filter((a) => a.etapa_id === etapa.id)
+            const etAtvs = atividades.filter((a) => a.etapa_id === etapa.id)
             const etDone = etAtvs.length > 0 && etAtvs.every((a) => a.is_completed)
             const isPast = currentStepIdx > idx || projeto.status === 'Concluído'
             const showCompleted = etDone || (etAtvs.length === 0 && isPast)
@@ -332,7 +334,7 @@ export default function ProjetosImplantacaoDetail() {
                   )}
                   {etapa.name}
                 </div>
-                {idx < projeto.etapas.length - 1 && <div className="w-4 h-px bg-border" />}
+                {idx < etapas.length - 1 && <div className="w-4 h-px bg-border" />}
               </div>
             )
           })}
@@ -340,8 +342,8 @@ export default function ProjetosImplantacaoDetail() {
       )}
 
       <Accordion type="multiple" value={openAccordions} onValueChange={setOpenAccordions}>
-        {projeto.etapas.map((etapa) => {
-          const etAtvs = projeto.atividades.filter((a) => a.etapa_id === etapa.id)
+        {etapas.map((etapa) => {
+          const etAtvs = atividades.filter((a) => a.etapa_id === etapa.id)
           const isCurrent = etapa.id === projeto.current_step_id
           const etCompleted = etAtvs.filter((a) => a.is_completed).length
           const etProgress = etAtvs.length > 0 ? (etCompleted / etAtvs.length) * 100 : 0
@@ -540,7 +542,7 @@ export default function ProjetosImplantacaoDetail() {
               {addingEtapa ? 'Criando...' : 'Adicionar Etapa'}
             </Button>
           </div>
-          {projeto.etapas.length === 0 && (
+          {etapas.length === 0 && (
             <p className="text-sm text-muted-foreground text-center mt-2">
               Nenhuma etapa criada. Adicione a primeira etapa para começar.
             </p>
