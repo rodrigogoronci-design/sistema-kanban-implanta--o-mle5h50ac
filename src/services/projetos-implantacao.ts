@@ -9,6 +9,7 @@ export type ProjetoImplantacao = ProjetoRow & {
   forecast_start?: string | null
   forecast_end?: string | null
   priority?: string | null
+  notes?: string | null
   client?: { id: string; name: string } | null
   analyst?: { id: string; nome: string } | null
 }
@@ -84,6 +85,10 @@ export async function createProjeto(
     status: data.status || 'Ativo',
     data_demanda: data.data_demanda || null,
     is_new_client: data.is_new_client || false,
+    priority: data.priority || 'Média',
+    forecast_start: data.forecast_start || null,
+    forecast_end: data.forecast_end || null,
+    notes: data.notes || null,
   }
 
   const { data: result, error } = await supabase
@@ -108,6 +113,10 @@ export async function updateProjeto(
   if (data.status !== undefined) updateData.status = data.status
   if (data.data_demanda !== undefined) updateData.data_demanda = data.data_demanda
   if (data.is_new_client !== undefined) updateData.is_new_client = data.is_new_client
+  if (data.priority !== undefined) updateData.priority = data.priority
+  if (data.forecast_start !== undefined) updateData.forecast_start = data.forecast_start
+  if (data.forecast_end !== undefined) updateData.forecast_end = data.forecast_end
+  if (data.notes !== undefined) updateData.notes = data.notes
 
   const { data: result, error } = await supabase
     .from('projetos_implantacao')

@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -44,6 +45,10 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
   const [status, setStatus] = useState('Ativo')
   const [dataDemanda, setDataDemanda] = useState('')
   const [isNewClient, setIsNewClient] = useState(false)
+  const [priority, setPriority] = useState('Média')
+  const [forecastStart, setForecastStart] = useState('')
+  const [forecastEnd, setForecastEnd] = useState('')
+  const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
   const [analysts, setAnalysts] = useState<AnalystOption[]>([])
@@ -55,7 +60,11 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
       setAnalystId(projeto.analyst_id || '')
       setStatus(projeto.status || 'Ativo')
       setDataDemanda(projeto.data_demanda || '')
-      setIsNewClient((projeto as any).is_new_client || false)
+      setIsNewClient(projeto.is_new_client || false)
+      setPriority(projeto.priority || 'Média')
+      setForecastStart(projeto.forecast_start ? projeto.forecast_start.split('T')[0] : '')
+      setForecastEnd(projeto.forecast_end ? projeto.forecast_end.split('T')[0] : '')
+      setNotes(projeto.notes || '')
     } else {
       setName('')
       setClientId('')
@@ -63,6 +72,10 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
       setStatus('Ativo')
       setDataDemanda('')
       setIsNewClient(false)
+      setPriority('Média')
+      setForecastStart('')
+      setForecastEnd('')
+      setNotes('')
     }
   }, [projeto, open])
 
@@ -93,6 +106,10 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
         status,
         data_demanda: dataDemanda || null,
         is_new_client: isNewClient,
+        priority,
+        forecast_start: forecastStart || null,
+        forecast_end: forecastEnd || null,
+        notes: notes.trim() || null,
       }
 
       if (projeto) {
@@ -114,7 +131,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{projeto ? 'Editar Projeto' : 'Novo Projeto'}</DialogTitle>
         </DialogHeader>
@@ -144,7 +161,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Analista</Label>
+            <Label>Analista Responsável</Label>
             <Select value={analystId} onValueChange={setAnalystId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um analista" />
@@ -174,6 +191,21 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select value={priority} onValueChange={setPriority}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alta">Alta</SelectItem>
+                  <SelectItem value="Média">Média</SelectItem>
+                  <SelectItem value="Baixa">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="proj-data-demanda">Data da Demanda</Label>
               <Input
                 id="proj-data-demanda"
@@ -182,6 +214,36 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
                 onChange={(e) => setDataDemanda(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="proj-forecast-start">Previsão Início</Label>
+              <Input
+                id="proj-forecast-start"
+                type="date"
+                value={forecastStart}
+                onChange={(e) => setForecastStart(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="proj-forecast-end">Previsão Fim</Label>
+              <Input
+                id="proj-forecast-end"
+                type="date"
+                value={forecastEnd}
+                onChange={(e) => setForecastEnd(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="proj-notes">Observações</Label>
+            <Textarea
+              id="proj-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observações sobre o projeto"
+              rows={3}
+            />
           </div>
           <div className="flex items-center space-x-2 pt-2">
             <Checkbox

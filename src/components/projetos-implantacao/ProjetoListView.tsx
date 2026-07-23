@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ChevronsUpDown, Pencil } from 'lucide-react'
 import {
   Table,
   TableHeader,
@@ -10,6 +10,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { ProjetoImplantacao } from '@/services/projetos-implantacao'
 
 type SortColumn =
@@ -17,6 +18,7 @@ type SortColumn =
   | 'client'
   | 'analyst'
   | 'status'
+  | 'data_demanda'
   | 'forecast_start'
   | 'forecast_end'
   | 'priority'
@@ -29,6 +31,7 @@ const columns: { key: SortColumn; label: string }[] = [
   { key: 'client', label: 'Cliente' },
   { key: 'analyst', label: 'Analista' },
   { key: 'status', label: 'Status' },
+  { key: 'data_demanda', label: 'Data da Demanda' },
   { key: 'forecast_start', label: 'Previsão Início' },
   { key: 'forecast_end', label: 'Previsão Fim' },
   { key: 'priority', label: 'Prioridade' },
@@ -45,6 +48,8 @@ function getSortValue(projeto: ProjetoImplantacao, column: SortColumn): string {
       return projeto.analyst?.nome?.toLowerCase() ?? ''
     case 'status':
       return projeto.status?.toLowerCase() ?? ''
+    case 'data_demanda':
+      return projeto.data_demanda ?? ''
     case 'forecast_start':
       return projeto.forecast_start ?? ''
     case 'forecast_end':
@@ -61,7 +66,12 @@ function formatDate(date: string | null | undefined): string {
   return new Date(date).toLocaleDateString('pt-BR')
 }
 
-export function ProjetoListView({ projetos }: { projetos: ProjetoImplantacao[] }) {
+interface ProjetoListViewProps {
+  projetos: ProjetoImplantacao[]
+  onEdit?: (projeto: ProjetoImplantacao) => void
+}
+
+export function ProjetoListView({ projetos, onEdit }: ProjetoListViewProps) {
   const navigate = useNavigate()
   const [sortColumn, setSortColumn] = useState<SortColumn>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -109,6 +119,7 @@ export function ProjetoListView({ projetos }: { projetos: ProjetoImplantacao[] }
                 </div>
               </TableHead>
             ))}
+            <TableHead className="w-[60px] text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -130,6 +141,9 @@ export function ProjetoListView({ projetos }: { projetos: ProjetoImplantacao[] }
                 </Badge>
               </TableCell>
               <TableCell className="whitespace-nowrap">
+                {formatDate(projeto.data_demanda)}
+              </TableCell>
+              <TableCell className="whitespace-nowrap">
                 {formatDate(projeto.forecast_start)}
               </TableCell>
               <TableCell className="whitespace-nowrap">
@@ -144,6 +158,19 @@ export function ProjetoListView({ projetos }: { projetos: ProjetoImplantacao[] }
                 ) : (
                   '—'
                 )}
+              </TableCell>
+              <TableCell className="text-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit?.(projeto)
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
