@@ -6,6 +6,9 @@ type ProjetoRow = Database['public']['Tables']['projetos_implantacao']['Row']
 export type ProjetoImplantacao = ProjetoRow & {
   is_new_client?: boolean
   migrated_from_id?: string | null
+  forecast_start?: string | null
+  forecast_end?: string | null
+  priority?: string | null
   client?: { id: string; name: string } | null
   analyst?: { id: string; nome: string } | null
 }

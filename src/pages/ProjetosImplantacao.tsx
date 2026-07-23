@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Building2, Calendar, User, Search } from 'lucide-react'
+import { Plus, Building2, Calendar, User, Search, LayoutGrid, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -8,8 +8,23 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ProjetoFormModal } from '@/components/projetos-implantacao/ProjetoFormModal'
+import { ProjetoListView } from '@/components/projetos-implantacao/ProjetoListView'
 import { fetchProjetos, ProjetoImplantacao } from '@/services/projetos-implantacao'
 import { toast } from '@/hooks/use-toast'
+import { cn } from '@/lib/utils'
+
+type ViewMode = 'cards' | 'list'
+
+const VIEW_STORAGE_KEY = 'projetos-implantacao-view'
+
+function getStoredView(): ViewMode {
+  try {
+    const stored = localStorage.getItem(VIEW_STORAGE_KEY)
+    return stored === 'list' ? 'list' : 'cards'
+  } catch {
+    return 'cards'
+  }
+}
 
 export default function ProjetosImplantacao() {
   const [projetos, setProjetos] = useState<ProjetoImplantacao[]>([])
@@ -17,6 +32,20 @@ export default function ProjetosImplantacao() {
   const [showNewClientOnly, setShowNewClientOnly] = useState(false)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [view, setView] = useState<ViewMode>('cards')
+
+  useEffect(() => {
+    setView(getStoredView())
+  }, [])
+
+  const handleViewChange = (value: ViewMode) => {
+    setView(value)
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, value)
+    } catch {
+      // ignore storage errors
+    }
+  }
 
   const loadProjetos = useCallback(async () => {
     try {
@@ -42,10 +71,38 @@ export default function ProjetosImplantacao() {
     <div className="container mx-auto p-4 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h1 className="text-2xl font-bold">Projetos de Implantação</h1>
-        <Button onClick={() => setModalOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Projeto
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex items-center rounded-md border bg-muted/40 p-0.5">
+            <button
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
+                view === 'cards'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => handleViewChange('cards')}
+            >
+              <LayoutGrid className="h-4 w-4" />
+              <span className="hidden sm:inline">Cards</span>
+            </button>
+            <button
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
+                view === 'list'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+              onClick={() => handleViewChange('list')}
+            >
+              <List className="h-4 w-4" />
+              <span className="hidden sm:inline">Lista</span>
+            </button>
+          </div>
+          <Button onClick={() => setModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Projeto
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
@@ -74,7 +131,7 @@ export default function ProjetosImplantacao() {
         <div className="text-center py-12 text-muted-foreground">Carregando projetos...</div>
       ) : filteredProjetos.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">Nenhum projeto encontrado.</div>
-      ) : (
+      ) : view === 'cards' ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProjetos.map((projeto) => (
             <Link key={projeto.id} to={`/projetos-implantacao/${projeto.id}`}>
@@ -121,6 +178,8 @@ export default function ProjetosImplantacao() {
             </Link>
           ))}
         </div>
+      ) : (
+        <ProjetoListView projetos={filteredProjetos} />
       )}
 
       <ProjetoFormModal open={modalOpen} onOpenChange={setModalOpen} onSaved={loadProjetos} />
