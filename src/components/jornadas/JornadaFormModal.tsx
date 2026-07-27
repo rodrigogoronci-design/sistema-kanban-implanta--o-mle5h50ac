@@ -5,13 +5,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { toast } from 'sonner'
 import {
   createJornada,
@@ -33,14 +26,12 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   jornadaId?: string | null
-  clients: { id: string; name: string }[]
   onSaved: () => void
 }
 
-export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSaved }: Props) {
+export function JornadaFormModal({ open, onOpenChange, jornadaId, onSaved }: Props) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [clientId, setClientId] = useState('')
   const [steps, setSteps] = useState<StepData[]>([])
   const [saving, setSaving] = useState(false)
 
@@ -49,7 +40,6 @@ export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSav
       fetchJornadaDetails(jornadaId).then((data: JornadaWithDetails) => {
         setName(data.name)
         setDescription(data.description || '')
-        setClientId(data.client_id || '')
         setSteps(
           data.etapas.map((e) => ({
             name: e.name,
@@ -64,7 +54,6 @@ export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSav
     } else if (open) {
       setName('')
       setDescription('')
-      setClientId('')
       setSteps([])
     }
   }, [open, jornadaId])
@@ -78,9 +67,9 @@ export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSav
     try {
       let id = jornadaId
       if (id) {
-        await updateJornada(id, { name, description, client_id: clientId || undefined })
+        await updateJornada(id, { name, description })
       } else {
-        const j = await createJornada({ name, description, client_id: clientId || undefined })
+        const j = await createJornada({ name, description })
         id = j.id
       }
       await saveJornadaStructure(
@@ -128,25 +117,6 @@ export function JornadaFormModal({ open, onOpenChange, jornadaId, clients, onSav
                 placeholder="Descreva o objetivo desta jornada..."
                 className="resize-none"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Empresa Vinculada</Label>
-              <Select
-                value={clientId || 'none'}
-                onValueChange={(v) => setClientId(v === 'none' ? '' : v)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </TabsContent>
           <TabsContent value="steps" className="flex-1 overflow-y-auto p-6 m-0">

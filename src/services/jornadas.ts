@@ -6,7 +6,6 @@ export interface Jornada {
   id: string
   name: string
   description: string | null
-  client_id: string | null
   created_at: string
 }
 
@@ -73,7 +72,6 @@ export async function fetchJornadaDetails(id: string): Promise<JornadaWithDetail
 export async function createJornada(data: {
   name: string
   description?: string
-  client_id?: string
 }): Promise<Jornada> {
   const { data: result, error } = await db.from('jornadas').insert(data).select().single()
   if (error) throw error
@@ -82,7 +80,7 @@ export async function createJornada(data: {
 
 export async function updateJornada(
   id: string,
-  data: Partial<{ name: string; description: string; client_id: string }>,
+  data: Partial<{ name: string; description: string }>,
 ): Promise<Jornada> {
   const { data: result, error } = await db
     .from('jornadas')

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -9,27 +8,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Edit2, Trash2, Route, Building2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Route } from 'lucide-react'
 import { JornadaFormModal } from '@/components/jornadas/JornadaFormModal'
 import { fetchJornadas, deleteJornada, Jornada } from '@/services/jornadas'
 import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
 
 export default function Jornadas() {
   const [jornadas, setJornadas] = useState<Jornada[]>([])
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     try {
-      const [j, cRes] = await Promise.all([
-        fetchJornadas(),
-        (supabase as any).from('clients').select('id, name').order('name'),
-      ])
+      const j = await fetchJornadas()
       setJornadas(j)
-      setClients(cRes.data || [])
     } catch (e: any) {
       toast.error('Erro ao carregar: ' + e.message)
     } finally {
@@ -81,40 +74,29 @@ export default function Jornadas() {
             <TableRow className="bg-muted/50">
               <TableHead>Nome</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead>Empresa</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                   Carregando...
                 </TableCell>
               </TableRow>
             ) : jornadas.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
                   Nenhuma jornada cadastrada.
                 </TableCell>
               </TableRow>
             ) : (
               jornadas.map((j) => {
-                const client = clients.find((c) => c.id === j.client_id)
                 return (
                   <TableRow key={j.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{j.name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm max-w-[300px] truncate">
                       {j.description || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {client ? (
-                        <Badge variant="secondary" className="font-normal">
-                          <Building2 className="w-3 h-3 mr-1" /> {client.name}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
@@ -142,7 +124,6 @@ export default function Jornadas() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         jornadaId={editingId}
-        clients={clients}
         onSaved={loadData}
       />
     </div>
