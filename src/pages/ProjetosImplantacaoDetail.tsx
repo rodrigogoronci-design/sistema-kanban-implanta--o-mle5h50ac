@@ -134,10 +134,20 @@ export default function ProjetosImplantacaoDetail() {
       }
     }
 
-    const updatedAtividades = (projeto.atividades ?? []).map((a) =>
+    const allAtividades = (projeto.etapas ?? []).flatMap((e) => e.atividades ?? [])
+    const updatedAtividades = allAtividades.map((a) =>
       a.id === atividadeId ? { ...a, ...enrichedData } : a,
     )
-    setProjeto((prev) => (prev ? { ...prev, atividades: updatedAtividades } : null))
+    setProjeto((prev) => {
+      if (!prev) return null
+      const updatedEtapas = (prev.etapas ?? []).map((e) => ({
+        ...e,
+        atividades: (e.atividades ?? []).map((a) =>
+          a.id === atividadeId ? { ...a, ...enrichedData } : a,
+        ),
+      }))
+      return { ...prev, etapas: updatedEtapas }
+    })
 
     if (selectedAtividade?.id === atividadeId) {
       setSelectedAtividade({ ...selectedAtividade, ...enrichedData })
@@ -145,7 +155,7 @@ export default function ProjetosImplantacaoDetail() {
 
     try {
       await updateAtividade(atividadeId, enrichedData)
-      await checkAndUpdateProgression(id!, projeto.etapas, updatedAtividades)
+      await checkAndUpdateProgression(id!)
       await loadData()
     } catch (e: any) {
       toast.error('Erro ao atualizar: ' + e.message)
@@ -227,7 +237,7 @@ export default function ProjetosImplantacaoDetail() {
   }
 
   const etapas = projeto.etapas ?? []
-  const atividades = projeto.atividades ?? []
+  const atividades = etapas.flatMap((e) => e.atividades ?? [])
   const total = atividades.length
   const completed = atividades.filter((a) => a.is_completed).length
   const progress = total > 0 ? (completed / total) * 100 : 0

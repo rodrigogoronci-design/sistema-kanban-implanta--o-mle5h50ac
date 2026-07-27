@@ -377,35 +377,24 @@ export type Database = {
       }
       jornadas: {
         Row: {
-          client_id: string | null
           created_at: string
           description: string | null
           id: string
           name: string
         }
         Insert: {
-          client_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name: string
         }
         Update: {
-          client_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
           name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: 'jornadas_client_id_fkey'
-            columns: ['client_id']
-            isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       modules: {
         Row: {
