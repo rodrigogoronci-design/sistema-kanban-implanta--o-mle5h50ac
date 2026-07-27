@@ -43,6 +43,16 @@ import {
 } from '@/services/projetos-implantacao'
 import { AtividadeDetailModal } from '@/components/jornadas/AtividadeDetailModal'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   fetchTimeEntriesByProject,
   calculateDurationHours,
   formatDuration,
@@ -63,6 +73,7 @@ export default function ProjetosImplantacaoDetail() {
   const [addingEtapa, setAddingEtapa] = useState(false)
   const [projectTotalHours, setProjectTotalHours] = useState(0)
   const [activityHours, setActivityHours] = useState<Record<string, number>>({})
+  const [deleteTarget, setDeleteTarget] = useState<ProjetoAtividade | null>(null)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -486,6 +497,17 @@ export default function ProjetosImplantacaoDetail() {
                       >
                         {a.status}
                       </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteTarget(a)
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                     </div>
                   ))}
                   <div className="flex gap-2 pt-1">
@@ -565,8 +587,40 @@ export default function ProjetosImplantacaoDetail() {
         analysts={analysts}
         onClose={() => setSelectedAtividade(null)}
         onUpdate={handleUpdate}
-        onDelete={selectedAtividade?.is_extra ? handleDelete : undefined}
+        onDelete={handleDelete}
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir atividade</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir "{deleteTarget?.name}"? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deleteTarget) return
+                try {
+                  await deleteAtividade(deleteTarget.id)
+                  toast.success('Atividade removida!')
+                  await loadData()
+                } catch (e: any) {
+                  toast.error('Erro ao excluir: ' + e.message)
+                } finally {
+                  setDeleteTarget(null)
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

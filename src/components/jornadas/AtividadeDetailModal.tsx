@@ -28,6 +28,16 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Upload, FileText, Trash2, Loader2, ExternalLink, Plus, Clock, Lock } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase/client'
 import { ProjetoAtividade } from '@/services/projetos-implantacao'
@@ -68,6 +78,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
   const [ratUrl, setRatUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const [timeEntries, setTimeEntries] = useState<ProjetoAtividadeTimeEntry[]>([])
   const [showTimeForm, setShowTimeForm] = useState(false)
@@ -215,9 +226,11 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
     try {
       await onDelete(atividade.id)
       toast.success('Atividade removida!')
+      setShowDeleteConfirm(false)
       onClose()
     } catch (e: any) {
       toast.error('Erro: ' + e.message)
+      setShowDeleteConfirm(false)
     } finally {
       setSaving(false)
     }
@@ -602,10 +615,10 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         </Tabs>
 
         <DialogFooter className="gap-2">
-          {atividade.is_extra && onDelete && (
+          {onDelete && (
             <Button
               variant="destructive"
-              onClick={handleDelete}
+              onClick={() => setShowDeleteConfirm(true)}
               disabled={saving}
               className="mr-auto"
             >
@@ -619,6 +632,27 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
             {saving ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogFooter>
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir atividade</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir esta atividade? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={saving}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={saving}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {saving ? 'Excluindo...' : 'Excluir'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   )
