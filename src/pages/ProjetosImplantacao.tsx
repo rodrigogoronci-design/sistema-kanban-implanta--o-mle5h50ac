@@ -1,12 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Building2, Calendar, User, Search, LayoutGrid, List, Pencil } from 'lucide-react'
+import {
+  Plus,
+  Building2,
+  User,
+  Search,
+  LayoutGrid,
+  List,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { ProjetoFormModal } from '@/components/projetos-implantacao/ProjetoFormModal'
 import { ProjetoListView } from '@/components/projetos-implantacao/ProjetoListView'
 import { fetchProjetos, ProjetoImplantacao } from '@/services/projetos-implantacao'
@@ -16,6 +28,12 @@ import { cn } from '@/lib/utils'
 type ViewMode = 'cards' | 'list'
 
 const VIEW_STORAGE_KEY = 'projetos-implantacao-view'
+
+const priorityStyles: Record<string, string> = {
+  Alta: 'bg-red-100 text-red-700 border-red-200',
+  Média: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  Baixa: 'bg-blue-100 text-blue-700 border-blue-200',
+}
 
 function getStoredView(): ViewMode {
   try {
@@ -34,6 +52,7 @@ export default function ProjetosImplantacao() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingProjeto, setEditingProjeto] = useState<ProjetoImplantacao | null>(null)
   const [view, setView] = useState<ViewMode>('cards')
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     setView(getStoredView())
@@ -68,10 +87,27 @@ export default function ProjetosImplantacao() {
     (p) => !search || p.name?.toLowerCase().includes(search.toLowerCase()),
   )
 
+  const toggleCardExpansion = (id: string) => {
+    setExpandedCards((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const formatDate = (date: string | null | undefined): string => {
+    if (!date) return '—'
+    return new Date(date).toLocaleDateString('pt-BR')
+  }
+
   return (
-    <div className="container mx-auto p-4 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <h1 className="text-2xl font-bold">Projetos de Implantação</h1>
+    <div className="container mx-auto p-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-xl font-bold">Projetos de Implantação</h1>
         <div className="flex items-center gap-2">
           <div className="inline-flex items-center rounded-md border bg-muted/40 p-0.5">
             <button
@@ -111,14 +147,14 @@ export default function ProjetosImplantacao() {
         </div>
       </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar projetos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
+            className="pl-8 h-9"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -127,7 +163,7 @@ export default function ProjetosImplantacao() {
             onCheckedChange={setShowNewClientOnly}
             id="filter-new-client"
           />
-          <Label htmlFor="filter-new-client" className="cursor-pointer whitespace-nowrap">
+          <Label htmlFor="filter-new-client" className="cursor-pointer whitespace-nowrap text-sm">
             Novo Cliente
           </Label>
         </div>
@@ -138,23 +174,38 @@ export default function ProjetosImplantacao() {
       ) : filteredProjetos.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">Nenhum projeto encontrado.</div>
       ) : view === 'cards' ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjetos.map((projeto) => (
-            <Link key={projeto.id} to={`/projetos-implantacao/${projeto.id}`}>
-              <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer h-full">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <CardTitle className="text-base leading-tight">{projeto.name}</CardTitle>
-                    <div className="flex items-center gap-1 shrink-0">
-                      {projeto.is_new_client && (
-                        <Badge variant="secondary" className="text-xs">
-                          Novo Cliente
-                        </Badge>
-                      )}
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {filteredProjetos.map((projeto) => {
+            const isExpanded = expandedCards.has(projeto.id)
+            const clientName = projeto.client?.name
+            const analystName = projeto.analyst?.nome
+            const hasExtraInfo = projeto.forecast_start || projeto.forecast_end || projeto.notes
+            return (
+              <Link key={projeto.id} to={`/projetos-implantacao/${projeto.id}`}>
+                <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer h-full">
+                  <CardHeader className="p-3 pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-semibold leading-tight truncate">
+                            {projeto.name}
+                          </span>
+                          {projeto.is_new_client && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                              Novo Cliente
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {projeto.data_demanda
+                            ? new Date(projeto.data_demanda).toLocaleDateString('pt-BR')
+                            : '—'}
+                        </p>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
+                        className="h-6 w-6 shrink-0"
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
@@ -162,44 +213,92 @@ export default function ProjetosImplantacao() {
                           setModalOpen(true)
                         }}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3 w-3" />
                       </Button>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-1.5 text-sm text-muted-foreground">
-                  {projeto.client && (
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{projeto.client.name}</span>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0 space-y-1.5">
+                    <div className="text-xs text-muted-foreground truncate">
+                      {clientName && analystName ? (
+                        <span>
+                          <span className="font-medium text-foreground">Cliente:</span> {clientName}
+                          {' · '}
+                          <span className="font-medium text-foreground">Analista:</span>{' '}
+                          {analystName}
+                        </span>
+                      ) : clientName ? (
+                        <span>
+                          <span className="font-medium text-foreground">Cliente:</span> {clientName}
+                        </span>
+                      ) : analystName ? (
+                        <span>
+                          <span className="font-medium text-foreground">Analista:</span>{' '}
+                          {analystName}
+                        </span>
+                      ) : null}
                     </div>
-                  )}
-                  {projeto.analyst && (
-                    <div className="flex items-center gap-2">
-                      <User className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{projeto.analyst.nome}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Badge
+                        variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
+                        className="text-[10px] px-1.5 py-0"
+                      >
+                        {projeto.status}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[10px] px-1.5 py-0',
+                          priorityStyles[projeto.priority || ''] || '',
+                        )}
+                      >
+                        {projeto.priority || '—'}
+                      </Badge>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      {projeto.data_demanda
-                        ? new Date(projeto.data_demanda).toLocaleDateString('pt-BR')
-                        : '—'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <Badge
-                      variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
-                      className="text-xs"
-                    >
-                      {projeto.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    {hasExtraInfo && (
+                      <Collapsible open={isExpanded} onOpenChange={() => {}}>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-1"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              toggleCardExpansion(projeto.id)
+                            }}
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="h-3 w-3" />
+                            ) : (
+                              <ChevronDown className="h-3 w-3" />
+                            )}
+                            {isExpanded ? 'Ver menos' : 'Ver mais'}
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+                          {projeto.forecast_start && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Previsão Início: {formatDate(projeto.forecast_start)}</span>
+                            </div>
+                          )}
+                          {projeto.forecast_end && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>Previsão Fim: {formatDate(projeto.forecast_end)}</span>
+                            </div>
+                          )}
+                          {projeto.notes && (
+                            <p className="text-xs italic truncate" title={projeto.notes}>
+                              {projeto.notes}
+                            </p>
+                          )}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
         </div>
       ) : (
         <ProjetoListView

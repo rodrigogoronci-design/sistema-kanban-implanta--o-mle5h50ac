@@ -11,59 +11,65 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 import type { ProjetoImplantacao } from '@/services/projetos-implantacao'
 
-type SortColumn =
-  | 'name'
-  | 'client'
-  | 'analyst'
-  | 'status'
-  | 'data_demanda'
-  | 'forecast_start'
-  | 'forecast_end'
-  | 'priority'
-  | 'is_new_client'
+type SortColumn = 'name' | 'analyst' | 'status' | 'prazos' | 'priority'
 
 type SortDirection = 'asc' | 'desc'
 
 const columns: { key: SortColumn; label: string }[] = [
-  { key: 'name', label: 'Projeto' },
-  { key: 'client', label: 'Cliente' },
+  { key: 'name', label: 'Projeto + Cliente' },
   { key: 'analyst', label: 'Analista' },
   { key: 'status', label: 'Status' },
-  { key: 'data_demanda', label: 'Data da Demanda' },
-  { key: 'forecast_start', label: 'Previsão Início' },
-  { key: 'forecast_end', label: 'Previsão Fim' },
+  { key: 'prazos', label: 'Prazos' },
   { key: 'priority', label: 'Prioridade' },
-  { key: 'is_new_client', label: 'Novo Cliente' },
 ]
+
+const priorityStyles: Record<string, string> = {
+  Alta: 'bg-red-100 text-red-700 border-red-200',
+  Média: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  Baixa: 'bg-blue-100 text-blue-700 border-blue-200',
+}
+
+function formatDate(date: string | null | undefined): string {
+  if (!date) return ''
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+}
 
 function getSortValue(projeto: ProjetoImplantacao, column: SortColumn): string {
   switch (column) {
     case 'name':
       return projeto.name?.toLowerCase() ?? ''
-    case 'client':
-      return projeto.client?.name?.toLowerCase() ?? ''
     case 'analyst':
       return projeto.analyst?.nome?.toLowerCase() ?? ''
     case 'status':
       return projeto.status?.toLowerCase() ?? ''
-    case 'data_demanda':
-      return projeto.data_demanda ?? ''
-    case 'forecast_start':
-      return projeto.forecast_start ?? ''
-    case 'forecast_end':
-      return projeto.forecast_end ?? ''
+    case 'prazos': {
+      const parts = [
+        projeto.data_demanda ?? '',
+        projeto.forecast_start ?? '',
+        projeto.forecast_end ?? '',
+      ].filter(Boolean)
+      return parts.join(' ') ?? ''
+    }
     case 'priority':
       return projeto.priority?.toLowerCase() ?? ''
-    case 'is_new_client':
-      return projeto.is_new_client ? '1' : '0'
   }
 }
 
-function formatDate(date: string | null | undefined): string {
-  if (!date) return '—'
-  return new Date(date).toLocaleDateString('pt-BR')
+function buildPrazosText(projeto: ProjetoImplantacao): string {
+  const parts: string[] = []
+  const dd = formatDate(projeto.data_demanda)
+  const fs = formatDate(projeto.forecast_start)
+  const fe = formatDate(projeto.forecast_end)
+  if (dd) parts.push(dd)
+  if (fs) parts.push(fs)
+  if (fe) parts.push(fe)
+  return parts.join(' → ')
 }
 
 interface ProjetoListViewProps {
@@ -95,87 +101,102 @@ export function ProjetoListView({ projetos, onEdit }: ProjetoListViewProps) {
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((col) => (
-              <TableHead
-                key={col.key}
-                className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
-                onClick={() => handleSort(col.key)}
-              >
-                <div className="flex items-center gap-1">
-                  {col.label}
-                  {sortColumn === col.key ? (
-                    sortDirection === 'asc' ? (
-                      <ArrowUp className="h-3 w-3" />
+    <div className="rounded-md border overflow-hidden">
+      <ScrollArea className="h-[calc(100vh-280px)] min-h-[300px] w-full">
+        <Table>
+          <TableHeader>
+            <TableRow className="sticky top-0 z-10 bg-card hover:bg-card">
+              {columns.map((col) => (
+                <TableHead
+                  key={col.key}
+                  className="cursor-pointer select-none hover:bg-muted/50 transition-colors whitespace-nowrap"
+                  onClick={() => handleSort(col.key)}
+                >
+                  <div className="flex items-center gap-1">
+                    {col.label}
+                    {sortColumn === col.key ? (
+                      sortDirection === 'asc' ? (
+                        <ArrowUp className="h-3 w-3" />
+                      ) : (
+                        <ArrowDown className="h-3 w-3" />
+                      )
                     ) : (
-                      <ArrowDown className="h-3 w-3" />
-                    )
-                  ) : (
-                    <ChevronsUpDown className="h-3 w-3 text-muted-foreground/40" />
-                  )}
-                </div>
+                      <ChevronsUpDown className="h-3 w-3 text-muted-foreground/40" />
+                    )}
+                  </div>
+                </TableHead>
+              ))}
+              <TableHead className="w-[60px] text-center sticky top-0 z-10 bg-card">
+                Ações
               </TableHead>
-            ))}
-            <TableHead className="w-[60px] text-center">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedProjetos.map((projeto) => (
-            <TableRow
-              key={projeto.id}
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/projetos-implantacao/${projeto.id}`)}
-            >
-              <TableCell className="font-medium whitespace-nowrap">{projeto.name || '—'}</TableCell>
-              <TableCell className="whitespace-nowrap">{projeto.client?.name || '—'}</TableCell>
-              <TableCell className="whitespace-nowrap">{projeto.analyst?.nome || '—'}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
-                  className="text-xs"
-                >
-                  {projeto.status || '—'}
-                </Badge>
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {formatDate(projeto.data_demanda)}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {formatDate(projeto.forecast_start)}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">
-                {formatDate(projeto.forecast_end)}
-              </TableCell>
-              <TableCell className="whitespace-nowrap">{projeto.priority || '—'}</TableCell>
-              <TableCell>
-                {projeto.is_new_client ? (
-                  <Badge variant="secondary" className="text-xs">
-                    Sim
-                  </Badge>
-                ) : (
-                  '—'
-                )}
-              </TableCell>
-              <TableCell className="text-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit?.(projeto)
-                  }}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-              </TableCell>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {sortedProjetos.map((projeto) => {
+              const prazosText = buildPrazosText(projeto)
+              const hasClient = projeto.client && projeto.client.name
+              return (
+                <TableRow
+                  key={projeto.id}
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => navigate(`/projetos-implantacao/${projeto.id}`)}
+                >
+                  <TableCell className="font-medium whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate max-w-[240px]">{projeto.name || '—'}</span>
+                      {projeto.is_new_client && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                          Novo Cliente
+                        </Badge>
+                      )}
+                      {hasClient && (
+                        <span className="text-muted-foreground text-xs whitespace-nowrap">
+                          · {projeto.client!.name}
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {projeto.analyst?.nome || '—'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
+                      className="text-xs"
+                    >
+                      {projeto.status || '—'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                    {prazosText || '—'}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <Badge
+                      variant="outline"
+                      className={cn('text-xs', priorityStyles[projeto.priority || ''] || '')}
+                    >
+                      {projeto.priority || '—'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onEdit?.(projeto)
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
+      </ScrollArea>
     </div>
   )
 }

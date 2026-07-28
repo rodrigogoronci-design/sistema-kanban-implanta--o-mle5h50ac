@@ -90,15 +90,7 @@ export type Database = {
           type?: string | null
           url?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: 'attachments_task_id_fkey'
-            columns: ['task_id']
-            isOneToOne: false
-            referencedRelation: 'tasks'
-            referencedColumns: ['id']
-          },
-        ]
+        Relationships: []
       }
       categories: {
         Row: {
@@ -629,6 +621,7 @@ export type Database = {
           migrated_from_task_id: string | null
           minutes_spent: number
           name: string
+          priority: string
           project_id: string | null
           rat_url: string | null
           realization_date: string | null
@@ -646,6 +639,7 @@ export type Database = {
           migrated_from_task_id?: string | null
           minutes_spent?: number
           name: string
+          priority?: string
           project_id?: string | null
           rat_url?: string | null
           realization_date?: string | null
@@ -663,6 +657,7 @@ export type Database = {
           migrated_from_task_id?: string | null
           minutes_spent?: number
           name?: string
+          priority?: string
           project_id?: string | null
           rat_url?: string | null
           realization_date?: string | null
@@ -690,12 +685,16 @@ export type Database = {
         Row: {
           analyst_id: string | null
           client_id: string | null
+          commission_status: string
+          contracted_hours: number | null
           created_at: string
           current_step_id: string | null
           data_demanda: string | null
           forecast_end: string | null
           forecast_start: string | null
+          generates_commission: boolean
           id: string
+          is_general: boolean
           is_new_client: boolean
           jornada_id: string | null
           migrated_from_id: string | null
@@ -707,12 +706,16 @@ export type Database = {
         Insert: {
           analyst_id?: string | null
           client_id?: string | null
+          commission_status?: string
+          contracted_hours?: number | null
           created_at?: string
           current_step_id?: string | null
           data_demanda?: string | null
           forecast_end?: string | null
           forecast_start?: string | null
+          generates_commission?: boolean
           id?: string
+          is_general?: boolean
           is_new_client?: boolean
           jornada_id?: string | null
           migrated_from_id?: string | null
@@ -724,12 +727,16 @@ export type Database = {
         Update: {
           analyst_id?: string | null
           client_id?: string | null
+          commission_status?: string
+          contracted_hours?: number | null
           created_at?: string
           current_step_id?: string | null
           data_demanda?: string | null
           forecast_end?: string | null
           forecast_start?: string | null
+          generates_commission?: boolean
           id?: string
+          is_general?: boolean
           is_new_client?: boolean
           jornada_id?: string | null
           migrated_from_id?: string | null
