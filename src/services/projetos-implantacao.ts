@@ -186,6 +186,19 @@ export async function deleteAtividade(id: string): Promise<void> {
 }
 
 export async function deleteProjeto(id: string): Promise<void> {
+  const { data: atividades } = await supabase
+    .from('projeto_atividades')
+    .select('id')
+    .eq('project_id', id)
+
+  if (atividades && atividades.length > 0) {
+    const atividadeIds = atividades.map((a) => a.id)
+    await supabase
+      .from('projeto_atividade_time_entries')
+      .delete()
+      .in('projeto_atividade_id', atividadeIds)
+  }
+
   await supabase.from('projeto_atividades').delete().eq('project_id', id)
   await supabase.from('jornada_etapas').delete().eq('project_id', id)
   const { error } = await supabase.from('projetos_implantacao').delete().eq('id', id)

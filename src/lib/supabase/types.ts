@@ -702,6 +702,7 @@ export type Database = {
           notes: string | null
           priority: string | null
           status: string
+          status_id: string | null
         }
         Insert: {
           analyst_id?: string | null
@@ -723,6 +724,7 @@ export type Database = {
           notes?: string | null
           priority?: string | null
           status?: string
+          status_id?: string | null
         }
         Update: {
           analyst_id?: string | null
@@ -744,6 +746,7 @@ export type Database = {
           notes?: string | null
           priority?: string | null
           status?: string
+          status_id?: string | null
         }
         Relationships: [
           {
@@ -765,6 +768,13 @@ export type Database = {
             columns: ['jornada_id']
             isOneToOne: false
             referencedRelation: 'jornadas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'projetos_implantacao_status_id_fkey'
+            columns: ['status_id']
+            isOneToOne: false
+            referencedRelation: 'project_statuses'
             referencedColumns: ['id']
           },
         ]

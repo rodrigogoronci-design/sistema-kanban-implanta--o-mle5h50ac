@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
 import { ProjetoFormModal } from '@/components/projetos-implantacao/ProjetoFormModal'
 import { ProjetoListView } from '@/components/projetos-implantacao/ProjetoListView'
-import { fetchProjetos, ProjetoImplantacao } from '@/services/projetos-implantacao'
+import { fetchProjetos, deleteProjeto, ProjetoImplantacao } from '@/services/projetos-implantacao'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -320,6 +320,19 @@ export default function ProjetosImplantacao() {
           onEdit={(p) => {
             setEditingProjeto(p)
             setModalOpen(true)
+          }}
+          onDelete={async (p) => {
+            try {
+              await deleteProjeto(p.id)
+              setProjetos((prev) => prev.filter((proj) => proj.id !== p.id))
+              toast({ title: 'Sucesso', description: 'Projeto excluído com sucesso' })
+            } catch (e: any) {
+              toast({
+                title: 'Erro',
+                description: 'Erro ao excluir projeto. Tente novamente.',
+                variant: 'destructive',
+              })
+            }
           }}
         />
       )}
