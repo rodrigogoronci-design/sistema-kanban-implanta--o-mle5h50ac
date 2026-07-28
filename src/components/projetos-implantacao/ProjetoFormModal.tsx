@@ -42,7 +42,10 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
   const [name, setName] = useState('')
   const [clientId, setClientId] = useState('')
   const [analystId, setAnalystId] = useState('')
-  const [status, setStatus] = useState('Ativo')
+  const [statusId, setStatusId] = useState('backlog')
+  const [projectStatuses, setProjectStatuses] = useState<
+    { id: string; name: string; color: string }[]
+  >([])
   const [dataDemanda, setDataDemanda] = useState('')
   const [isNewClient, setIsNewClient] = useState(false)
   const [priority, setPriority] = useState('Média')
@@ -58,7 +61,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
       setName(projeto.name || '')
       setClientId(projeto.client_id || '')
       setAnalystId(projeto.analyst_id || '')
-      setStatus(projeto.status || 'Ativo')
+      setStatusId(projeto.status_id || 'backlog')
       setDataDemanda(projeto.data_demanda || '')
       setIsNewClient(projeto.is_new_client || false)
       setPriority(projeto.priority || 'Média')
@@ -69,7 +72,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
       setName('')
       setClientId('')
       setAnalystId('')
-      setStatus('Ativo')
+      setStatusId('backlog')
       setDataDemanda('')
       setIsNewClient(false)
       setPriority('Média')
@@ -81,12 +84,15 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
 
   useEffect(() => {
     const fetchOptions = async () => {
-      const [{ data: clientsData }, { data: analystsData }] = await Promise.all([
-        supabase.from('clients').select('id, name').order('name'),
-        supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
-      ])
+      const [{ data: clientsData }, { data: analystsData }, { data: statusesData }] =
+        await Promise.all([
+          supabase.from('clients').select('id, name').order('name'),
+          supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
+          supabase.from('project_statuses').select('id, name, color').order('name'),
+        ])
       setClients(clientsData || [])
       setAnalysts(analystsData || [])
+      setProjectStatuses(statusesData || [])
     }
     fetchOptions()
   }, [])
@@ -103,7 +109,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
         name: name.trim(),
         client_id: clientId || null,
         analyst_id: analystId || null,
-        status,
+        status_id: statusId || null,
         data_demanda: dataDemanda || null,
         is_new_client: isNewClient,
         priority,
@@ -178,15 +184,22 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={statusId} onValueChange={setStatusId}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione um status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Ativo">Ativo</SelectItem>
-                  <SelectItem value="Pausado">Pausado</SelectItem>
-                  <SelectItem value="Concluído">Concluído</SelectItem>
-                  <SelectItem value="Cancelado">Cancelado</SelectItem>
+                  {projectStatuses.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        {s.name}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

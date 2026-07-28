@@ -152,12 +152,17 @@ export function ProjetoListView({ projetos, onEdit }: ProjetoListViewProps) {
                     {projeto.analyst?.nome || '—'}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
-                      className="text-xs"
-                    >
-                      {projeto.status || '—'}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      {projeto.statusInfo && (
+                        <div
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: projeto.statusInfo.color }}
+                        />
+                      )}
+                      <span className="text-xs whitespace-nowrap">
+                        {projeto.statusInfo?.name || '—'}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {prazosText || '—'}

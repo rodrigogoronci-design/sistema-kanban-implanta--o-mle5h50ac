@@ -10,6 +10,8 @@ export type ProjetoImplantacao = ProjetoRow & {
   forecast_end?: string | null
   priority?: string | null
   notes?: string | null
+  status_id?: string | null
+  statusInfo?: { id: string; name: string; color: string } | null
   client?: { id: string; name: string } | null
   analyst?: { id: string; nome: string } | null
 }
@@ -33,7 +35,9 @@ export async function fetchProjetos(filter?: {
 }): Promise<ProjetoImplantacao[]> {
   let query = supabase
     .from('projetos_implantacao')
-    .select('*, client:clients(id, name), analyst:analistas(id, nome)')
+    .select(
+      '*, client:clients(id, name), analyst:analistas(id, nome), statusInfo:project_statuses(id, name, color)',
+    )
     .order('created_at', { ascending: false })
 
   if (filter?.isNewClient !== undefined) {
@@ -48,7 +52,9 @@ export async function fetchProjetos(filter?: {
 export async function fetchProjetoDetails(id: string): Promise<ProjetoWithDetails | null> {
   const { data: projeto, error } = await supabase
     .from('projetos_implantacao')
-    .select('*, client:clients(id, name), analyst:analistas(id, nome)')
+    .select(
+      '*, client:clients(id, name), analyst:analistas(id, nome), statusInfo:project_statuses(id, name, color)',
+    )
     .eq('id', id)
     .single()
 
@@ -83,6 +89,7 @@ export async function createProjeto(
     analyst_id: data.analyst_id || null,
     jornada_id: data.jornada_id || null,
     status: data.status || 'Ativo',
+    status_id: data.status_id || null,
     data_demanda: data.data_demanda || null,
     is_new_client: data.is_new_client || false,
     priority: data.priority || 'Média',
@@ -111,6 +118,7 @@ export async function updateProjeto(
   if (data.analyst_id !== undefined) updateData.analyst_id = data.analyst_id
   if (data.jornada_id !== undefined) updateData.jornada_id = data.jornada_id
   if (data.status !== undefined) updateData.status = data.status
+  if (data.status_id !== undefined) updateData.status_id = data.status_id
   if (data.data_demanda !== undefined) updateData.data_demanda = data.data_demanda
   if (data.is_new_client !== undefined) updateData.is_new_client = data.is_new_client
   if (data.priority !== undefined) updateData.priority = data.priority

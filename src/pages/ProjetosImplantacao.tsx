@@ -24,6 +24,8 @@ import { ProjetoListView } from '@/components/projetos-implantacao/ProjetoListVi
 import { fetchProjetos, ProjetoImplantacao } from '@/services/projetos-implantacao'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { supabase } from '@/lib/supabase/client'
 
 type ViewMode = 'cards' | 'list'
 
@@ -47,6 +49,10 @@ export default function ProjetosImplantacao() {
   const [editingProjeto, setEditingProjeto] = useState<ProjetoImplantacao | null>(null)
   const [view, setView] = useState<ViewMode>('cards')
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
+  const [projectStatuses, setProjectStatuses] = useState<
+    { id: string; name: string; color: string }[]
+  >([])
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   useEffect(() => {
     setView(getStoredView())
@@ -64,8 +70,12 @@ export default function ProjetosImplantacao() {
   const loadProjetos = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await fetchProjetos(showNewClientOnly ? { isNewClient: true } : undefined)
+      const [data, { data: statuses }] = await Promise.all([
+        fetchProjetos(showNewClientOnly ? { isNewClient: true } : undefined),
+        supabase.from('project_statuses').select('id, name, color').order('name'),
+      ])
       setProjetos(data)
+      setProjectStatuses(statuses || [])
     } catch {
       toast({ title: 'Erro', description: 'Falha ao carregar projetos', variant: 'destructive' })
     } finally {
@@ -77,9 +87,11 @@ export default function ProjetosImplantacao() {
     loadProjetos()
   }, [loadProjetos])
 
-  const filteredProjetos = projetos.filter(
-    (p) => !search || p.name?.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filteredProjetos = projetos.filter((p) => {
+    if (search && !p.name?.toLowerCase().includes(search.toLowerCase())) return false
+    if (statusFilter !== 'all' && p.status_id !== statusFilter) return false
+    return true
+  })
 
   const toggleCardExpansion = (id: string) => {
     setExpandedCards((prev) => {
@@ -163,6 +175,31 @@ export default function ProjetosImplantacao() {
         </div>
       </div>
 
+      <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+        <div className="overflow-x-auto pb-1 -mb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <TabsList className="w-max inline-flex justify-start h-10 items-center bg-muted p-1 rounded-md">
+            <TabsTrigger value="all" className="gap-2 px-4">
+              Todos
+              <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                {projetos.length}
+              </Badge>
+            </TabsTrigger>
+            {projectStatuses.map((s) => (
+              <TabsTrigger key={s.id} value={s.id} className="gap-2 px-4">
+                <div
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: s.color }}
+                />
+                {s.name}
+                <Badge variant="secondary" className="px-1.5 py-0.5 text-xs bg-background">
+                  {projetos.filter((p) => p.status_id === s.id).length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando projetos...</div>
       ) : filteredProjetos.length === 0 ? (
@@ -216,11 +253,14 @@ export default function ProjetosImplantacao() {
                       <div className="text-xs text-muted-foreground truncate">{clientName}</div>
                     )}
                     <div className="flex items-center gap-1.5">
-                      <Badge
-                        variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
-                        className="text-[10px] px-1.5 py-0"
-                      >
-                        {projeto.status}
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {projeto.statusInfo && (
+                          <div
+                            className="w-2 h-2 rounded-full mr-1 shrink-0"
+                            style={{ backgroundColor: projeto.statusInfo.color }}
+                          />
+                        )}
+                        {projeto.statusInfo?.name || projeto.status}
                       </Badge>
                       {analystName && (
                         <span className="text-[10px] text-muted-foreground truncate">

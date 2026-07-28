@@ -297,13 +297,19 @@ export default function ProjetosImplantacaoDetail() {
           )}
         </div>
         <Badge
-          variant={projeto.status === 'Concluído' ? 'default' : 'secondary'}
+          variant={projeto.statusInfo?.name === 'Concluído' ? 'default' : 'secondary'}
           className={cn(
             'font-normal',
-            projeto.status === 'Concluído' && 'bg-emerald-500/10 text-emerald-600',
+            projeto.statusInfo?.name === 'Concluído' && 'bg-emerald-500/10 text-emerald-600',
           )}
         >
-          {projeto.status}
+          {projeto.statusInfo && (
+            <div
+              className="w-2 h-2 rounded-full mr-1"
+              style={{ backgroundColor: projeto.statusInfo.color }}
+            />
+          )}
+          {projeto.statusInfo?.name || projeto.status}
         </Badge>
       </div>
 
