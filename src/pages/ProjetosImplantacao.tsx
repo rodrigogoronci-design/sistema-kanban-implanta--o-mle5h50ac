@@ -29,12 +29,6 @@ type ViewMode = 'cards' | 'list'
 
 const VIEW_STORAGE_KEY = 'projetos-implantacao-view'
 
-const priorityStyles: Record<string, string> = {
-  Alta: 'bg-red-100 text-red-700 border-red-200',
-  Média: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  Baixa: 'bg-blue-100 text-blue-700 border-blue-200',
-}
-
 function getStoredView(): ViewMode {
   try {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY)
@@ -218,25 +212,9 @@ export default function ProjetosImplantacao() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-3 pt-0 space-y-1.5">
-                    <div className="text-xs text-muted-foreground truncate">
-                      {clientName && analystName ? (
-                        <span>
-                          <span className="font-medium text-foreground">Cliente:</span> {clientName}
-                          {' · '}
-                          <span className="font-medium text-foreground">Analista:</span>{' '}
-                          {analystName}
-                        </span>
-                      ) : clientName ? (
-                        <span>
-                          <span className="font-medium text-foreground">Cliente:</span> {clientName}
-                        </span>
-                      ) : analystName ? (
-                        <span>
-                          <span className="font-medium text-foreground">Analista:</span>{' '}
-                          {analystName}
-                        </span>
-                      ) : null}
-                    </div>
+                    {clientName && (
+                      <div className="text-xs text-muted-foreground truncate">{clientName}</div>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <Badge
                         variant={projeto.status === 'Ativo' ? 'default' : 'outline'}
@@ -244,15 +222,11 @@ export default function ProjetosImplantacao() {
                       >
                         {projeto.status}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'text-[10px] px-1.5 py-0',
-                          priorityStyles[projeto.priority || ''] || '',
-                        )}
-                      >
-                        {projeto.priority || '—'}
-                      </Badge>
+                      {analystName && (
+                        <span className="text-[10px] text-muted-foreground truncate">
+                          {analystName}
+                        </span>
+                      )}
                     </div>
                     {hasExtraInfo && (
                       <Collapsible open={isExpanded} onOpenChange={() => {}}>

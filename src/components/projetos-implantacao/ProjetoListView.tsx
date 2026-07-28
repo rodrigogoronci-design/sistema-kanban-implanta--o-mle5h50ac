@@ -12,26 +12,18 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
 import type { ProjetoImplantacao } from '@/services/projetos-implantacao'
 
-type SortColumn = 'name' | 'analyst' | 'status' | 'prazos' | 'priority'
+type SortColumn = 'name' | 'analyst' | 'status' | 'prazos'
 
 type SortDirection = 'asc' | 'desc'
 
 const columns: { key: SortColumn; label: string }[] = [
-  { key: 'name', label: 'Projeto + Cliente' },
+  { key: 'name', label: 'Projeto' },
   { key: 'analyst', label: 'Analista' },
   { key: 'status', label: 'Status' },
   { key: 'prazos', label: 'Prazos' },
-  { key: 'priority', label: 'Prioridade' },
 ]
-
-const priorityStyles: Record<string, string> = {
-  Alta: 'bg-red-100 text-red-700 border-red-200',
-  Média: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  Baixa: 'bg-blue-100 text-blue-700 border-blue-200',
-}
 
 function formatDate(date: string | null | undefined): string {
   if (!date) return ''
@@ -56,8 +48,6 @@ function getSortValue(projeto: ProjetoImplantacao, column: SortColumn): string {
       ].filter(Boolean)
       return parts.join(' ') ?? ''
     }
-    case 'priority':
-      return projeto.priority?.toLowerCase() ?? ''
   }
 }
 
@@ -141,17 +131,19 @@ export function ProjetoListView({ projetos, onEdit }: ProjetoListViewProps) {
                   className="cursor-pointer hover:bg-muted/50 transition-colors"
                   onClick={() => navigate(`/projetos-implantacao/${projeto.id}`)}
                 >
-                  <TableCell className="font-medium whitespace-nowrap">
-                    <div className="flex items-center gap-1.5">
-                      <span className="truncate max-w-[240px]">{projeto.name || '—'}</span>
-                      {projeto.is_new_client && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
-                          Novo Cliente
-                        </Badge>
-                      )}
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="truncate max-w-[240px]">{projeto.name || '—'}</span>
+                        {projeto.is_new_client && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                            Novo Cliente
+                          </Badge>
+                        )}
+                      </div>
                       {hasClient && (
-                        <span className="text-muted-foreground text-xs whitespace-nowrap">
-                          · {projeto.client!.name}
+                        <span className="text-sm text-muted-foreground">
+                          {projeto.client!.name}
                         </span>
                       )}
                     </div>
@@ -169,14 +161,6 @@ export function ProjetoListView({ projetos, onEdit }: ProjetoListViewProps) {
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {prazosText || '—'}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <Badge
-                      variant="outline"
-                      className={cn('text-xs', priorityStyles[projeto.priority || ''] || '')}
-                    >
-                      {projeto.priority || '—'}
-                    </Badge>
                   </TableCell>
                   <TableCell className="text-center">
                     <Button
