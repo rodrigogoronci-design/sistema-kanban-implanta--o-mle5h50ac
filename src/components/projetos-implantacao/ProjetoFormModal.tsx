@@ -44,7 +44,7 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
   const [analystId, setAnalystId] = useState('')
   const [statusId, setStatusId] = useState('backlog')
   const [projectStatuses, setProjectStatuses] = useState<
-    { id: string; name: string; color: string }[]
+    { id: string; name: string; color: string; position?: number | null }[]
   >([])
   const [dataDemanda, setDataDemanda] = useState('')
   const [isNewClient, setIsNewClient] = useState(false)
@@ -88,11 +88,16 @@ export function ProjetoFormModal({ open, onOpenChange, projeto, onSaved }: Proje
         await Promise.all([
           supabase.from('clients').select('id, name').order('name'),
           supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
-          supabase.from('project_statuses').select('id, name, color').order('name'),
+          supabase
+            .from('project_statuses')
+            .select('id, name, color, position')
+            .order('position' as any, { ascending: true, nullsFirst: false }),
         ])
       setClients(clientsData || [])
       setAnalysts(analystsData || [])
-      setProjectStatuses(statusesData || [])
+      setProjectStatuses(
+        (statusesData || []).sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999)),
+      )
     }
     fetchOptions()
   }, [])

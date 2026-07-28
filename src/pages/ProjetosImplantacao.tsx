@@ -50,7 +50,7 @@ export default function ProjetosImplantacao() {
   const [view, setView] = useState<ViewMode>('cards')
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set())
   const [projectStatuses, setProjectStatuses] = useState<
-    { id: string; name: string; color: string }[]
+    { id: string; name: string; color: string; position?: number | null }[]
   >([])
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
@@ -72,10 +72,15 @@ export default function ProjetosImplantacao() {
       setLoading(true)
       const [data, { data: statuses }] = await Promise.all([
         fetchProjetos(showNewClientOnly ? { isNewClient: true } : undefined),
-        supabase.from('project_statuses').select('id, name, color').order('name'),
+        supabase
+          .from('project_statuses')
+          .select('id, name, color, position')
+          .order('position' as any, { ascending: true, nullsFirst: false }),
       ])
       setProjetos(data)
-      setProjectStatuses(statuses || [])
+      setProjectStatuses(
+        (statuses || []).sort((a: any, b: any) => (a.position ?? 999) - (b.position ?? 999)),
+      )
     } catch {
       toast({ title: 'Erro', description: 'Falha ao carregar projetos', variant: 'destructive' })
     } finally {

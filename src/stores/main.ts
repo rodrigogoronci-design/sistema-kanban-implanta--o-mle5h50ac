@@ -36,6 +36,7 @@ export interface ProjectStatus {
   id: string
   name: string
   color: string
+  position?: number | null
 }
 
 export interface Project {
@@ -198,7 +199,10 @@ async function loadInitialData() {
       supabase.from('clients').select('*'),
       supabase.from('client_contacts').select('*'),
       supabase.from('projects').select('*'),
-      supabase.from('project_statuses').select('*'),
+      supabase
+        .from('project_statuses')
+        .select('*')
+        .order('position' as any, { ascending: true, nullsFirst: false }),
       supabase.from('columns').select('*').order('position'),
       supabase.from('categories').select('*'),
       supabase.from('tasks').select('*'),
@@ -270,11 +274,14 @@ async function loadInitialData() {
         commission_status: p.commission_status || null,
         is_new_client: p.is_new_client || false,
       })),
-      projectStatuses: (statuses || []).map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        color: s.color,
-      })),
+      projectStatuses: (statuses || [])
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          position: s.position ?? 999,
+        }))
+        .sort((a: any, b: any) => (a.position || 999) - (b.position || 999)),
       columns: (cols || []).map((c: any) => ({
         id: c.id,
         title: c.title,
@@ -771,7 +778,7 @@ export default function useMainStore() {
       }
       const { data, error } = await supabase
         .from('project_statuses')
-        .insert({ name: trimmedName, color: status.color })
+        .insert({ name: trimmedName, color: status.color, position: 999 } as any)
         .select()
         .single()
       if (error) {
@@ -782,6 +789,7 @@ export default function useMainStore() {
         id: data.id,
         name: data.name,
         color: data.color,
+        position: (data as any).position ?? 999,
       }
       store.setState((s) => ({
         ...s,
