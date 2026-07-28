@@ -322,6 +322,8 @@ export default function ProjetosImplantacao() {
       ) : (
         <ProjetoListView
           projetos={filteredProjetos}
+          projectStatuses={projectStatuses}
+          statusFilter={statusFilter}
           onEdit={(p) => {
             setEditingProjeto(p)
             setModalOpen(true)

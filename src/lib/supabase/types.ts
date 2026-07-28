@@ -473,16 +473,19 @@ export type Database = {
           color: string
           id: string
           name: string
+          position: number | null
         }
         Insert: {
           color: string
           id: string
           name: string
+          position?: number | null
         }
         Update: {
           color?: string
           id?: string
           name?: string
+          position?: number | null
         }
         Relationships: []
       }
