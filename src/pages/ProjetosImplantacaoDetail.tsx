@@ -74,6 +74,11 @@ export default function ProjetosImplantacaoDetail() {
   const [projectTotalHours, setProjectTotalHours] = useState(0)
   const [activityHours, setActivityHours] = useState<Record<string, number>>({})
   const [deleteTarget, setDeleteTarget] = useState<ProjetoAtividade | null>(null)
+  const [deleteEtapaTarget, setDeleteEtapaTarget] = useState<{
+    id: string
+    name: string
+    activityCount: number
+  } | null>(null)
 
   const loadData = useCallback(async () => {
     if (!id) return
@@ -219,7 +224,7 @@ export default function ProjetosImplantacaoDetail() {
   const handleDeleteEtapa = async (etapaId: string) => {
     try {
       await deleteEtapaFromProject(etapaId)
-      toast.success('Etapa removida!')
+      toast.success('Etapa excluída com sucesso!')
       await loadData()
     } catch (e: any) {
       toast.error('Erro: ' + e.message)
@@ -408,7 +413,12 @@ export default function ProjetosImplantacaoDetail() {
                     onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      handleDeleteEtapa(etapa.id)
+                      const etAtvsCount = atividades.filter((a) => a.etapa_id === etapa.id).length
+                      setDeleteEtapaTarget({
+                        id: etapa.id,
+                        name: etapa.name,
+                        activityCount: etAtvsCount,
+                      })
                     }}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -606,12 +616,61 @@ export default function ProjetosImplantacaoDetail() {
                 if (!deleteTarget) return
                 try {
                   await deleteAtividade(deleteTarget.id)
-                  toast.success('Atividade removida!')
+                  toast.success('Atividade excluída com sucesso!')
                   await loadData()
                 } catch (e: any) {
                   toast.error('Erro ao excluir: ' + e.message)
                 } finally {
                   setDeleteTarget(null)
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!deleteEtapaTarget}
+        onOpenChange={(open) => !open && setDeleteEtapaTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir etapa</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <span>
+                Tem certeza que deseja excluir "{deleteEtapaTarget?.name}"? Esta ação não pode ser
+                desfeita.
+                {deleteEtapaTarget && deleteEtapaTarget.activityCount > 0 && (
+                  <>
+                    {' '}
+                    <span className="text-destructive font-medium">
+                      Esta etapa possui {deleteEtapaTarget.activityCount}{' '}
+                      {deleteEtapaTarget.activityCount === 1
+                        ? 'atividade vinculada'
+                        : 'atividades vinculadas'}{' '}
+                      que também serão permanentemente removidas.
+                    </span>
+                  </>
+                )}
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deleteEtapaTarget) return
+                try {
+                  await deleteEtapaFromProject(deleteEtapaTarget.id)
+                  toast.success('Etapa excluída com sucesso!')
+                  await loadData()
+                } catch (e: any) {
+                  toast.error('Erro ao excluir: ' + e.message)
+                } finally {
+                  setDeleteEtapaTarget(null)
                 }
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

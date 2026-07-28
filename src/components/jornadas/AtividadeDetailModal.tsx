@@ -225,7 +225,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
     setSaving(true)
     try {
       await onDelete(atividade.id)
-      toast.success('Atividade removida!')
+      toast.success('Atividade excluída com sucesso!')
       setShowDeleteConfirm(false)
       onClose()
     } catch (e: any) {

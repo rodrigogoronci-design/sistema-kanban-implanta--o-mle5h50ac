@@ -240,6 +240,21 @@ export async function addEtapaToProject(projetoId: string, name: string): Promis
 }
 
 export async function deleteEtapaFromProject(etapaId: string): Promise<void> {
+  const { data: atividades } = await supabase
+    .from('projeto_atividades')
+    .select('id')
+    .eq('etapa_id', etapaId)
+
+  if (atividades && atividades.length > 0) {
+    const atividadeIds = atividades.map((a) => a.id)
+    await supabase
+      .from('projeto_atividade_time_entries')
+      .delete()
+      .in('projeto_atividade_id', atividadeIds)
+
+    await supabase.from('projeto_atividades').delete().eq('etapa_id', etapaId)
+  }
+
   const { error } = await supabase.from('jornada_etapas').delete().eq('id', etapaId)
   if (error) throw error
 }
