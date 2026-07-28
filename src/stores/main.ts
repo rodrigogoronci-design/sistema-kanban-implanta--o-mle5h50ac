@@ -761,16 +761,44 @@ export default function useMainStore() {
       store.setState((s) => ({ ...s, projects: s.projects.filter((p) => p.id !== id) }))
       supabase.from('projects').delete().eq('id', id).then()
     },
-    addProjectStatus: (status: Omit<ProjectStatus, 'id'>) => {
-      const id = `ps-${Math.random().toString(36).substr(2, 9)}`
-      store.setState((s) => ({ ...s, projectStatuses: [...s.projectStatuses, { ...status, id }] }))
-      supabase
+    addProjectStatus: async (status: Omit<ProjectStatus, 'id'>): Promise<string | null> => {
+      const trimmedName = status.name.trim()
+      const existing = store.state.projectStatuses.find(
+        (s) => s.name.toLowerCase() === trimmedName.toLowerCase(),
+      )
+      if (existing) {
+        return null
+      }
+      const { data, error } = await supabase
         .from('project_statuses')
-        .insert({ id, name: status.name, color: status.color })
-        .then()
-      return id
+        .insert({ name: trimmedName, color: status.color })
+        .select()
+        .single()
+      if (error) {
+        console.error('Error adding project status:', error)
+        return null
+      }
+      const newStatus: ProjectStatus = {
+        id: data.id,
+        name: data.name,
+        color: data.color,
+      }
+      store.setState((s) => ({
+        ...s,
+        projectStatuses: [...s.projectStatuses, newStatus],
+      }))
+      return newStatus.id
     },
-    updateProjectStatus: (id: string, payload: Partial<ProjectStatus>) => {
+    updateProjectStatus: (id: string, payload: Partial<ProjectStatus>): boolean => {
+      if (payload.name) {
+        const trimmedName = payload.name.trim()
+        const existing = store.state.projectStatuses.find(
+          (s) => s.id !== id && s.name.toLowerCase() === trimmedName.toLowerCase(),
+        )
+        if (existing) {
+          return false
+        }
+      }
       store.setState((s) => ({
         ...s,
         projectStatuses: s.projectStatuses.map((ps) => (ps.id === id ? { ...ps, ...payload } : ps)),
@@ -779,7 +807,13 @@ export default function useMainStore() {
         .from('project_statuses')
         .update({ name: payload.name, color: payload.color })
         .eq('id', id)
-        .then()
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating project status:', error)
+            loadInitialData()
+          }
+        })
+      return true
     },
     deleteProjectStatus: (id: string, fallbackId?: string) => {
       store.setState((s) => ({

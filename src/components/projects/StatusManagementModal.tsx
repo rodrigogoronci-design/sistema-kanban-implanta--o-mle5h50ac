@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { toast } from 'sonner'
 
 export function StatusManagementModal({
   open,
@@ -33,17 +34,46 @@ export function StatusManagementModal({
   const [color, setColor] = useState('#3b82f6')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [deleteData, setDeleteData] = useState<{ id: string; fallback: string } | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const handleSave = () => {
-    if (!name) return
-    if (editingId) {
-      store.updateProjectStatus(editingId, { name, color })
-      setEditingId(null)
-    } else {
-      store.addProjectStatus({ name, color })
+  const isDuplicate = store.projectStatuses.some(
+    (s) => s.name.toLowerCase() === name.trim().toLowerCase() && s.id !== editingId,
+  )
+
+  const handleSave = async () => {
+    if (!name.trim() || isSaving) return
+    const trimmedName = name.trim()
+
+    if (isDuplicate) {
+      toast.error('Já existe um status com este nome.')
+      return
     }
-    setName('')
-    setColor('#3b82f6')
+
+    setIsSaving(true)
+    try {
+      if (editingId) {
+        const success = store.updateProjectStatus(editingId, { name: trimmedName, color })
+        if (!success) {
+          toast.error('Já existe um status com este nome.')
+          return
+        }
+        setEditingId(null)
+        toast.success('Status atualizado com sucesso!')
+      } else {
+        const resultId = await store.addProjectStatus({ name: trimmedName, color })
+        if (!resultId) {
+          toast.error('Não foi possível criar o status. Verifique se o nome já não existe.')
+          return
+        }
+        toast.success('Status criado com sucesso!')
+      }
+      setName('')
+      setColor('#3b82f6')
+    } catch {
+      toast.error('Erro ao salvar status. Tente novamente.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleEdit = (s: ProjectStatus) => {
@@ -58,6 +88,7 @@ export function StatusManagementModal({
       setDeleteData({ id, fallback: store.projectStatuses.find((x) => x.id !== id)?.id || '' })
     } else {
       store.deleteProjectStatus(id)
+      toast.success('Status excluído com sucesso!')
     }
   }
 
@@ -65,6 +96,7 @@ export function StatusManagementModal({
     if (deleteData) {
       store.deleteProjectStatus(deleteData.id, deleteData.fallback)
       setDeleteData(null)
+      toast.success('Status excluído com sucesso!')
     }
   }
 
@@ -129,7 +161,7 @@ export function StatusManagementModal({
                   className="p-1 h-9 cursor-pointer"
                 />
               </div>
-              <Button onClick={handleSave} disabled={!name}>
+              <Button onClick={handleSave} disabled={isSaving || !name.trim() || isDuplicate}>
                 {editingId ? <Pencil className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </Button>
               {editingId && (
