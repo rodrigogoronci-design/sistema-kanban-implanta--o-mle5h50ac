@@ -31,22 +31,27 @@ export async function fetchAtividades(
     .select('id, name, client_id')
     .in('id', projectIds)
 
-  const clientIds = [...new Set((projetos || []).map((p: any) => p.client_id).filter(Boolean))]
+  const projetoMap = new Map((projetos || []).map((p: any) => [p.id, p]))
+
+  const atividadeClientIds = atividades.map((a: any) => a.client_id).filter(Boolean)
+  const projetoClientIds = (projetos || []).map((p: any) => p.client_id).filter(Boolean)
+  const allClientIds = [...new Set([...atividadeClientIds, ...projetoClientIds])]
+
   const { data: clients } =
-    clientIds.length > 0
-      ? await db.from('clients').select('id, name').in('id', clientIds)
+    allClientIds.length > 0
+      ? await db.from('clients').select('id, name').in('id', allClientIds)
       : { data: [] }
 
-  const projetoMap = new Map((projetos || []).map((p: any) => [p.id, p]))
   const clientMap = new Map((clients || []).map((c: any) => [c.id, c]))
 
   return atividades.map((a: any) => {
     const projeto = projetoMap.get(a.project_id)
+    const resolvedClientId = a.client_id || projeto?.client_id || null
     return {
       ...a,
       projeto_name: projeto?.name || null,
-      client_id: projeto?.client_id || null,
-      client_name: projeto?.client_id ? clientMap.get(projeto.client_id)?.name || null : null,
+      client_id: resolvedClientId,
+      client_name: resolvedClientId ? clientMap.get(resolvedClientId)?.name || null : null,
     }
   })
 }

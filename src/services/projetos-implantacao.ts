@@ -19,6 +19,7 @@ export type ProjetoImplantacao = ProjetoRow & {
 export type ProjetoAtividade = Database['public']['Tables']['projeto_atividades']['Row'] & {
   migrated_from_task_id?: string | null
   responsible?: { id: string; nome: string } | null
+  client_id?: string | null
 }
 
 export type ProjetoWithDetails = ProjetoImplantacao & {

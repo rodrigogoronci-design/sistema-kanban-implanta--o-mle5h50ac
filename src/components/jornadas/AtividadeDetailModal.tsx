@@ -62,12 +62,20 @@ const STATUS_OPTIONS = [
 interface Props {
   atividade: ProjetoAtividade | null
   analysts: { id: string; nome: string }[]
+  clients: { id: string; name: string }[]
   onClose: () => void
   onUpdate: (id: string, data: Partial<ProjetoAtividade>) => Promise<void>
   onDelete?: (id: string) => Promise<void>
 }
 
-export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, onDelete }: Props) {
+export function AtividadeDetailModal({
+  atividade,
+  analysts,
+  clients,
+  onClose,
+  onUpdate,
+  onDelete,
+}: Props) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState('A Fazer')
@@ -76,6 +84,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
   const [realizationDate, setRealizationDate] = useState<string | null>(null)
   const [isCompleted, setIsCompleted] = useState(false)
   const [ratUrl, setRatUrl] = useState<string | null>(null)
+  const [clientId, setClientId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -112,6 +121,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
       setRealizationDate(atividade.realization_date)
       setIsCompleted(atividade.is_completed)
       setRatUrl(atividade.rat_url || null)
+      setClientId(atividade.client_id || null)
       setTimeEntries([])
       setShowTimeForm(false)
       setTimeDate(new Date().toISOString().split('T')[0])
@@ -179,6 +189,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         forecast_date: forecastDate,
         realization_date: realizationDate,
         is_completed: isCompleted,
+        client_id: clientId,
       }
       if (isCompleted && !realizationDate) {
         const today = new Date().toISOString().split('T')[0]
@@ -209,6 +220,7 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
         setRealizationDate(refreshed.realization_date)
         setIsCompleted(refreshed.is_completed)
         setRatUrl(refreshed.rat_url || null)
+        setClientId(refreshed.client_id || null)
       }
 
       toast.success('Atividade atualizada!')
@@ -363,6 +375,26 @@ export function AtividadeDetailModal({ atividade, analysts, onClose, onUpdate, o
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label>Cliente</Label>
+              <Select
+                value={clientId || 'none'}
+                onValueChange={(v) => setClientId(v === 'none' ? null : v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="-" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:gap-4">

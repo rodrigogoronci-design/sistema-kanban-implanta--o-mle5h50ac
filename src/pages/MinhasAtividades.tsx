@@ -31,6 +31,7 @@ export default function MinhasAtividades() {
   const { user } = useAuth()
   const [activities, setActivities] = useState<AtividadeWithRelations[]>([])
   const [analysts, setAnalysts] = useState<{ id: string; nome: string }[]>([])
+  const [allClients, setAllClients] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<ViewType>(
     () => (localStorage.getItem(VIEW_KEY) as ViewType) || 'kanban',
@@ -58,12 +59,14 @@ export default function MinhasAtividades() {
       return
     }
     try {
-      const [data, aRes] = await Promise.all([
+      const [data, aRes, cRes] = await Promise.all([
         fetchAtividades(responsibleFilter === 'all' ? null : responsibleFilter),
         supabase.from('analistas').select('id, nome').eq('status', 'Ativo').order('nome'),
+        supabase.from('clients').select('id, name').order('name'),
       ])
       setActivities(data)
       setAnalysts(aRes.data || [])
+      setAllClients(cRes.data || [])
     } catch (e: any) {
       toast.error('Erro ao carregar atividades: ' + e.message)
     } finally {
@@ -114,7 +117,17 @@ export default function MinhasAtividades() {
 
   const handleUpdate = async (id: string, data: Partial<ProjetoAtividade>) => {
     await updateAtividade(id, data)
-    setActivities((prev) => prev.map((a) => (a.id === id ? { ...a, ...data } : a)))
+    setActivities((prev) =>
+      prev.map((a) => {
+        if (a.id !== id) return a
+        const updated = { ...a, ...data }
+        if (data.client_id !== undefined) {
+          const client = allClients.find((c) => c.id === data.client_id)
+          updated.client_name = client?.name || null
+        }
+        return updated
+      }),
+    )
     if (selected?.id === id) setSelected((prev) => (prev ? { ...prev, ...data } : null))
   }
 
@@ -264,6 +277,7 @@ export default function MinhasAtividades() {
       <AtividadeDetailModal
         atividade={selected}
         analysts={analysts}
+        clients={allClients}
         onClose={() => setSelected(null)}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
