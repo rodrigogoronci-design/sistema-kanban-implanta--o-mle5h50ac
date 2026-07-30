@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
-import { CalendarClock, GripVertical, Lock } from 'lucide-react'
+import { CalendarClock, GripVertical, Lock, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AtividadeWithRelations } from '@/services/minhas-atividades'
 
@@ -7,6 +8,7 @@ interface Props {
   activities: AtividadeWithRelations[]
   onSelect: (a: AtividadeWithRelations) => void
   onDrop: (id: string, targetStatus: string) => Promise<void>
+  onAddClick?: () => void
 }
 
 const fmt = (d: string | null) => (d ? d.split('-').reverse().join('/') : null)
@@ -40,7 +42,7 @@ const COLS = [
   },
 ]
 
-export function KanbanView({ activities, onSelect, onDrop }: Props) {
+export function KanbanView({ activities, onSelect, onDrop, onAddClick }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverCol, setDragOverCol] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
@@ -101,7 +103,20 @@ export function KanbanView({ activities, onSelect, onDrop }: Props) {
             )}
           >
             <div className="flex items-center justify-between pb-1">
-              <h3 className="font-medium text-sm whitespace-nowrap">{col.title}</h3>
+              <div className="flex items-center gap-1">
+                {col.status === 'A Fazer' && onAddClick && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 shrink-0"
+                    onClick={onAddClick}
+                    title="Nova atividade"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+                <h3 className="font-medium text-sm whitespace-nowrap">{col.title}</h3>
+              </div>
               <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full">
                 {items.length}
               </span>

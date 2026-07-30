@@ -22,6 +22,7 @@ import { updateAtividade, deleteAtividade, ProjetoAtividade } from '@/services/p
 import { KanbanView } from '@/components/minhas-atividades/KanbanView'
 import { ListView } from '@/components/minhas-atividades/ListView'
 import { CalendarView } from '@/components/minhas-atividades/CalendarView'
+import { CreateAtividadeModal } from '@/components/minhas-atividades/CreateAtividadeModal'
 import { AtividadeDetailModal } from '@/components/jornadas/AtividadeDetailModal'
 
 type ViewType = 'kanban' | 'list' | 'calendar'
@@ -42,6 +43,7 @@ export default function MinhasAtividades() {
   const [selected, setSelected] = useState<AtividadeWithRelations | null>(null)
   const [responsibleFilter, setResponsibleFilter] = useState<string | 'all'>('all')
   const [ready, setReady] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     if (!user?.id) return
@@ -180,6 +182,10 @@ export default function MinhasAtividades() {
     setSelected(null)
   }
 
+  const handleCreated = (atividade: AtividadeWithRelations) => {
+    setActivities((prev) => [atividade, ...prev])
+  }
+
   const views = [
     { id: 'kanban' as const, label: 'Kanban', icon: LayoutGrid },
     { id: 'list' as const, label: 'Lista', icon: ListIcon },
@@ -267,7 +273,12 @@ export default function MinhasAtividades() {
           <p>Nenhuma atividade encontrada com os filtros atuais.</p>
         </div>
       ) : view === 'kanban' ? (
-        <KanbanView activities={filtered} onSelect={setSelected} onDrop={handleKanbanDrop} />
+        <KanbanView
+          activities={filtered}
+          onSelect={setSelected}
+          onDrop={handleKanbanDrop}
+          onAddClick={() => setShowCreateModal(true)}
+        />
       ) : view === 'list' ? (
         <ListView activities={filtered} onSelect={setSelected} />
       ) : (
@@ -281,6 +292,14 @@ export default function MinhasAtividades() {
         onClose={() => setSelected(null)}
         onUpdate={handleUpdate}
         onDelete={handleDelete}
+      />
+
+      <CreateAtividadeModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        analysts={analysts}
+        clients={allClients}
+        onCreated={handleCreated}
       />
     </div>
   )
